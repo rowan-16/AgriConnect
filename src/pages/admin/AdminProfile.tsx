@@ -240,10 +240,11 @@ export const AdminProfile: React.FC = () => {
                   <div className="relative">
                     <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
-                      type="text"
+                      type="tel"
                       disabled={!isEditing}
                       value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/[^0-9+\-\s()]/g, '') })}
+                      maxLength={16}
                       className="w-full pl-9 pr-3 py-2.5 text-xs font-semibold rounded-xl border border-slate-200 focus:border-purple-600 focus:ring-2 focus:ring-purple-600/10 disabled:bg-slate-50 disabled:text-slate-600"
                     />
                   </div>

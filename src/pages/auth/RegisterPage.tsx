@@ -134,9 +134,20 @@ export const RegisterPage: React.FC = () => {
     }, 300);
   };
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const filtered = e.target.value.replace(/[^0-9+\-\s()]/g, '');
+    setPhone(filtered);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    const phoneDigits = phone.replace(/[^0-9]/g, '');
+    if (!phoneDigits || phoneDigits.length < 10 || phoneDigits.length > 13) {
+      setError(t('invalidPhoneError', 'Please enter a valid 10-digit phone number.'));
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError('Passwords do not match.');
@@ -323,8 +334,9 @@ export const RegisterPage: React.FC = () => {
                     type="tel"
                     required
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={handlePhoneChange}
                     placeholder="+91 98765 43210"
+                    maxLength={16}
                     className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-agri-500 focus:ring-2 focus:ring-agri-500/20 outline-none transition-all"
                   />
                 </div>

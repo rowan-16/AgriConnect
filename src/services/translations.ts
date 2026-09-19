@@ -1029,6 +1029,12 @@ export const TRANSLATIONS: TranslationDictionary = {
     mr: 'मोफत सुरू करा',
     ta: 'இலவசமாக தொடங்குக',
   },
+  invalidPhoneError: {
+    en: 'Please enter a valid 10-digit phone number.',
+    hi: 'कृपया 10 अंकों का वैध फोन नंबर दर्ज करें।',
+    mr: 'कृपया १० अंकी वैध फोन नंबर प्रविष्ट करा.',
+    ta: 'செல்லுபடியாகும் 10 இலக்க தொலைபேசி எண்ணை உள்ளிடவும்.',
+  },
 
   // Landing Page Detailed Translations
   navFeatures: {
