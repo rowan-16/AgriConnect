@@ -2,19 +2,21 @@ import React from 'react';
 import { Bell, Truck, Package, DollarSign, ExternalLink } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const BuyerNotifications: React.FC = () => {
+  const { t } = useLanguage();
   const { notifications, markAsRead, markAllAsRead } = useNotifications();
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: 'Notifications & Order Alerts' }]} />
+      <Breadcrumb items={[{ label: t('notificationsAlerts', 'Notifications & Order Alerts') }]} />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Procurement Notifications</h1>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">{t('buyerNotificationsTitle', 'Procurement Notifications')}</h1>
           <p className="text-xs sm:text-sm text-slate-500">
-            Real-time updates on dispatch timelines, order status changes, and fresh crop arrivals.
+            {t('buyerNotificationsDesc', 'Real-time updates on dispatch timelines, order status changes, and fresh crop arrivals.')}
           </p>
         </div>
 
@@ -22,14 +24,14 @@ export const BuyerNotifications: React.FC = () => {
           onClick={markAllAsRead}
           className="px-4 py-2 bg-white text-amber-700 hover:text-amber-800 font-bold text-xs rounded-xl border border-slate-200 shadow-soft self-start sm:self-auto"
         >
-          Mark All as Read
+          {t('markAllAsRead', 'Mark All as Read')}
         </button>
       </div>
 
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-soft divide-y divide-slate-100 overflow-hidden">
         {notifications.length === 0 ? (
           <div className="p-12 text-center text-xs text-slate-400">
-            No notifications available. You're all caught up!
+            {t('noNotificationsAvailable', "No notifications available. You're all caught up!")}
           </div>
         ) : (
           notifications.map((notif) => (
@@ -67,7 +69,7 @@ export const BuyerNotifications: React.FC = () => {
                       href={notif.actionUrl}
                       className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 hover:text-amber-800"
                     >
-                      Track Shipment <ExternalLink className="w-3 h-3" />
+                      {t('trackShipment', 'Track Shipment')} <ExternalLink className="w-3 h-3" />
                     </a>
                   </div>
                 )}
@@ -83,3 +85,4 @@ export const BuyerNotifications: React.FC = () => {
     </div>
   );
 };
+

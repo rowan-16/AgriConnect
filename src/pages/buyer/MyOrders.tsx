@@ -24,8 +24,10 @@ import { Badge } from '../../components/common/Badge';
 import { EmptyState } from '../../components/common/EmptyState';
 import { Modal } from '../../components/common/Modal';
 import { InvoiceModal } from '../../components/common/InvoiceModal';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const MyOrders: React.FC = () => {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -70,7 +72,7 @@ export const MyOrders: React.FC = () => {
 
     setReviewOrder(null);
     refreshOrders();
-    showToast(`Thank you! Your feedback for order #${reviewOrder.id} has been recorded.`, 'success', 'Feedback Submitted');
+    showToast(t('feedbackSubmittedToast', `Thank you! Your feedback for order #${reviewOrder.id} has been recorded.`), 'success', t('feedbackSubmitted', 'Feedback Submitted'));
   };
 
   const filteredOrders = orders.filter((order) => {
@@ -86,29 +88,29 @@ export const MyOrders: React.FC = () => {
   const getStatusBadge = (status: OrderStatus) => {
     switch (status) {
       case 'pending':
-        return <Badge variant="amber" dot>Order Placed</Badge>;
+        return <Badge variant="amber" dot>{t('statusOrderPlaced', 'Order Placed')}</Badge>;
       case 'confirmed':
-        return <Badge variant="blue" dot>Farmer Confirmed</Badge>;
+        return <Badge variant="blue" dot>{t('statusFarmerConfirmed', 'Farmer Confirmed')}</Badge>;
       case 'processing':
-        return <Badge variant="purple" dot>Quality Grading</Badge>;
+        return <Badge variant="purple" dot>{t('statusQualityGrading', 'Quality Grading')}</Badge>;
       case 'shipped':
-        return <Badge variant="blue" dot>In Transit</Badge>;
+        return <Badge variant="blue" dot>{t('statusInTransit', 'In Transit')}</Badge>;
       case 'delivered':
-        return <Badge variant="emerald" dot>Delivered</Badge>;
+        return <Badge variant="emerald" dot>{t('statusDelivered', 'Delivered')}</Badge>;
       case 'cancelled':
-        return <Badge variant="red" dot>Cancelled</Badge>;
+        return <Badge variant="red" dot>{t('statusCancelled', 'Cancelled')}</Badge>;
     }
   };
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: 'My Procurement Orders' }]} />
+      <Breadcrumb items={[{ label: t('myProcurementOrders', 'My Procurement Orders') }]} />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Procurement Orders History</h1>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">{t('myOrdersTitle', 'Procurement Orders History')}</h1>
           <p className="text-xs sm:text-sm text-slate-500">
-            View past agricultural orders, track active logistics consignments, download invoices, and submit produce feedback.
+            {t('myOrdersDesc', 'View past agricultural orders, track active logistics consignments, download invoices, and submit produce feedback.')}
           </p>
         </div>
 
@@ -116,7 +118,7 @@ export const MyOrders: React.FC = () => {
           to="/buyer/browse"
           className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-md shadow-amber-600/20 flex items-center gap-1.5 self-start sm:self-auto"
         >
-          <ShoppingBag className="w-4 h-4" /> Place New Farm Order
+          <ShoppingBag className="w-4 h-4" /> {t('placeNewOrderBtn', 'Place New Farm Order')}
         </Link>
       </div>
 
@@ -128,13 +130,13 @@ export const MyOrders: React.FC = () => {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by Order ID, crop, or farmer..."
+            placeholder={t('searchMyOrdersPlaceholder', 'Search by Order ID, crop, or farmer...')}
             className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-amber-500 outline-none"
           />
         </div>
 
         <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider shrink-0">Filter:</span>
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider shrink-0">{t('filterLabel', 'Filter:')}</span>
           {(['All', 'pending', 'confirmed', 'processing', 'shipped', 'delivered'] as const).map((st) => (
             <button
               key={st}
@@ -155,9 +157,9 @@ export const MyOrders: React.FC = () => {
       {filteredOrders.length === 0 ? (
         <EmptyState
           icon={ClipboardList}
-          title="No procurement orders found"
-          description="You don't have any purchase orders matching your search filters."
-          actionText="Browse Marketplace"
+          title={t('noProcurementOrdersTitle', 'No procurement orders found')}
+          description={t('noProcurementOrdersDesc', "You don't have any purchase orders matching your search filters.")}
+          actionText={t('browseMarketplaceBtn', 'Browse Marketplace')}
           actionIcon={ShoppingBag}
           onAction={() => navigate('/buyer/browse')}
         />
@@ -175,13 +177,13 @@ export const MyOrders: React.FC = () => {
                     {getStatusBadge(order.orderStatus)}
                   </div>
                   <div className="text-xs text-slate-400 mt-1">
-                    Placed on {new Date(order.orderDate).toLocaleDateString('en-US', {
+                    {t('placedOnLabel', 'Placed on')} {new Date(order.orderDate).toLocaleDateString('en-US', {
                       month: 'short',
                       day: 'numeric',
                       year: 'numeric',
                       hour: '2-digit',
                       minute: '2-digit',
-                    })} • Tracking: <strong className="text-slate-700">{order.trackingNumber}</strong>
+                    })} • {t('trackingLabel', 'Tracking:')} <strong className="text-slate-700">{order.trackingNumber}</strong>
                   </div>
                 </div>
 
@@ -191,7 +193,7 @@ export const MyOrders: React.FC = () => {
                       ₹{order.totalAmount.toLocaleString('en-IN')}
                     </div>
                     <div className="text-[10px] text-emerald-600 font-bold uppercase">
-                      Payment {order.paymentStatus.toUpperCase()} ({order.paymentMethod.toUpperCase()})
+                      {t('paymentStatusLabel', 'Payment')} {order.paymentStatus.toUpperCase()} ({order.paymentMethod.toUpperCase()})
                     </div>
                   </div>
 
@@ -199,9 +201,9 @@ export const MyOrders: React.FC = () => {
                   <button
                     onClick={() => setInvoiceOrder(order)}
                     className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 border border-slate-200"
-                    title="Download Tax Invoice"
+                    title={t('downloadTaxInvoice', 'Download Tax Invoice')}
                   >
-                    <FileText className="w-3.5 h-3.5 text-slate-500" /> Tax Invoice
+                    <FileText className="w-3.5 h-3.5 text-slate-500" /> {t('taxInvoiceBtn', 'Tax Invoice')}
                   </button>
 
                   {/* Feedback Button */}
@@ -214,14 +216,14 @@ export const MyOrders: React.FC = () => {
                     }`}
                   >
                     <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                    {order.feedback ? `Rated ${order.feedback.rating}★` : 'Give Feedback'}
+                    {order.feedback ? `${t('ratedLabel', 'Rated')} ${order.feedback.rating}★` : t('giveFeedbackBtn', 'Give Feedback')}
                   </button>
 
                   <Link
                     to={`/buyer/track/${order.id}`}
                     className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
                   >
-                    <Truck className="w-4 h-4" /> Live Tracking
+                    <Truck className="w-4 h-4" /> {t('liveTrackingBtn', 'Live Tracking')}
                   </Link>
                 </div>
               </div>
@@ -232,7 +234,7 @@ export const MyOrders: React.FC = () => {
                   <div key={idx} className="p-3 bg-slate-50 rounded-2xl flex items-center gap-3 border border-slate-100">
                     <img src={item.image} alt={item.cropName} className="w-12 h-12 rounded-xl object-cover" />
                     <div className="min-w-0">
-                      <div className="text-xs font-bold text-slate-900 truncate">{item.cropName}</div>
+                      <div className="text-xs font-bold text-slate-900 truncate">{t(item.cropName, item.cropName)}</div>
                       <div className="text-[11px] text-slate-500">
                         {item.quantity} {item.unit} @ ₹{item.unitPrice}/{item.unit}
                       </div>
@@ -248,7 +250,7 @@ export const MyOrders: React.FC = () => {
               {order.feedback && (
                 <div className="p-3 bg-amber-50/60 rounded-2xl border border-amber-200 text-xs flex items-center justify-between">
                   <div>
-                    <span className="font-bold text-slate-900">Your Feedback: </span>
+                    <span className="font-bold text-slate-900">{t('yourFeedbackLabel', 'Your Feedback:')} </span>
                     <span className="text-slate-600 italic">"{order.feedback.comment}"</span>
                     <span className="ml-2 font-semibold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full text-[10px]">
                       {order.feedback.qualityTag}
@@ -262,11 +264,11 @@ export const MyOrders: React.FC = () => {
 
               <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between text-xs text-slate-500 gap-2">
                 <div>
-                  Farmer: <strong className="text-slate-800">{order.farmerName}</strong> • Destination: <strong>{order.deliveryAddress.city}, {order.deliveryAddress.state}</strong>
+                  {t('farmerLabel', 'Farmer:')} <strong className="text-slate-800">{order.farmerName}</strong> • {t('destinationLabel', 'Destination:')} <strong>{order.deliveryAddress.city}, {order.deliveryAddress.state}</strong>
                 </div>
 
                 <span className="text-emerald-700 font-semibold flex items-center gap-1">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" /> Protected by AgriConnect Escrow Guarantee
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" /> {t('escrowProtectionNotice', 'Protected by AgriConnect Escrow Guarantee')}
                 </span>
               </div>
             </div>
@@ -288,14 +290,14 @@ export const MyOrders: React.FC = () => {
         <Modal
           isOpen={!!reviewOrder}
           onClose={() => setReviewOrder(null)}
-          title={`Produce & Delivery Review: #${reviewOrder.id}`}
-          subtitle={`Farmer: ${reviewOrder.farmerName} • Rate produce quality & transit performance`}
+          title={`${t('produceDeliveryReviewTitle', 'Produce & Delivery Review:')} #${reviewOrder.id}`}
+          subtitle={`${t('farmerLabel', 'Farmer:')} ${reviewOrder.farmerName} • Rate produce quality & transit performance`}
         >
           <form onSubmit={handleSubmitReview} className="space-y-4 text-xs">
             {/* Star selector */}
             <div>
               <label className="block font-bold text-slate-700 uppercase tracking-wider mb-2">
-                Overall Produce Rating
+                {t('overallProduceRating', 'Overall Produce Rating')}
               </label>
               <div className="flex items-center gap-2">
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -323,7 +325,7 @@ export const MyOrders: React.FC = () => {
             {/* Quality Tag pills */}
             <div>
               <label className="block font-bold text-slate-700 uppercase tracking-wider mb-2">
-                Produce Highlight Tag
+                {t('produceHighlightTag', 'Produce Highlight Tag')}
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {[
@@ -353,14 +355,14 @@ export const MyOrders: React.FC = () => {
             {/* Comment */}
             <div>
               <label className="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Review & Remarks for Farmer
+                {t('reviewRemarksLabel', 'Review & Remarks for Farmer')}
               </label>
               <textarea
                 rows={3}
                 required
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
-                placeholder="Share your experience regarding texture, freshness, and packaging..."
+                placeholder={t('reviewCommentPlaceholder', 'Share your experience regarding texture, freshness, and packaging...')}
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 outline-none"
               />
             </div>
@@ -371,13 +373,13 @@ export const MyOrders: React.FC = () => {
                 onClick={() => setReviewOrder(null)}
                 className="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200"
               >
-                Cancel
+                {t('cancelBtn', 'Cancel')}
               </button>
               <button
                 type="submit"
                 className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-md shadow-amber-600/20"
               >
-                Submit Feedback
+                {t('submitFeedbackBtn', 'Submit Feedback')}
               </button>
             </div>
           </form>
@@ -387,4 +389,5 @@ export const MyOrders: React.FC = () => {
     </div>
   );
 };
+
 

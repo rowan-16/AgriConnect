@@ -16,12 +16,14 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { authService } from '../../services/authService';
 import { cloudinaryService } from '../../services/cloudinaryService';
 
 export const FarmerVerificationCard: React.FC = () => {
   const { user, updateUser } = useAuth();
+  const { t } = useLanguage();
   const { showToast } = useToast();
 
   const currentDocs = user?.verificationDocuments;
@@ -66,9 +68,9 @@ export const FarmerVerificationCard: React.FC = () => {
         updateUser(updatedUser);
       }
 
-      showToast('Document uploaded to Cloudinary & saved to Admin audit queue!', 'success', 'Cloudinary Upload');
+      showToast(t('docUploadedSuccess', 'Document uploaded to Cloudinary & saved to Admin audit queue!'), 'success', t('cloudinaryUpload', 'Cloudinary Upload'));
     } catch (err) {
-      showToast('Failed to upload document. Please try again.', 'error', 'Upload Error');
+      showToast(t('docUploadFailed', 'Failed to upload document. Please try again.'), 'error', t('uploadError', 'Upload Error'));
     } finally {
       setUploadingField(null);
     }
@@ -90,7 +92,7 @@ export const FarmerVerificationCard: React.FC = () => {
 
       if (updatedUser) {
         updateUser(updatedUser);
-        showToast('Your verification documents have been submitted to Admin for validation!', 'success', 'Verification Submitted');
+        showToast(t('verificationSubmittedMsg', 'Your verification documents have been submitted to Admin for validation!'), 'success', t('verificationSubmitted', 'Verification Submitted'));
       }
     }, 400);
   };
@@ -103,7 +105,7 @@ export const FarmerVerificationCard: React.FC = () => {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <h3 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              Farmer KYC & Land Verification
+              {t('farmerVerificationTitle', 'Farmer Identity & Land Verification Dossier')}
             </h3>
             {isVerified && <ShieldCheck className="w-5 h-5 text-emerald-600 fill-emerald-100" />}
           </div>
@@ -117,26 +119,27 @@ export const FarmerVerificationCard: React.FC = () => {
           {isVerified ? (
             <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-300">
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              Fully Verified Farmer
+              {t('verifiedFarmerBadge', 'Verified Farmer Badge Active')}
             </span>
           ) : currentDocs?.status === 'pending' ? (
             <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-100 text-amber-800 text-xs font-bold border border-amber-300 animate-pulse">
               <Clock className="w-4 h-4 text-amber-600" />
-              Pending Admin Validation
+              {t('pendingAdminValidation', 'Pending Admin Validation')}
             </span>
           ) : currentDocs?.status === 'rejected' ? (
             <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-rose-100 text-rose-800 text-xs font-bold border border-rose-300">
               <AlertCircle className="w-4 h-4 text-rose-600" />
-              Action Required (Rejected)
+              {t('actionRequiredRejected', 'Action Required (Rejected)')}
             </span>
           ) : (
             <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-100 text-slate-700 text-xs font-bold border border-slate-300">
               <FileText className="w-4 h-4 text-slate-500" />
-              Not Submitted
+              {t('notSubmitted', 'Not Submitted')}
             </span>
           )}
         </div>
       </div>
+
 
       {/* Verified Info Callout if verified */}
       {isVerified && (

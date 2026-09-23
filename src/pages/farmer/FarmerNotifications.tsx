@@ -4,8 +4,10 @@ import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
 import { Badge } from '../../components/common/Badge';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const FarmerNotifications: React.FC = () => {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const { notifications, markAsRead, markAllAsRead } = useNotifications();
   const [filterType, setFilterType] = useState<string>('all');
@@ -27,13 +29,13 @@ export const FarmerNotifications: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: 'Notifications & Alerts' }]} />
+      <Breadcrumb items={[{ label: t('notificationsAlerts', 'Notifications & Alerts') }]} />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Farmer Notifications & Alerts</h1>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">{t('farmerNotificationsTitle', 'Farmer Notifications & Alerts')}</h1>
           <p className="text-xs sm:text-sm text-slate-500">
-            Real-time updates on buyer contracts, severe weather alerts, and AI advisory recommendations.
+            {t('farmerNotificationsDesc', 'Real-time updates on buyer contracts, severe weather alerts, and AI advisory recommendations.')}
           </p>
         </div>
 
@@ -41,7 +43,7 @@ export const FarmerNotifications: React.FC = () => {
           onClick={markAllAsRead}
           className="px-4 py-2 bg-white text-agri-600 hover:text-agri-700 font-bold text-xs rounded-xl border border-slate-200 shadow-soft self-start sm:self-auto"
         >
-          Mark All as Read
+          {t('markAllAsRead', 'Mark All as Read')}
         </button>
       </div>
 
@@ -57,7 +59,7 @@ export const FarmerNotifications: React.FC = () => {
                 : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
             }`}
           >
-            {type.replace('_', ' ')}
+            {t(`filter_${type}`, type.replace('_', ' '))}
           </button>
         ))}
       </div>
@@ -66,7 +68,7 @@ export const FarmerNotifications: React.FC = () => {
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-soft divide-y divide-slate-100 overflow-hidden">
         {filtered.length === 0 ? (
           <div className="p-12 text-center text-xs text-slate-400">
-            No notifications in this category. You're all caught up!
+            {t('noNotificationsCategory', "No notifications in this category. You're all caught up!")}
           </div>
         ) : (
           filtered.map((notif) => (
@@ -104,7 +106,7 @@ export const FarmerNotifications: React.FC = () => {
                       href={notif.actionUrl}
                       className="inline-flex items-center gap-1 text-xs font-bold text-agri-600 hover:text-agri-700"
                     >
-                      View Details <ExternalLink className="w-3 h-3" />
+                      {t('viewDetails', 'View Details')} <ExternalLink className="w-3 h-3" />
                     </a>
                   </div>
                 )}
@@ -120,3 +122,4 @@ export const FarmerNotifications: React.FC = () => {
     </div>
   );
 };
+

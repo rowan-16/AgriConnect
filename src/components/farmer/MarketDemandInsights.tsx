@@ -1,8 +1,10 @@
 import React from 'react';
 import { TrendingUp, BarChart3, Clock, AlertTriangle, ArrowUpRight, Sparkles, CheckCircle2 } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 import { marketInsightService } from '../../services/marketInsightService';
 
 export const MarketDemandInsights: React.FC = () => {
+  const { t } = useLanguage();
   const insight = marketInsightService.getMarketDemandInsights();
 
   return (
@@ -16,7 +18,7 @@ export const MarketDemandInsights: React.FC = () => {
               <TrendingUp className="w-5 h-5" />
             </span>
             <h3 className="text-xl font-black text-slate-900 tracking-tight">
-              Platform Market Demand Insights
+              {t('platformMarketDemand', 'Platform Market Demand Insights')}
             </h3>
           </div>
           <p className="mt-1 text-xs text-slate-500">
@@ -33,9 +35,9 @@ export const MarketDemandInsights: React.FC = () => {
       {/* Analytics Highlights Banner */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200/70">
-          <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Top Trending Crop</span>
+          <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">{t('topTrendingCrop', 'Top Trending Crop')}</span>
           <p className="mt-1 text-base font-black text-slate-900 truncate">
-            {insight.topTrending[0]?.cropName}
+            {t(insight.topTrending[0]?.cropName, insight.topTrending[0]?.cropName)}
           </p>
           <span className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-emerald-700">
             <ArrowUpRight className="w-3.5 h-3.5" /> +{insight.topTrending[0]?.growthPercent}% Demand Surge
@@ -43,7 +45,7 @@ export const MarketDemandInsights: React.FC = () => {
         </div>
 
         <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200/70">
-          <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">Transactions Analyzed</span>
+          <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">{t('transactionsAnalyzed', 'Transactions Analyzed')}</span>
           <p className="mt-1 text-2xl font-black text-slate-900">
             {insight.totalTransactionsAnalyzed} Orders
           </p>
@@ -73,8 +75,8 @@ export const MarketDemandInsights: React.FC = () => {
                   #{idx + 1}
                 </span>
                 <div>
-                  <h5 className="text-sm font-bold text-slate-900">{item.cropName}</h5>
-                  <span className="text-xs text-slate-500 font-medium">{item.category} • Avg ₹{item.averagePrice.toLocaleString('en-IN')}/{item.unit}</span>
+                  <h5 className="text-sm font-bold text-slate-900">{t(item.cropName, item.cropName)}</h5>
+                  <span className="text-xs text-slate-500 font-medium">{t(item.category, item.category)} • Avg ₹{item.averagePrice.toLocaleString('en-IN')}/{item.unit}</span>
                 </div>
               </div>
 
@@ -93,7 +95,7 @@ export const MarketDemandInsights: React.FC = () => {
                     ? 'bg-emerald-100 text-emerald-800'
                     : 'bg-amber-100 text-amber-800'
                 }`}>
-                  {item.demandTag}
+                  {t(item.demandTag, item.demandTag)}
                 </span>
               </div>
             </div>
@@ -109,7 +111,7 @@ export const MarketDemandInsights: React.FC = () => {
             <span className="font-bold block text-slate-900 mb-0.5">Insufficient Data Notice (REQ-7.4):</span>
             <span>
               The following crops currently have fewer than 5 recorded platform transactions: 
-              <span className="font-bold text-amber-900"> {insight.insufficientDataCrops.join(', ')}</span>.
+              <span className="font-bold text-amber-900"> {insight.insufficientDataCrops.map(c => t(c, c)).join(', ')}</span>.
               Trend forecasting is suppressed for these items until more customer orders accumulate.
             </span>
           </div>
@@ -118,3 +120,4 @@ export const MarketDemandInsights: React.FC = () => {
     </div>
   );
 };
+

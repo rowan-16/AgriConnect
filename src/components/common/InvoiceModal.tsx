@@ -1,5 +1,6 @@
 import React from 'react';
 import { FileText, Download, Printer, X, CheckCircle2, ShieldCheck, Sprout } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 import { Order } from '../../types';
 
 interface InvoiceModalProps {
@@ -9,6 +10,7 @@ interface InvoiceModalProps {
 }
 
 export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClose }) => {
+  const { t } = useLanguage();
   if (!isOpen) return null;
 
   const handlePrint = () => {
@@ -33,8 +35,8 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClo
               <FileText className="w-5 h-5" />
             </span>
             <div>
-              <h3 className="font-bold text-base">AgriConnect Official Tax Invoice</h3>
-              <p className="text-xs text-slate-400">Order #{order.id} • {order.orderStatus.toUpperCase()}</p>
+              <h3 className="font-bold text-base">{t('officialTaxInvoice', 'AgriConnect Official Tax Invoice')}</h3>
+              <p className="text-xs text-slate-400">{t('order', 'Order')} #{order.id} • {order.orderStatus.toUpperCase()}</p>
             </div>
           </div>
 
@@ -44,7 +46,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClo
               onClick={handlePrint}
               className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5"
             >
-              <Printer className="w-4 h-4" /> Print / Download PDF
+              <Printer className="w-4 h-4" /> {t('printDownloadPdf', 'Print / Download PDF')}
             </button>
             <button
               type="button"
@@ -55,6 +57,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClo
             </button>
           </div>
         </div>
+
 
         {/* Printable Invoice Document Body */}
         <div className="p-6 sm:p-10 overflow-y-auto space-y-8 bg-white text-slate-800 font-sans print:p-0 print:overflow-visible">

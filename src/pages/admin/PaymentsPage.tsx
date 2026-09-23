@@ -5,8 +5,10 @@ import { useToast } from '../../context/ToastContext';
 import { PaymentRecord } from '../../types';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
 import { Badge } from '../../components/common/Badge';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const PaymentsPage: React.FC = () => {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [payments, setPayments] = useState<PaymentRecord[]>(() => paymentService.getAllPayments());
   const [searchTerm, setSearchTerm] = useState('');
@@ -18,7 +20,7 @@ export const PaymentsPage: React.FC = () => {
   const handleReleaseEscrow = (id: string, farmerName: string, amount: number) => {
     paymentService.releaseEscrow(id);
     refresh();
-    showToast(`Escrow payout of ₹${amount.toLocaleString('en-IN')} released to ${farmerName}`, 'success', 'Payout Disbursed');
+    showToast(t('escrowPayoutReleasedToast', `Escrow payout of ₹${amount.toLocaleString('en-IN')} released to ${farmerName}`), 'success', t('payoutDisbursed', 'Payout Disbursed'));
   };
 
   const totalProcessed = payments.reduce((sum, p) => sum + p.amount, 0);
@@ -34,50 +36,50 @@ export const PaymentsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: 'Payments & Escrow Ledger' }]} />
+      <Breadcrumb items={[{ label: t('paymentsLedger', 'Payments & Escrow Ledger') }]} />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Escrow Settlements & Financial Ledger</h1>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">{t('paymentsLedgerTitle', 'Escrow Settlements & Financial Ledger')}</h1>
           <p className="text-xs sm:text-sm text-slate-500">
-            Real-time transaction clearing, UPI / NetBanking settlement receipts, and payout releases.
+            {t('paymentsLedgerDesc', 'Real-time transaction clearing, UPI / NetBanking settlement receipts, and payout releases.')}
           </p>
         </div>
 
         <button
-          onClick={() => showToast('Exporting Financial Ledger as CSV...', 'info')}
+          onClick={() => showToast(t('exportingLedgerToast', 'Exporting Financial Ledger as CSV...'), 'info')}
           className="px-4 py-2 bg-white text-slate-700 hover:text-purple-700 font-bold text-xs rounded-xl border border-slate-200 shadow-soft flex items-center gap-1.5 self-start sm:self-auto"
         >
-          <Download className="w-4 h-4" /> Export CSV Ledger
+          <Download className="w-4 h-4" /> {t('exportCsvLedger', 'Export CSV Ledger')}
         </button>
       </div>
 
       {/* Financial Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-soft space-y-1">
-          <span className="text-xs font-bold text-slate-400 uppercase">Gross Platform Volume</span>
+          <span className="text-xs font-bold text-slate-400 uppercase">{t('grossPlatformVolume', 'Gross Platform Volume')}</span>
           <div className="text-2xl sm:text-3xl font-black text-slate-900">
             ₹{totalProcessed.toLocaleString('en-IN')}
           </div>
           <span className="text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5" /> 100% Escrow Protected
+            <ShieldCheck className="w-3.5 h-3.5" /> {t('escrowProtected', '100% Escrow Protected')}
           </span>
         </div>
 
         <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-soft space-y-1">
-          <span className="text-xs font-bold text-slate-400 uppercase">Platform Fee Earned (2%)</span>
+          <span className="text-xs font-bold text-slate-400 uppercase">{t('platformFeeEarned', 'Platform Fee Earned (2%)')}</span>
           <div className="text-2xl sm:text-3xl font-black text-purple-700">
             ₹{totalCommission.toLocaleString('en-IN')}
           </div>
-          <span className="text-[11px] text-slate-400 font-medium">Automatic platform commission split</span>
+          <span className="text-[11px] text-slate-400 font-medium">{t('autoCommissionSplit', 'Automatic platform commission split')}</span>
         </div>
 
         <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-soft space-y-1">
-          <span className="text-xs font-bold text-slate-400 uppercase">Settlement Success Rate</span>
+          <span className="text-xs font-bold text-slate-400 uppercase">{t('settlementSuccessRate', 'Settlement Success Rate')}</span>
           <div className="text-2xl sm:text-3xl font-black text-emerald-600">
             99.8%
           </div>
-          <span className="text-[11px] text-slate-400 font-medium">Zero disputed transactions</span>
+          <span className="text-[11px] text-slate-400 font-medium">{t('zeroDisputedTxns', 'Zero disputed transactions')}</span>
         </div>
       </div>
 
@@ -89,7 +91,7 @@ export const PaymentsPage: React.FC = () => {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search payment ID, Order ID, or Txn Ref..."
+            placeholder={t('searchPaymentPlaceholder', 'Search payment ID, Order ID, or Txn Ref...')}
             className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:ring-2 focus:ring-purple-500 outline-none"
           />
         </div>
@@ -101,13 +103,13 @@ export const PaymentsPage: React.FC = () => {
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
               <tr>
-                <th className="px-6 py-4">Transaction Ref & Date</th>
-                <th className="px-6 py-4">Order ID</th>
-                <th className="px-6 py-4">Buyer Payer</th>
-                <th className="px-6 py-4">Farmer Beneficiary</th>
-                <th className="px-6 py-4">Gross Amount</th>
-                <th className="px-6 py-4">Payout Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-6 py-4">{t('txnRefDateHeader', 'Transaction Ref & Date')}</th>
+                <th className="px-6 py-4">{t('orderIdHeader', 'Order ID')}</th>
+                <th className="px-6 py-4">{t('buyerPayerHeader', 'Buyer Payer')}</th>
+                <th className="px-6 py-4">{t('farmerBeneficiaryHeader', 'Farmer Beneficiary')}</th>
+                <th className="px-6 py-4">{t('grossAmountHeader', 'Gross Amount')}</th>
+                <th className="px-6 py-4">{t('payoutStatusHeader', 'Payout Status')}</th>
+                <th className="px-6 py-4 text-right">{t('actionsHeader', 'Actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -132,12 +134,12 @@ export const PaymentsPage: React.FC = () => {
 
                   <td className="px-6 py-4">
                     <div className="font-black text-slate-900 text-sm">₹{pay.amount.toLocaleString('en-IN')}</div>
-                    <div className="text-[10px] text-slate-400">Net payout: ₹{pay.netFarmerPayout.toLocaleString('en-IN')}</div>
+                    <div className="text-[10px] text-slate-400">{t('netPayoutLabel', 'Net payout:')} ₹{pay.netFarmerPayout.toLocaleString('en-IN')}</div>
                   </td>
 
                   <td className="px-6 py-4">
                     <Badge variant={pay.payoutStatus === 'processed' ? 'emerald' : 'amber'} size="sm" dot>
-                      {pay.payoutStatus === 'processed' ? 'Disbursed to Farmer' : 'Held in Escrow'}
+                      {pay.payoutStatus === 'processed' ? t('disbursedToFarmer', 'Disbursed to Farmer') : t('heldInEscrow', 'Held in Escrow')}
                     </Badge>
                   </td>
 
@@ -147,11 +149,11 @@ export const PaymentsPage: React.FC = () => {
                         onClick={() => handleReleaseEscrow(pay.id, pay.farmerName, pay.netFarmerPayout)}
                         className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors"
                       >
-                        Release Payout
+                        {t('releasePayoutBtn', 'Release Payout')}
                       </button>
                     ) : (
                       <span className="text-[11px] font-semibold text-emerald-700 flex items-center justify-end gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Cleared
+                        <CheckCircle2 className="w-3.5 h-3.5" /> {t('clearedStatus', 'Cleared')}
                       </span>
                     )}
                   </td>
@@ -164,3 +166,4 @@ export const PaymentsPage: React.FC = () => {
     </div>
   );
 };
+

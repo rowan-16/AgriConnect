@@ -6,8 +6,10 @@ import { Order, OrderStatus } from '../../types';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
 import { Badge } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const ManageOrders: React.FC = () => {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [orders, setOrders] = useState<Order[]>(() => orderService.getAllOrders());
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,7 +26,7 @@ export const ManageOrders: React.FC = () => {
       if (selectedOrder && selectedOrder.id === orderId) {
         setSelectedOrder(updated);
       }
-      showToast(`Order #${orderId} status set to ${newStatus.toUpperCase()}`, 'success');
+      showToast(t('orderStatusSetToast', `Order #${orderId} status set to ${newStatus.toUpperCase()}`), 'success');
     }
   };
 
@@ -37,18 +39,18 @@ export const ManageOrders: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: 'Manage All Orders' }]} />
+      <Breadcrumb items={[{ label: t('manageOrders', 'Manage All Orders') }]} />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Master Order Oversight</h1>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">{t('manageOrdersTitle', 'Master Order Oversight')}</h1>
           <p className="text-xs sm:text-sm text-slate-500">
-            Real-time audit log of all agricultural purchase contracts and logistics consignments.
+            {t('manageOrdersDesc', 'Real-time audit log of all agricultural purchase contracts and logistics consignments.')}
           </p>
         </div>
 
         <div className="text-xs font-bold text-slate-600 bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-soft">
-          Total Orders: <strong className="text-purple-700">{orders.length}</strong>
+          {t('totalOrdersLabel', 'Total Orders:')} <strong className="text-purple-700">{orders.length}</strong>
         </div>
       </div>
 
@@ -59,7 +61,7 @@ export const ManageOrders: React.FC = () => {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search Order ID, buyer, farmer, or tracking #..."
+            placeholder={t('searchMasterOrdersPlaceholder', 'Search Order ID, buyer, farmer, or tracking #...')}
             className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:ring-2 focus:ring-purple-500 outline-none"
           />
         </div>
@@ -71,13 +73,13 @@ export const ManageOrders: React.FC = () => {
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
               <tr>
-                <th className="px-6 py-4">Order ID & Date</th>
-                <th className="px-6 py-4">Commercial Buyer</th>
-                <th className="px-6 py-4">Farmer Producer</th>
-                <th className="px-6 py-4">Items / Tonnage</th>
-                <th className="px-6 py-4">Gross Trade GMV</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-6 py-4">{t('orderIdDateHeader', 'Order ID & Date')}</th>
+                <th className="px-6 py-4">{t('commercialBuyerHeader', 'Commercial Buyer')}</th>
+                <th className="px-6 py-4">{t('farmerProducerHeader', 'Farmer Producer')}</th>
+                <th className="px-6 py-4">{t('itemsTonnageHeader', 'Items / Tonnage')}</th>
+                <th className="px-6 py-4">{t('grossTradeGmvHeader', 'Gross Trade GMV')}</th>
+                <th className="px-6 py-4">{t('statusHeader', 'Status')}</th>
+                <th className="px-6 py-4 text-right">{t('actionsHeader', 'Actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -98,7 +100,7 @@ export const ManageOrders: React.FC = () => {
                   </td>
 
                   <td className="px-6 py-4">
-                    {order.items.map(i => `${i.quantity} ${i.unit} ${i.cropName}`).join(', ')}
+                    {order.items.map(i => `${i.quantity} ${i.unit} ${t(i.cropName, i.cropName)}`).join(', ')}
                   </td>
 
                   <td className="px-6 py-4 font-black text-slate-900">
@@ -116,7 +118,7 @@ export const ManageOrders: React.FC = () => {
                       onClick={() => setSelectedOrder(order)}
                       className="px-3 py-1.5 bg-purple-50 hover:bg-purple-700 text-purple-800 hover:text-white font-bold text-xs rounded-xl transition-all"
                     >
-                      Audit / Override
+                      {t('auditOverrideBtn', 'Audit / Override')}
                     </button>
                   </td>
                 </tr>
@@ -131,14 +133,14 @@ export const ManageOrders: React.FC = () => {
         <Modal
           isOpen={!!selectedOrder}
           onClose={() => setSelectedOrder(null)}
-          title={`Order Audit: #${selectedOrder.id}`}
-          subtitle={`Buyer: ${selectedOrder.buyerName} • Farmer: ${selectedOrder.farmerName}`}
+          title={`${t('orderAuditTitle', 'Order Audit:')} #${selectedOrder.id}`}
+          subtitle={`${t('buyerLabel', 'Buyer:')} ${selectedOrder.buyerName} • ${t('farmerLabel', 'Farmer:')} ${selectedOrder.farmerName}`}
           maxWidth="2xl"
         >
           <div className="space-y-4 text-xs">
             <div className="p-4 bg-purple-50/60 rounded-2xl border border-purple-200">
               <label className="block text-xs font-bold text-purple-900 uppercase tracking-wider mb-2">
-                Administrative Status Override:
+                {t('adminStatusOverrideLabel', 'Administrative Status Override:')}
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {(['confirmed', 'processing', 'shipped', 'delivered', 'cancelled'] as OrderStatus[]).map((st) => (
@@ -151,28 +153,28 @@ export const ManageOrders: React.FC = () => {
                         : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                     }`}
                   >
-                    Force {st}
+                    {t('forceLabel', 'Force')} {st}
                   </button>
                 ))}
               </div>
             </div>
 
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
-              <div className="font-bold text-slate-900">Consignment Settlement Financials</div>
+              <div className="font-bold text-slate-900">{t('consignmentSettlementFinancials', 'Consignment Settlement Financials')}</div>
               <div className="flex justify-between">
-                <span>Produce Gross:</span>
+                <span>{t('produceGrossLabel', 'Produce Gross:')}</span>
                 <span className="font-bold">₹{selectedOrder.subtotal.toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between">
-                <span>Platform Commission (2%):</span>
+                <span>{t('platformCommissionLabelFee', 'Platform Commission (2%):')}</span>
                 <span className="font-bold text-purple-700">₹{selectedOrder.platformFee.toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between">
-                <span>Cold Freight:</span>
+                <span>{t('coldFreightLabel', 'Cold Freight:')}</span>
                 <span className="font-bold">₹{selectedOrder.deliveryFee.toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between border-t border-slate-200 pt-1 font-black text-slate-900">
-                <span>Total Settled:</span>
+                <span>{t('totalSettledLabel', 'Total Settled:')}</span>
                 <span>₹{selectedOrder.totalAmount.toLocaleString('en-IN')}</span>
               </div>
             </div>
@@ -182,7 +184,7 @@ export const ManageOrders: React.FC = () => {
                 onClick={() => setSelectedOrder(null)}
                 className="px-5 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200"
               >
-                Close Audit
+                {t('closeAuditBtn', 'Close Audit')}
               </button>
             </div>
           </div>
@@ -192,3 +194,4 @@ export const ManageOrders: React.FC = () => {
     </div>
   );
 };
+

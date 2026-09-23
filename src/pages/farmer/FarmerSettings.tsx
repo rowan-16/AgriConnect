@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Settings, Bell, Shield, Smartphone, CreditCard, Save } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const FarmerSettings: React.FC = () => {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [whatsappAlerts, setWhatsappAlerts] = useState(true);
   const [smsWeatherAlerts, setSmsWeatherAlerts] = useState(true);
@@ -14,17 +16,17 @@ export const FarmerSettings: React.FC = () => {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    showToast('Farmer preferences and payout settings saved successfully!', 'success', 'Settings Updated');
+    showToast(t('settingsSavedMsg', 'Farmer preferences and payout settings saved successfully!'), 'success', t('settingsUpdated', 'Settings Updated'));
   };
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: 'Settings' }]} />
+      <Breadcrumb items={[{ label: t('settings', 'Settings') }]} />
 
       <div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Account & Settlement Settings</h1>
+        <h1 className="text-2xl font-black text-slate-900 tracking-tight">{t('accountSettlementSettings', 'Account & Settlement Settings')}</h1>
         <p className="text-xs sm:text-sm text-slate-500">
-          Configure banking payout destination, WhatsApp notifications, and harvest security preferences.
+          {t('accountSettlementDesc', 'Configure banking payout destination, WhatsApp notifications, and harvest security preferences.')}
         </p>
       </div>
 
@@ -34,13 +36,13 @@ export const FarmerSettings: React.FC = () => {
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-soft space-y-4">
           <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
             <CreditCard className="w-5 h-5 text-agri-600" />
-            <h3 className="text-base font-bold text-slate-900">Direct Farmer Bank Payout Details</h3>
+            <h3 className="text-base font-bold text-slate-900">{t('directBankPayoutDetails', 'Direct Farmer Bank Payout Details')}</h3>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Primary UPI ID for Instant Settlements
+                {t('primaryUpiIdLabel', 'Primary UPI ID for Instant Settlements')}
               </label>
               <input
                 type="text"
@@ -52,7 +54,7 @@ export const FarmerSettings: React.FC = () => {
 
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Bank Account Number
+                {t('bankAccountNumberLabel', 'Bank Account Number')}
               </label>
               <input
                 type="text"
@@ -65,7 +67,7 @@ export const FarmerSettings: React.FC = () => {
 
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-              Bank IFSC Code
+              {t('bankIfscCodeLabel', 'Bank IFSC Code')}
             </label>
             <input
               type="text"
@@ -80,14 +82,14 @@ export const FarmerSettings: React.FC = () => {
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-soft space-y-4">
           <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
             <Bell className="w-5 h-5 text-agri-600" />
-            <h3 className="text-base font-bold text-slate-900">Communication & Alert Channels</h3>
+            <h3 className="text-base font-bold text-slate-900">{t('communicationAlertChannels', 'Communication & Alert Channels')}</h3>
           </div>
 
           <div className="space-y-3">
             <label className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100/70 transition-colors cursor-pointer border border-slate-200/80">
               <div>
-                <div className="text-xs font-bold text-slate-800">WhatsApp Instant Order Notifications</div>
-                <div className="text-[11px] text-slate-500">Receive instant WhatsApp alerts when buyers place crop orders</div>
+                <div className="text-xs font-bold text-slate-800">{t('whatsappOrderNotifications', 'WhatsApp Instant Order Notifications')}</div>
+                <div className="text-[11px] text-slate-500">{t('whatsappAlertsDesc', 'Receive instant WhatsApp alerts when buyers place crop orders')}</div>
               </div>
               <input
                 type="checkbox"
@@ -99,8 +101,8 @@ export const FarmerSettings: React.FC = () => {
 
             <label className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100/70 transition-colors cursor-pointer border border-slate-200/80">
               <div>
-                <div className="text-xs font-bold text-slate-800">SMS Severe Weather Warning Alerts</div>
-                <div className="text-[11px] text-slate-500">Receive SMS warnings for unseasonal rains, frost, and high winds</div>
+                <div className="text-xs font-bold text-slate-800">{t('smsWeatherAlertsTitle', 'SMS Severe Weather Warning Alerts')}</div>
+                <div className="text-[11px] text-slate-500">{t('smsWeatherAlertsDesc', 'Receive SMS warnings for unseasonal rains, frost, and high winds')}</div>
               </div>
               <input
                 type="checkbox"
@@ -117,10 +119,11 @@ export const FarmerSettings: React.FC = () => {
             type="submit"
             className="px-6 py-2.5 bg-agri-600 hover:bg-agri-700 text-white font-bold text-xs rounded-xl shadow-md shadow-agri-600/20 flex items-center gap-2 transition-all hover:scale-105"
           >
-            <Save className="w-4 h-4" /> Save Account Settings
+            <Save className="w-4 h-4" /> {t('saveAccountSettings', 'Save Account Settings')}
           </button>
         </div>
       </form>
     </div>
   );
 };
+

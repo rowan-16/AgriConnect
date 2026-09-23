@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Settings, Bell, Shield, CreditCard, Save } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const BuyerSettings: React.FC = () => {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [emailInvoices, setEmailInvoices] = useState(true);
   const [smsDeliveryAlerts, setSmsDeliveryAlerts] = useState(true);
@@ -12,17 +14,17 @@ export const BuyerSettings: React.FC = () => {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    showToast('Commercial buyer preferences saved!', 'success', 'Settings Updated');
+    showToast(t('buyerSettingsSavedMsg', 'Commercial buyer preferences saved!'), 'success', t('settingsUpdated', 'Settings Updated'));
   };
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: 'Commercial Sourcing Settings' }]} />
+      <Breadcrumb items={[{ label: t('commercialSourcingSettings', 'Commercial Sourcing Settings') }]} />
 
       <div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Buyer Preferences & Tax Profile</h1>
+        <h1 className="text-2xl font-black text-slate-900 tracking-tight">{t('buyerPreferencesTitle', 'Buyer Preferences & Tax Profile')}</h1>
         <p className="text-xs sm:text-sm text-slate-500">
-          Configure GST invoice credentials, automated logistics alerts, and payment receipts.
+          {t('buyerPreferencesDesc', 'Configure GST invoice credentials, automated logistics alerts, and payment receipts.')}
         </p>
       </div>
 
@@ -32,12 +34,12 @@ export const BuyerSettings: React.FC = () => {
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-soft space-y-4">
           <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
             <CreditCard className="w-5 h-5 text-amber-600" />
-            <h3 className="text-base font-bold text-slate-900">Commercial Tax & Billing Information</h3>
+            <h3 className="text-base font-bold text-slate-900">{t('commercialTaxBillingInfo', 'Commercial Tax & Billing Information')}</h3>
           </div>
 
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-              GSTIN / Tax Identification Number
+              {t('gstinNumberLabel', 'GSTIN / Tax Identification Number')}
             </label>
             <input
               type="text"
@@ -52,14 +54,14 @@ export const BuyerSettings: React.FC = () => {
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-soft space-y-4">
           <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
             <Bell className="w-5 h-5 text-amber-600" />
-            <h3 className="text-base font-bold text-slate-900">Delivery & Invoice Notifications</h3>
+            <h3 className="text-base font-bold text-slate-900">{t('deliveryInvoiceNotifications', 'Delivery & Invoice Notifications')}</h3>
           </div>
 
           <div className="space-y-3">
             <label className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100/70 transition-colors cursor-pointer border border-slate-200/80">
               <div>
-                <div className="text-xs font-bold text-slate-800">Email GST Tax Invoices Automatically</div>
-                <div className="text-[11px] text-slate-500">Receive downloadable PDF invoices upon shipment dispatch</div>
+                <div className="text-xs font-bold text-slate-800">{t('emailGstInvoicesTitle', 'Email GST Tax Invoices Automatically')}</div>
+                <div className="text-[11px] text-slate-500">{t('emailGstInvoicesDesc', 'Receive downloadable PDF invoices upon shipment dispatch')}</div>
               </div>
               <input
                 type="checkbox"
@@ -71,8 +73,8 @@ export const BuyerSettings: React.FC = () => {
 
             <label className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100/70 transition-colors cursor-pointer border border-slate-200/80">
               <div>
-                <div className="text-xs font-bold text-slate-800">Live SMS Dispatch & ETA Updates</div>
-                <div className="text-[11px] text-slate-500">Get courier driver phone number and temperature logs via SMS</div>
+                <div className="text-xs font-bold text-slate-800">{t('liveSmsDispatchTitle', 'Live SMS Dispatch & ETA Updates')}</div>
+                <div className="text-[11px] text-slate-500">{t('liveSmsDispatchDesc', 'Get courier driver phone number and temperature logs via SMS')}</div>
               </div>
               <input
                 type="checkbox"
@@ -89,10 +91,11 @@ export const BuyerSettings: React.FC = () => {
             type="submit"
             className="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-md shadow-amber-600/20 flex items-center gap-2 transition-all hover:scale-105"
           >
-            <Save className="w-4 h-4" /> Save Sourcing Settings
+            <Save className="w-4 h-4" /> {t('saveSourcingSettings', 'Save Sourcing Settings')}
           </button>
         </div>
       </form>
     </div>
   );
 };
+

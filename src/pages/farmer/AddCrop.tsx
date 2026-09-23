@@ -14,6 +14,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { cropService } from '../../services/cropService';
 import { CropCategory } from '../../types';
@@ -33,6 +34,7 @@ const SAMPLE_CROP_IMAGES: Record<string, string> = {
 
 export const AddCrop: React.FC = () => {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const navigate = useNavigate();
 
@@ -61,7 +63,7 @@ export const AddCrop: React.FC = () => {
     e.preventDefault();
 
     if (!isFarmerVerified) {
-      showToast('You must be verified by Admin before publishing crop products.', 'error', 'Verification Required');
+      showToast(t('verificationRequiredMsg', 'You must be verified by Admin before publishing crop products.'), 'error', t('verificationRequired', 'Verification Required'));
       return;
     }
 
@@ -87,13 +89,13 @@ export const AddCrop: React.FC = () => {
       gradeQuality,
     });
 
-    showToast(`"${name}" has been listed on the Marketplace!`, 'success', 'Listing Published');
+    showToast(`"${name}" ${t('listingPublishedMsg', 'has been listed on the Marketplace!')}`, 'success', t('listingPublished', 'Listing Published'));
     navigate('/farmer/crops');
   };
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: 'My Crops', path: '/farmer/crops' }, { label: 'Add New Crop' }]} />
+      <Breadcrumb items={[{ label: t('myCrops', 'My Crops'), path: '/farmer/crops' }, { label: t('createNewCropListing', 'Add New Crop') }]} />
 
       {/* Unverified Farmer Notice */}
       {!isFarmerVerified && (
@@ -101,10 +103,9 @@ export const AddCrop: React.FC = () => {
           <div className="flex items-start gap-3">
             <ShieldCheck className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <span className="font-bold text-base block text-amber-950">🔒 Admin Verification Required to List Products</span>
+              <span className="font-bold text-base block text-amber-950">🔒 {t('verificationRequiredTitle', 'Admin Verification Required to List Products')}</span>
               <p className="leading-relaxed text-amber-800">
-                Your farmer account must be verified by an Administrator before you can publish crop listings on AgriConnect.
-                Please upload your **Land Document**, **Crop Approval Certificate**, and **Farm Field Photo** on your dashboard for Admin review.
+                {t('verificationNoticeDesc', 'Your farmer account must be verified by an Administrator before you can publish crop listings on AgriConnect.')}
               </p>
             </div>
           </div>
@@ -112,13 +113,13 @@ export const AddCrop: React.FC = () => {
             onClick={() => navigate('/farmer/dashboard')}
             className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm shrink-0 whitespace-nowrap"
           >
-            Submit Documents on Dashboard
+            {t('submitDocsOnDashboard', 'Submit Documents on Dashboard')}
           </button>
         </div>
       )}
 
       <div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Create New Crop Listing</h1>
+        <h1 className="text-2xl font-black text-slate-900 tracking-tight">{t('createNewCropListing', 'Create New Crop Listing')}</h1>
         <p className="text-xs sm:text-sm text-slate-500">
           List your harvest batch with transparent unit pricing and real-time live preview.
         </p>
@@ -133,7 +134,7 @@ export const AddCrop: React.FC = () => {
             {/* Category selection */}
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                Crop Category
+                {t('cropCategory', 'Crop Category')}
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {Object.keys(SAMPLE_CROP_IMAGES).map((cat) => (
@@ -147,7 +148,7 @@ export const AddCrop: React.FC = () => {
                         : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                     }`}
                   >
-                    {cat}
+                    {t(cat, cat)}
                   </button>
                 ))}
               </div>
@@ -157,7 +158,7 @@ export const AddCrop: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Crop / Produce Variety Name
+                  {t('cropVarietyName', 'Crop / Produce Variety Name')}
                 </label>
                 <input
                   type="text"
@@ -171,7 +172,7 @@ export const AddCrop: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Quality Grade
+                  {t('qualityGrade', 'Quality Grade')}
                 </label>
                 <select
                   value={gradeQuality}
@@ -189,7 +190,7 @@ export const AddCrop: React.FC = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Quantity
+                  {t('quantity', 'Quantity')}
                 </label>
                 <input
                   type="number"
@@ -251,7 +252,7 @@ export const AddCrop: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Harvest Date
+                  {t('harvestDate', 'Harvest Date')}
                 </label>
                 <input
                   type="date"
@@ -288,7 +289,7 @@ export const AddCrop: React.FC = () => {
                 />
                 <div>
                   <span className="text-xs font-bold text-emerald-900 block">
-                    Certified Organic (No chemical pesticide)
+                    {t('certifiedOrganic', 'Certified Organic (No chemical pesticide)')}
                   </span>
                   <span className="text-[11px] text-emerald-700">Qualifies for Green Organic Badge</span>
                 </div>
@@ -349,7 +350,7 @@ export const AddCrop: React.FC = () => {
               }`}
             >
               <PlusCircle className="w-5 h-5" />
-              {isFarmerVerified ? 'Publish Crop to Marketplace' : 'Verification Required by Admin to Publish'}
+              {isFarmerVerified ? t('publishCropMarketplace', 'Publish Crop to Marketplace') : t('verificationRequiredByAdmin', 'Verification Required by Admin to Publish')}
             </button>
           </form>
         </div>
@@ -358,7 +359,7 @@ export const AddCrop: React.FC = () => {
         <div className="lg:col-span-5 sticky top-24 space-y-4">
           <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider">
             <Eye className="w-4 h-4 text-agri-600" />
-            Live Marketplace Preview (As Buyers See It)
+            {t('liveMarketplacePreview', 'Live Marketplace Preview (As Buyers See It)')}
           </div>
 
           <div className="bg-white rounded-3xl overflow-hidden border-2 border-emerald-300 shadow-soft-lg group">
@@ -385,10 +386,10 @@ export const AddCrop: React.FC = () => {
 
             <div className="p-5 space-y-3">
               <span className="text-[11px] font-bold text-agri-600 uppercase tracking-wider block">
-                {category}
+                {t(category, category)}
               </span>
               <h3 className="text-lg font-black text-slate-900">
-                {name || 'Crop Name Title Preview'}
+                {t(name, name) || 'Crop Name Title Preview'}
               </h3>
               <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
                 {description || 'Detailed produce description will appear here on the buyer browsing feed.'}
@@ -430,3 +431,4 @@ export const AddCrop: React.FC = () => {
     </div>
   );
 };
+

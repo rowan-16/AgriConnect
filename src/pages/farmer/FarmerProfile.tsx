@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { User, Mail, Phone, MapPin, Sprout, Save, Edit3, ShieldCheck, Camera, Upload, Image as ImageIcon } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
 import { Badge } from '../../components/common/Badge';
 
@@ -17,6 +18,7 @@ const AVATAR_PRESETS = [
 export const FarmerProfile: React.FC = () => {
   const { user, updateUser } = useAuth();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -73,13 +75,13 @@ export const FarmerProfile: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: 'Farmer Profile' }]} />
+      <Breadcrumb items={[{ label: t('myProfile', 'Farmer Profile') }]} />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Farmer Profile & Land Records</h1>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">{t('farmerProfileTitle', 'Farmer Profile & Land Records')}</h1>
           <p className="text-xs sm:text-sm text-slate-500">
-            Manage your photo avatar, personal contact details, verified farm acreage, and cultivation specialties.
+            {t('farmerProfileDesc', 'Manage your photo avatar, personal contact details, verified farm acreage, and cultivation specialties.')}
           </p>
         </div>
 
@@ -92,7 +94,7 @@ export const FarmerProfile: React.FC = () => {
               : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20'
           }`}
         >
-          {isEditing ? <>Cancel Editing</> : <><Edit3 className="w-4 h-4" /> Edit Profile Details</>}
+          {isEditing ? <>{t('cancelEditing', 'Cancel Editing')}</> : <><Edit3 className="w-4 h-4" /> {t('editProfileDetails', 'Edit Profile Details')}</>}
         </button>
       </div>
 
@@ -132,13 +134,13 @@ export const FarmerProfile: React.FC = () => {
                 onClick={() => fileInputRef.current?.click()}
                 className="text-xs font-bold text-emerald-700 hover:text-emerald-800 inline-flex items-center gap-1 mt-1"
               >
-                <Upload className="w-3.5 h-3.5" /> Upload Photo from Computer
+                <Upload className="w-3.5 h-3.5" /> {t('uploadPhotoComputer', 'Upload Photo from Computer')}
               </button>
             </div>
 
             {/* Quick Presets */}
             <div className="pt-2">
-              <span className="text-[10px] font-bold uppercase text-slate-400 block mb-2">Or Choose Avatar Preset</span>
+              <span className="text-[10px] font-bold uppercase text-slate-400 block mb-2">{t('orChooseAvatarPreset', 'OR CHOOSE AVATAR PRESET')}</span>
               <div className="flex justify-center gap-2">
                 {AVATAR_PRESETS.slice(0, 4).map((url, i) => (
                   <img
@@ -159,10 +161,10 @@ export const FarmerProfile: React.FC = () => {
               <p className="text-xs text-slate-500 font-medium">{user.farmName || 'Kisan Producer'}</p>
               <div className="mt-2 flex items-center justify-center gap-2">
                 <Badge variant="emerald" size="sm" dot>
-                  Verified Farmer
+                  {t('verifiedFarmer', 'Verified Farmer')}
                 </Badge>
                 <span className="text-xs font-bold text-amber-600 flex items-center gap-1">
-                  ⭐ {user.farmerRating || 4.9} Rating
+                  ⭐ {user.farmerRating || 4.9} {t('farmerRating', 'Rating')}
                 </span>
               </div>
             </div>
@@ -186,20 +188,20 @@ export const FarmerProfile: React.FC = () => {
           {/* Farm Land Summary */}
           <div className="bg-gradient-to-br from-emerald-50 to-teal-50/40 p-6 rounded-3xl border border-emerald-200/80 space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
-              <Sprout className="w-4 h-4 text-emerald-600" /> Land & Cultivation Summary
+              <Sprout className="w-4 h-4 text-emerald-600" /> {t('landCultivationSummary', 'LAND & CULTIVATION SUMMARY')}
             </h4>
             <div className="space-y-2 text-xs text-slate-700">
               <div className="flex justify-between py-1 border-b border-emerald-100">
-                <span className="text-slate-500">Holding Size:</span>
-                <span className="font-bold">{formData.farmSizeAcres} Acres</span>
+                <span className="text-slate-500">{t('holdingSize', 'Holding Size:')}</span>
+                <span className="font-bold">{formData.farmSizeAcres} {t('acres', 'Acres')}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-emerald-100">
-                <span className="text-slate-500">Irrigation System:</span>
-                <span className="font-bold">Solar Drip + Borewell</span>
+                <span className="text-slate-500">{t('irrigationSystem', 'Irrigation System:')}</span>
+                <span className="font-bold">{t('solarDripBorewell', 'Solar Drip + Borewell')}</span>
               </div>
               <div className="flex justify-between py-1">
-                <span className="text-slate-500">Soil Classification:</span>
-                <span className="font-bold text-emerald-800">Rich Black & Alluvial Loam</span>
+                <span className="text-slate-500">{t('soilClassification', 'Soil Classification:')}</span>
+                <span className="font-bold text-emerald-800">{t('richBlackAlluvialLoam', 'Rich Black & Alluvial Loam')}</span>
               </div>
             </div>
           </div>
@@ -209,13 +211,13 @@ export const FarmerProfile: React.FC = () => {
         <div className="lg:col-span-8 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-soft">
           <form onSubmit={handleSave} className="space-y-6">
             <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3">
-              Farmer Personal & Agricultural Information
+              {t('farmerPersonalAgriInfo', 'Farmer Personal & Agricultural Information')}
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Full Name
+                  {t('fullNameUpper', 'FULL NAME')}
                 </label>
                 <input
                   type="text"
@@ -228,7 +230,7 @@ export const FarmerProfile: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Phone Number
+                  {t('phoneNumberUpper', 'PHONE NUMBER')}
                 </label>
                 <input
                   type="tel"
@@ -244,7 +246,7 @@ export const FarmerProfile: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Registered Farm Name
+                  {t('registeredFarmName', 'REGISTERED FARM NAME')}
                 </label>
                 <input
                   type="text"
@@ -257,7 +259,7 @@ export const FarmerProfile: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Farm Holding Land Area (Acres)
+                  {t('farmHoldingLandArea', 'FARM HOLDING LAND AREA (ACRES)')}
                 </label>
                 <input
                   type="number"
@@ -272,7 +274,7 @@ export const FarmerProfile: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  District / State Location
+                  {t('districtStateLocation', 'DISTRICT / STATE LOCATION')}
                 </label>
                 <input
                   type="text"
@@ -285,7 +287,7 @@ export const FarmerProfile: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Detailed Village / Tehsil Address
+                  {t('detailedVillageTehsilAddress', 'DETAILED VILLAGE / TEHSIL ADDRESS')}
                 </label>
                 <input
                   type="text"
@@ -299,7 +301,7 @@ export const FarmerProfile: React.FC = () => {
 
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Crops Grown Regularly (Comma Separated)
+                {t('cropsGrownRegularly', 'CROPS GROWN REGULARLY (COMMA SEPARATED)')}
               </label>
               <input
                 type="text"
@@ -316,7 +318,7 @@ export const FarmerProfile: React.FC = () => {
                   type="submit"
                   className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 flex items-center gap-2 transition-all hover:scale-105"
                 >
-                  <Save className="w-4 h-4" /> Save Profile Details
+                  <Save className="w-4 h-4" /> {t('saveProfileDetails', 'Save Profile Details')}
                 </button>
               </div>
             )}
@@ -327,3 +329,4 @@ export const FarmerProfile: React.FC = () => {
     </div>
   );
 };
+

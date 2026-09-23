@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { User, Mail, Phone, MapPin, ShieldCheck, Camera, Save, Edit3, Key, Shield, Award, Activity, Lock, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
 import { Badge } from '../../components/common/Badge';
 
@@ -16,6 +17,7 @@ const ADMIN_AVATAR_PRESETS = [
 export const AdminProfile: React.FC = () => {
   const { user, updateUser } = useAuth();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -69,13 +71,13 @@ export const AdminProfile: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: 'Admin Profile' }]} />
+      <Breadcrumb items={[{ label: t('myProfile', 'Admin Profile') }]} />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">System Administrator Profile</h1>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">{t('adminProfileTitle', 'System Administrator Profile')}</h1>
           <p className="text-xs sm:text-sm text-slate-500">
-            Manage your administrator credentials, personal contact info, and security permissions.
+            {t('adminProfileDesc', 'Manage your administrator credentials, personal contact info, and security permissions.')}
           </p>
         </div>
 
@@ -88,7 +90,7 @@ export const AdminProfile: React.FC = () => {
               : 'bg-purple-700 hover:bg-purple-800 text-white shadow-md shadow-purple-700/20'
           }`}
         >
-          {isEditing ? <>Cancel Editing</> : <><Edit3 className="w-4 h-4" /> Edit Profile Details</>}
+          {isEditing ? <>{t('cancelEditing', 'Cancel Editing')}</> : <><Edit3 className="w-4 h-4" /> {t('editProfileDetails', 'Edit Profile Details')}</>}
         </button>
       </div>
 
@@ -109,7 +111,7 @@ export const AdminProfile: React.FC = () => {
                 className="absolute inset-0 bg-slate-950/60 rounded-3xl text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <Camera className="w-6 h-6 mb-1" />
-                <span className="text-[10px] font-bold">Upload Photo</span>
+                <span className="text-[10px] font-bold">{t('uploadPhotoComputer', 'Upload Photo')}</span>
               </button>
               <input
                 ref={fileInputRef}
@@ -122,7 +124,7 @@ export const AdminProfile: React.FC = () => {
 
             {/* Presets */}
             <div>
-              <p className="text-[11px] font-medium text-slate-400 mb-2">Choose Avatar Preset</p>
+              <p className="text-[11px] font-medium text-slate-400 mb-2">{t('presetAvatars', 'Choose Avatar Preset')}</p>
               <div className="flex items-center justify-center gap-2">
                 {ADMIN_AVATAR_PRESETS.map((url, i) => (
                   <button
@@ -169,19 +171,19 @@ export const AdminProfile: React.FC = () => {
           {/* Security Summary Box */}
           <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-soft space-y-4">
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <Lock className="w-4 h-4 text-purple-700" /> Security Status
+              <Lock className="w-4 h-4 text-purple-700" /> {t('securityStatus', 'Security Status')}
             </h3>
             <div className="space-y-3 text-xs">
               <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200/60">
-                <span className="font-semibold">2-Factor Auth (2FA)</span>
+                <span className="font-semibold">{t('twoFactorAuth', '2-Factor Auth (2FA)')}</span>
                 <span className="font-bold uppercase text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded-full">Active</span>
               </div>
               <div className="flex items-center justify-between p-2.5 rounded-xl bg-purple-50 text-purple-800 border border-purple-200/60">
-                <span className="font-semibold">Session Audit Log</span>
+                <span className="font-semibold">{t('sessionAuditLog', 'Session Audit Log')}</span>
                 <span className="font-bold text-[10px]">Enabled</span>
               </div>
               <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 text-slate-700 border border-slate-200/60">
-                <span className="font-semibold">Last Password Change</span>
+                <span className="font-semibold">{t('lastPasswordChange', 'Last Password Change')}</span>
                 <span className="text-slate-500 text-[11px]">14 days ago</span>
               </div>
             </div>
@@ -194,8 +196,8 @@ export const AdminProfile: React.FC = () => {
             <form onSubmit={handleSave} className="space-y-6">
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">Personal Information</h3>
-                  <p className="text-xs text-slate-500">Update your account details and contact information.</p>
+                  <h3 className="text-base font-bold text-slate-900">{t('personalInformation', 'Personal Information')}</h3>
+                  <p className="text-xs text-slate-500">{t('updateAccountDetails', 'Update your account details and contact information.')}</p>
                 </div>
                 {isEditing && (
                   <span className="text-xs text-purple-700 font-semibold bg-purple-50 px-3 py-1 rounded-full border border-purple-200">
@@ -206,7 +208,7 @@ export const AdminProfile: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Full Name</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">{t('nameLabel', 'Full Name')}</label>
                   <div className="relative">
                     <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
@@ -221,7 +223,7 @@ export const AdminProfile: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Email Address</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">{t('emailAddress', 'Email Address')}</label>
                   <div className="relative">
                     <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
@@ -236,7 +238,7 @@ export const AdminProfile: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Phone Number</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">{t('phoneNumber', 'Phone Number')}</label>
                   <div className="relative">
                     <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
@@ -251,7 +253,7 @@ export const AdminProfile: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Office Location</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">{t('officeLocation', 'Office Location')}</label>
                   <div className="relative">
                     <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
@@ -266,10 +268,10 @@ export const AdminProfile: React.FC = () => {
               </div>
 
               <div className="pt-4 border-t border-slate-100">
-                <h3 className="text-base font-bold text-slate-900 mb-4">Organizational Role</h3>
+                <h3 className="text-base font-bold text-slate-900 mb-4">{t('organizationalRole', 'Organizational Role')}</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Department</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">{t('department', 'Department')}</label>
                     <input
                       type="text"
                       disabled
@@ -278,7 +280,7 @@ export const AdminProfile: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Designation</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">{t('designation', 'Designation')}</label>
                     <input
                       type="text"
                       disabled
@@ -296,13 +298,13 @@ export const AdminProfile: React.FC = () => {
                     onClick={() => setIsEditing(false)}
                     className="px-5 py-2.5 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
                   >
-                    Cancel
+                    {t('cancelBtn', 'Cancel')}
                   </button>
                   <button
                     type="submit"
                     className="px-5 py-2.5 text-xs font-bold text-white bg-purple-700 hover:bg-purple-800 rounded-xl transition-all shadow-md shadow-purple-700/20 flex items-center gap-2"
                   >
-                    <Save className="w-4 h-4" /> Save Changes
+                    <Save className="w-4 h-4" /> {t('saveBtn', 'Save Changes')}
                   </button>
                 </div>
               )}
@@ -315,3 +317,4 @@ export const AdminProfile: React.FC = () => {
 };
 
 export default AdminProfile;
+

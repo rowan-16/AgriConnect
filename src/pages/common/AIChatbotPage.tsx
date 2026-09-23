@@ -5,11 +5,13 @@ import {
   FileText, CheckCircle2, MessageSquare, ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { aiChatbotService, ChatMessage, LanguageCode } from '../../services/aiChatbotService';
 
 export const AIChatbotPage: React.FC = () => {
   const { user, role } = useAuth();
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -88,14 +90,14 @@ export const AIChatbotPage: React.FC = () => {
     link.href = url;
     link.download = `agriconnect_ai_chat_${Date.now()}.txt`;
     link.click();
-    showToast('Chat transcript exported successfully.', 'success', 'Export Complete');
+    showToast(t('transcriptExported', 'Chat transcript exported successfully.'), 'success', t('exportComplete', 'Export Complete'));
   };
 
   const clearChat = () => {
     const initial = aiChatbotService.getChatHistory(user?.id).slice(0, 1);
     setMessages(initial);
     aiChatbotService.saveChatHistory(initial, user?.id);
-    showToast('Conversation cleared.', 'info', 'Chat Reset');
+    showToast(t('conversationCleared', 'Conversation cleared.'), 'info', t('chatReset', 'Chat Reset'));
   };
 
   const getSourceBadge = (source?: ChatMessage['groundedSource']) => {
@@ -103,49 +105,49 @@ export const AIChatbotPage: React.FC = () => {
       case 'crop_recommendation':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-bold">
-            <Sprout className="w-3.5 h-3.5" /> AI Crop Advisory Engine
+            <Sprout className="w-3.5 h-3.5" /> {t('cropAdvisoryEngine', 'AI Crop Advisory Engine')}
           </span>
         );
       case 'pest_diagnostic':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-100 text-rose-800 text-xs font-bold">
-            <Bug className="w-3.5 h-3.5" /> Plant Health & Pest Diagnostic
+            <Bug className="w-3.5 h-3.5" /> {t('pestDiagnostic', 'Plant Health & Pest Diagnostic')}
           </span>
         );
       case 'npk_advisory':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-100 text-indigo-800 text-xs font-bold">
-            <TestTube className="w-3.5 h-3.5" /> NPK Fertilizer & Soil Health
+            <TestTube className="w-3.5 h-3.5" /> {t('npkSoilHealth', 'NPK Fertilizer & Soil Health')}
           </span>
         );
       case 'weather_integration':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-100 text-sky-800 text-xs font-bold">
-            <CloudSun className="w-3.5 h-3.5" /> Live Microclimate Weather
+            <CloudSun className="w-3.5 h-3.5" /> {t('liveWeatherSource', 'Live Microclimate Weather')}
           </span>
         );
       case 'market_demand':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 text-xs font-bold">
-            <TrendingUp className="w-3.5 h-3.5" /> Market Demand Index
+            <TrendingUp className="w-3.5 h-3.5" /> {t('marketDemandIndex', 'Market Demand Index')}
           </span>
         );
       case 'order_tracking':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-100 text-purple-800 text-xs font-bold">
-            <PackageCheck className="w-3.5 h-3.5" /> Order & Transaction Database
+            <PackageCheck className="w-3.5 h-3.5" /> {t('orderDatabase', 'Order & Transaction Database')}
           </span>
         );
       case 'produce_catalog':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-teal-100 text-teal-800 text-xs font-bold">
-            <Sprout className="w-3.5 h-3.5" /> MongoDB Produce & Farmer Catalog
+            <Sprout className="w-3.5 h-3.5" /> {t('farmerCatalog', 'MongoDB Produce & Farmer Catalog')}
           </span>
         );
       case 'platform_help':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-bold">
-            <HelpCircle className="w-3.5 h-3.5" /> AgriConnect Knowledgebase
+            <HelpCircle className="w-3.5 h-3.5" /> {t('platformKnowledgebase', 'AgriConnect Knowledgebase')}
           </span>
         );
       default:
@@ -155,50 +157,50 @@ export const AIChatbotPage: React.FC = () => {
 
   const presetCards = [
     {
-      title: 'List Products & Farmers',
-      desc: 'Fetch live agricultural produce and farmer details directly from MongoDB Atlas.',
+      title: t('listProductsAndFarmers', 'List Products & Farmers'),
+      desc: t('listProductsDesc', 'Fetch live agricultural produce and farmer details directly from MongoDB Atlas.'),
       prompt: 'List the product and the farmer',
       icon: Sprout,
       color: 'from-emerald-600 to-teal-700',
     },
     {
-      title: 'Recommend Crops',
-      desc: 'Get soil and season matched crop advice with yield & profit score.',
+      title: t('recommendCrops', 'Recommend Crops'),
+      desc: t('recommendCropsDesc', 'Get soil and season matched crop advice with yield & profit score.'),
       prompt: 'Recommend suitable crops for my Black soil location in Rabi season',
       icon: Sprout,
       color: 'from-emerald-500 to-teal-600',
     },
     {
-      title: 'Pest & Health Diagnostic',
-      desc: 'Identify leaf spots, fungal blight, and pest remedies.',
+      title: t('pestHealthDiagnostic', 'Pest & Health Diagnostic'),
+      desc: t('pestHealthDesc', 'Identify leaf spots, fungal blight, and pest remedies.'),
       prompt: 'My crop leaves are turning yellow with brown spots, what pest spray should I use?',
       icon: Bug,
       color: 'from-rose-500 to-amber-600',
     },
     {
-      title: 'Weather & Soil Moisture',
-      desc: 'Check live weather forecast and irrigation advice for your region.',
+      title: t('weatherSoilMoisture', 'Weather & Soil Moisture'),
+      desc: t('weatherSoilDesc', 'Check live weather forecast and irrigation advice for your region.'),
       prompt: 'What is today\'s weather forecast and soil moisture level?',
       icon: CloudSun,
       color: 'from-sky-500 to-blue-600',
     },
     {
-      title: 'Market Price Trends',
-      desc: 'View 30-day demand surges and mandi prices for paddy, spices & vegetables.',
+      title: t('marketPriceTrends', 'Market Price Trends'),
+      desc: t('marketPriceDesc', 'View 30-day demand surges and mandi prices for paddy, spices & vegetables.'),
       prompt: 'Which crops currently have the highest market demand surge?',
       icon: TrendingUp,
       color: 'from-amber-500 to-orange-600',
     },
     {
-      title: 'Track Orders & Delivery',
-      desc: 'Look up real-time status and estimated delivery dates for active orders.',
+      title: t('trackOrdersDelivery', 'Track Orders & Delivery'),
+      desc: t('trackOrdersDesc', 'Look up real-time status and estimated delivery dates for active orders.'),
       prompt: 'Track my recent orders status and delivery reference',
       icon: PackageCheck,
       color: 'from-purple-500 to-indigo-600',
     },
     {
-      title: 'NPK Fertilizer Formula',
-      desc: 'Calculate NPK split dosing and farm yard manure recommendations.',
+      title: t('npkFertilizerFormula', 'NPK Fertilizer Formula'),
+      desc: t('npkFertilizerDesc', 'Calculate NPK split dosing and farm yard manure recommendations.'),
       prompt: 'What is the recommended NPK fertilizer split ratio for wheat?',
       icon: TestTube,
       color: 'from-indigo-500 to-blue-600',
@@ -218,13 +220,13 @@ export const AIChatbotPage: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl sm:text-3xl font-black tracking-tight">AgriBot AI Assistant Studio</h1>
+                <h1 className="text-2xl sm:text-3xl font-black tracking-tight">{t('agriBotStudioTitle', 'AgriBot AI Assistant Studio')}</h1>
                 <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" /> Grounded AI
+                  <Sparkles className="w-3 h-3" /> {t('groundedAi', 'Grounded AI')}
                 </span>
               </div>
               <p className="mt-1 text-xs sm:text-sm text-slate-300 max-w-2xl">
-                24/7 AI Agronomic Advisor & Platform Support grounded in live AgriConnect crop algorithms, microclimate weather, market demand logs, and order records.
+                {t('aiAdvisorSubtitle', '24/7 AI Agronomic Advisor & Platform Support grounded in live AgriConnect crop algorithms, microclimate weather, market demand logs, and order records.')}
               </p>
             </div>
           </div>
@@ -250,14 +252,14 @@ export const AIChatbotPage: React.FC = () => {
               onClick={handleExportTranscript}
               className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl text-xs font-bold transition-all border border-slate-700 flex items-center gap-1.5"
             >
-              <Download className="w-4 h-4" /> Export Transcript
+              <Download className="w-4 h-4" /> {t('exportTranscriptBtn', 'Export Transcript')}
             </button>
 
             <button
               onClick={clearChat}
               className="px-3.5 py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 rounded-xl text-xs font-bold transition-all border border-rose-500/30 flex items-center gap-1.5"
             >
-              <RefreshCw className="w-4 h-4" /> Reset Chat
+              <RefreshCw className="w-4 h-4" /> {t('resetChatBtn', 'Reset Chat')}
             </button>
           </div>
         </div>
@@ -296,12 +298,12 @@ export const AIChatbotPage: React.FC = () => {
         <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs text-slate-600 font-semibold">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Active Knowledge Grounding: <strong>AgriConnect ML Advisory, OpenWeather, MongoDB Orders</strong></span>
+            <span>{t('activeGrounding', 'Active Knowledge Grounding:')} <strong>AgriConnect ML Advisory, OpenWeather, MongoDB Orders</strong></span>
           </div>
 
           <div className="hidden sm:flex items-center gap-2 text-slate-400">
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <span>Grounded Responses Active</span>
+            <span>{t('groundedResponsesActive', 'Grounded Responses Active')}</span>
           </div>
         </div>
 
@@ -326,7 +328,7 @@ export const AIChatbotPage: React.FC = () => {
                       getSourceBadge(msg.groundedSource)
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 text-xs font-bold">
-                        <AlertCircle className="w-3.5 h-3.5 text-amber-600" /> General Response
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-600" /> {t('generalResponse', 'General Response')}
                       </span>
                     )}
 
@@ -337,7 +339,7 @@ export const AIChatbotPage: React.FC = () => {
                         title="Read Aloud"
                         className="p-1.5 hover:bg-slate-100 text-slate-400 hover:text-emerald-600 rounded-lg transition-colors flex items-center gap-1 text-[11px] font-semibold"
                       >
-                        <Volume2 className="w-4 h-4" /> Listen
+                        <Volume2 className="w-4 h-4" /> {t('listenBtn', 'Listen')}
                       </button>
                       <span className="text-xs text-slate-400 font-semibold">{msg.timestamp}</span>
                     </div>
@@ -345,7 +347,7 @@ export const AIChatbotPage: React.FC = () => {
                 )}
 
                 {/* Message Body */}
-                <div className="whitespace-pre-line font-sans text-slate-900">{msg.text}</div>
+                <div className="whitespace-pre-line font-sans text-slate-900">{t(msg.text, msg.text)}</div>
 
                 {/* Suggested Action Chips */}
                 {msg.suggestedActions && msg.suggestedActions.length > 0 && (
@@ -357,7 +359,7 @@ export const AIChatbotPage: React.FC = () => {
                         onClick={() => handleSendMessage(act.label)}
                         className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs rounded-xl transition-all border border-emerald-200/80 hover:scale-[1.02]"
                       >
-                        {act.label}
+                        {t(act.label, act.label)}
                       </button>
                     ))}
                   </div>
@@ -373,7 +375,7 @@ export const AIChatbotPage: React.FC = () => {
           {isTyping && (
             <div className="flex items-center gap-2 text-slate-500 text-xs bg-white p-3.5 rounded-2xl w-32 border border-slate-200 shadow-xs">
               <Bot className="w-4 h-4 text-emerald-600 animate-spin" />
-              <span className="font-semibold">AgriBot thinking...</span>
+              <span className="font-semibold">{t('agriBotThinking', 'AgriBot thinking...')}</span>
             </div>
           )}
 
@@ -392,7 +394,7 @@ export const AIChatbotPage: React.FC = () => {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your agronomic question, pest query, weather check, or order tracking request..."
+            placeholder={t('chatbotInputPlaceholder', 'Type your agronomic question, pest query, weather check, or order tracking request...')}
             className="flex-1 bg-slate-50 text-slate-900 text-sm rounded-2xl px-4 py-3 focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 border border-slate-200 transition-all font-medium"
           />
 
@@ -401,7 +403,7 @@ export const AIChatbotPage: React.FC = () => {
             disabled={!input.trim() || isTyping}
             className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold text-sm rounded-2xl transition-all shadow-md shadow-emerald-600/20 flex items-center gap-2"
           >
-            <span>Send Query</span>
+            <span>{t('sendQueryBtn', 'Send Query')}</span>
             <Send className="w-4 h-4" />
           </button>
         </form>
@@ -409,3 +411,4 @@ export const AIChatbotPage: React.FC = () => {
     </div>
   );
 };
+

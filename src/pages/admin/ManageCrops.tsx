@@ -6,8 +6,10 @@ import { Crop } from '../../types';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
 import { Badge } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const ManageCrops: React.FC = () => {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [crops, setCrops] = useState<Crop[]>(() => cropService.getAllCrops());
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,14 +23,14 @@ export const ManageCrops: React.FC = () => {
     const newStatus = currentStatus === 'active' ? 'draft' : 'active';
     cropService.updateCrop(id, { status: newStatus as any });
     refresh();
-    showToast(`Listing "${name}" status toggled to ${newStatus.toUpperCase()}`, 'info');
+    showToast(t('statusToggledToast', `Listing "${name}" status toggled to ${newStatus.toUpperCase()}`), 'info');
   };
 
   const handleDelete = (id: string, name: string) => {
-    if (window.confirm(`Are you sure you want to permanently delete listing "${name}"?`)) {
+    if (window.confirm(t('confirmDeleteListing', `Are you sure you want to permanently delete listing "${name}"?`))) {
       cropService.deleteCrop(id);
       refresh();
-      showToast(`Listing "${name}" removed from platform.`, 'info');
+      showToast(t('listingRemovedToast', `Listing "${name}" removed from platform.`), 'info');
     }
   };
 
@@ -40,18 +42,18 @@ export const ManageCrops: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: 'Manage All Crop Listings' }]} />
+      <Breadcrumb items={[{ label: t('manageCrops', 'Manage All Crop Listings') }]} />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Crop Listings Moderation & Inventory</h1>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">{t('manageCropsTitle', 'Crop Listings Moderation & Inventory')}</h1>
           <p className="text-xs sm:text-sm text-slate-500">
-            Review commodity quality grades, moderate listed farmer produce, and manage availability.
+            {t('manageCropsDesc', 'Review commodity quality grades, moderate listed farmer produce, and manage availability.')}
           </p>
         </div>
 
         <div className="text-xs font-bold text-slate-600 bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-soft">
-          Total Batches: <strong className="text-purple-700">{crops.length}</strong>
+          {t('totalBatchesLabel', 'Total Batches:')} <strong className="text-purple-700">{crops.length}</strong>
         </div>
       </div>
 
@@ -62,7 +64,7 @@ export const ManageCrops: React.FC = () => {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search crop, farmer name, or category..."
+            placeholder={t('searchCropPlaceholder', 'Search crop, farmer name, or category...')}
             className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:ring-2 focus:ring-purple-500 outline-none"
           />
         </div>
@@ -74,13 +76,13 @@ export const ManageCrops: React.FC = () => {
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
               <tr>
-                <th className="px-6 py-4">Produce Variety</th>
-                <th className="px-6 py-4">Farmer / Producer</th>
-                <th className="px-6 py-4">Category & Grade</th>
-                <th className="px-6 py-4">Unit Price</th>
-                <th className="px-6 py-4">Available Stock</th>
-                <th className="px-6 py-4">Moderation Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-6 py-4">{t('produceVarietyHeader', 'Produce Variety')}</th>
+                <th className="px-6 py-4">{t('farmerProducerHeader', 'Farmer / Producer')}</th>
+                <th className="px-6 py-4">{t('categoryGradeHeader', 'Category & Grade')}</th>
+                <th className="px-6 py-4">{t('unitPriceHeader', 'Unit Price')}</th>
+                <th className="px-6 py-4">{t('availableStockHeader', 'Available Stock')}</th>
+                <th className="px-6 py-4">{t('moderationStatusHeader', 'Moderation Status')}</th>
+                <th className="px-6 py-4 text-right">{t('actionsHeader', 'Actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -90,7 +92,7 @@ export const ManageCrops: React.FC = () => {
                     <div className="flex items-center gap-3">
                       <img src={crop.image} alt={crop.name} className="w-10 h-10 rounded-xl object-cover" />
                       <div>
-                        <div className="font-bold text-slate-900">{crop.name}</div>
+                        <div className="font-bold text-slate-900">{t(crop.name, crop.name)}</div>
                         <div className="text-[11px] text-slate-400">{crop.farmLocation}</div>
                       </div>
                     </div>
@@ -101,8 +103,8 @@ export const ManageCrops: React.FC = () => {
                   </td>
 
                   <td className="px-6 py-4">
-                    <div className="font-semibold text-slate-900">{crop.category}</div>
-                    <div className="text-[10px] text-purple-700 font-bold">{crop.gradeQuality}</div>
+                    <div className="font-semibold text-slate-900">{t(crop.category, crop.category)}</div>
+                    <div className="text-[10px] text-purple-700 font-bold">{t(crop.gradeQuality, crop.gradeQuality)}</div>
                   </td>
 
                   <td className="px-6 py-4 font-black text-slate-900">
@@ -128,7 +130,7 @@ export const ManageCrops: React.FC = () => {
                             ? 'text-amber-600 hover:bg-amber-50'
                             : 'text-emerald-600 hover:bg-emerald-50'
                         }`}
-                        title={crop.status === 'active' ? 'Unpublish / Draft' : 'Approve & Publish'}
+                        title={crop.status === 'active' ? t('unpublishDraft', 'Unpublish / Draft') : t('approvePublish', 'Approve & Publish')}
                       >
                         {crop.status === 'active' ? <XCircle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
                       </button>
@@ -136,7 +138,7 @@ export const ManageCrops: React.FC = () => {
                       <button
                         onClick={() => handleDelete(crop.id, crop.name)}
                         className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors"
-                        title="Delete listing"
+                        title={t('deleteListingTitle', 'Delete listing')}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -151,3 +153,4 @@ export const ManageCrops: React.FC = () => {
     </div>
   );
 };
+

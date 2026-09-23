@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { User, Mail, Phone, MapPin, Building2, Save, Edit3, ShieldCheck, Camera, Upload } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
 import { Badge } from '../../components/common/Badge';
 
@@ -15,6 +16,7 @@ const BUYER_AVATARS = [
 export const BuyerProfile: React.FC = () => {
   const { user, updateUser } = useAuth();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -82,13 +84,13 @@ export const BuyerProfile: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: 'Commercial Buyer Profile' }]} />
+      <Breadcrumb items={[{ label: t('myProfile', 'Commercial Buyer Profile') }]} />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Commercial Buyer Profile</h1>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">{t('buyerProfileTitle', 'Commercial Buyer Profile')}</h1>
           <p className="text-xs sm:text-sm text-slate-500">
-            Manage photo avatar, company registration, procurement authorized contacts, and saved warehouse addresses.
+            {t('buyerProfileDesc', 'Manage photo avatar, company registration, procurement authorized contacts, and saved warehouse addresses.')}
           </p>
         </div>
 
@@ -101,7 +103,7 @@ export const BuyerProfile: React.FC = () => {
               : 'bg-amber-600 hover:bg-amber-700 text-white shadow-md shadow-amber-600/20'
           }`}
         >
-          {isEditing ? <>Cancel Editing</> : <><Edit3 className="w-4 h-4" /> Edit Profile Details</>}
+          {isEditing ? <>{t('cancelEditing', 'Cancel Editing')}</> : <><Edit3 className="w-4 h-4" /> {t('editProfileDetails', 'Edit Profile Details')}</>}
         </button>
       </div>
 
@@ -141,13 +143,13 @@ export const BuyerProfile: React.FC = () => {
                 onClick={() => fileInputRef.current?.click()}
                 className="text-xs font-bold text-amber-700 hover:text-amber-800 inline-flex items-center gap-1 mt-1"
               >
-                <Upload className="w-3.5 h-3.5" /> Upload Photo from Computer
+                <Upload className="w-3.5 h-3.5" /> {t('uploadPhotoComputer', 'Upload Photo from Computer')}
               </button>
             </div>
 
             {/* Presets */}
             <div className="pt-2">
-              <span className="text-[10px] font-bold uppercase text-slate-400 block mb-2">Preset Avatars</span>
+              <span className="text-[10px] font-bold uppercase text-slate-400 block mb-2">{t('presetAvatars', 'PRESET AVATARS')}</span>
               <div className="flex justify-center gap-2">
                 {BUYER_AVATARS.map((url, i) => (
                   <img
@@ -168,7 +170,7 @@ export const BuyerProfile: React.FC = () => {
               <p className="text-xs text-slate-500 font-medium">{user.businessName || 'Fresh Sourcing Ltd.'}</p>
               <div className="mt-2 flex items-center justify-center gap-2">
                 <Badge variant="amber" size="sm" dot>
-                  {formData.buyerType || 'Commercial Buyer'}
+                  {t(formData.buyerType || 'Commercial Buyer', formData.buyerType || 'Commercial Buyer')}
                 </Badge>
               </div>
             </div>
@@ -194,13 +196,13 @@ export const BuyerProfile: React.FC = () => {
         <div className="lg:col-span-8 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-soft">
           <form onSubmit={handleSave} className="space-y-6">
             <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3">
-              Commercial Registration & Contact Information
+              {t('buyerCommercialRegistrationInfo', 'Commercial Registration & Contact Information')}
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Authorized Contact Person
+                  {t('authorizedContactPerson', 'AUTHORIZED CONTACT PERSON')}
                 </label>
                 <input
                   type="text"
@@ -213,7 +215,7 @@ export const BuyerProfile: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Business / Company Name
+                  {t('businessCompanyName', 'BUSINESS / COMPANY NAME')}
                 </label>
                 <input
                   type="text"
@@ -228,7 +230,7 @@ export const BuyerProfile: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Contact Phone Number
+                  {t('contactPhoneNumber', 'CONTACT PHONE NUMBER')}
                 </label>
                 <input
                   type="tel"
@@ -241,7 +243,7 @@ export const BuyerProfile: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Buyer Trade Classification
+                  {t('buyerTradeClassification', 'BUYER TRADE CLASSIFICATION')}
                 </label>
                 <select
                   disabled={!isEditing}
@@ -249,11 +251,11 @@ export const BuyerProfile: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, buyerType: e.target.value as any })}
                   className="w-full px-3.5 py-2.5 bg-slate-50 disabled:bg-slate-100/70 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 outline-none"
                 >
-                  <option value="Retailer">Retail Supermarket / Grocery Chain</option>
-                  <option value="Wholesale Distributor">Wholesale APMC Distributor</option>
-                  <option value="Restaurant / Food Service">Restaurant & Hotel Catering</option>
-                  <option value="Exporter">Food Exporter & Processor</option>
-                  <option value="Consumer">Direct Bulk Consumer</option>
+                  <option value="Retailer">{t('retailerOption', 'Retail Supermarket / Grocery Chain')}</option>
+                  <option value="Wholesale Distributor">{t('wholesalerOption', 'Wholesale APMC Distributor')}</option>
+                  <option value="Restaurant / Food Service">{t('restaurantOption', 'Restaurant & Hotel Catering')}</option>
+                  <option value="Exporter">{t('exporterOption', 'Food Exporter & Processor')}</option>
+                  <option value="Consumer">{t('consumerOption', 'Direct Bulk Consumer')}</option>
                 </select>
               </div>
             </div>
@@ -262,7 +264,7 @@ export const BuyerProfile: React.FC = () => {
             <div className="pt-4 border-t border-slate-100 space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4 text-amber-600" /> Saved Warehouse & Store Locations
+                  <MapPin className="w-4 h-4 text-amber-600" /> {t('savedWarehouseLocations', 'SAVED WAREHOUSE & STORE LOCATIONS')}
                 </h4>
               </div>
 
@@ -294,7 +296,7 @@ export const BuyerProfile: React.FC = () => {
                   type="submit"
                   className="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-md shadow-amber-600/20 flex items-center gap-2 transition-all hover:scale-105"
                 >
-                  <Save className="w-4 h-4" /> Save Buyer Profile
+                  <Save className="w-4 h-4" /> {t('saveBuyerProfile', 'Save Buyer Profile')}
                 </button>
               </div>
             )}

@@ -3,6 +3,7 @@ import { Settings, Shield, Sliders, Database, Save, AlertTriangle, User as UserI
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
+import { useLanguage } from '../../context/LanguageContext';
 
 const AVATAR_PRESETS = [
   'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
@@ -13,6 +14,7 @@ const AVATAR_PRESETS = [
 ];
 
 export const AdminSettings: React.FC = () => {
+  const { t } = useLanguage();
   const { user, updateUser } = useAuth();
   const { showToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -29,7 +31,7 @@ export const AdminSettings: React.FC = () => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        showToast('Image size should be under 2MB', 'error', 'File Too Large');
+        showToast(t('imageSizeError', 'Image size should be under 2MB'), 'error', t('fileTooLarge', 'File Too Large'));
         return;
       }
       const reader = new FileReader();
@@ -37,7 +39,7 @@ export const AdminSettings: React.FC = () => {
         const base64 = reader.result as string;
         setAvatar(base64);
         updateUser({ avatar: base64 });
-        showToast('Profile photo updated successfully!', 'success', 'Avatar Updated');
+        showToast(t('profilePhotoUpdated', 'Profile photo updated successfully!'), 'success', t('avatarUpdated', 'Avatar Updated'));
       };
       reader.readAsDataURL(file);
     }
@@ -46,23 +48,23 @@ export const AdminSettings: React.FC = () => {
   const handleSelectPreset = (url: string) => {
     setAvatar(url);
     updateUser({ avatar: url });
-    showToast('Profile photo updated!', 'success', 'Avatar Updated');
+    showToast(t('profilePhotoUpdated', 'Profile photo updated!'), 'success', t('avatarUpdated', 'Avatar Updated'));
   };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     updateUser({ name, email, avatar });
-    showToast('Platform configuration and admin profile updated!', 'success', 'System Updated');
+    showToast(t('systemConfigUpdated', 'Platform configuration and admin profile updated!'), 'success', t('systemUpdated', 'System Updated'));
   };
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: 'System Configuration' }]} />
+      <Breadcrumb items={[{ label: t('systemConfiguration', 'System Configuration') }]} />
 
       <div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">System Configuration & Governance</h1>
+        <h1 className="text-2xl font-black text-slate-900 tracking-tight">{t('systemConfigTitle', 'System Configuration & Governance')}</h1>
         <p className="text-xs sm:text-sm text-slate-500">
-          Configure platform escrow rules, commission splits, and manage administrator credentials.
+          {t('systemConfigDesc', 'Configure platform escrow rules, commission splits, and manage administrator credentials.')}
         </p>
       </div>
 
@@ -72,7 +74,7 @@ export const AdminSettings: React.FC = () => {
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-soft space-y-6">
           <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
             <UserIcon className="w-5 h-5 text-purple-700" />
-            <h3 className="text-base font-bold text-slate-900">Administrator Profile & Photo</h3>
+            <h3 className="text-base font-bold text-slate-900">{t('adminProfilePhotoTitle', 'Administrator Profile & Photo')}</h3>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-6">
@@ -88,7 +90,7 @@ export const AdminSettings: React.FC = () => {
                 className="absolute inset-0 bg-slate-900/60 rounded-3xl text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <Camera className="w-6 h-6 mb-1" />
-                <span className="text-[10px] font-bold">Change</span>
+                <span className="text-[10px] font-bold">{t('change', 'Change')}</span>
               </button>
               <input
                 ref={fileInputRef}
@@ -103,7 +105,7 @@ export const AdminSettings: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
                   <label className="block font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Admin Name
+                    {t('adminNameLabel', 'Admin Name')}
                   </label>
                   <input
                     type="text"
@@ -114,7 +116,7 @@ export const AdminSettings: React.FC = () => {
                 </div>
                 <div>
                   <label className="block font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Admin Email
+                    {t('adminEmailLabel', 'Admin Email')}
                   </label>
                   <input
                     type="email"
@@ -127,7 +129,7 @@ export const AdminSettings: React.FC = () => {
 
               <div>
                 <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                  Or Choose from Presets:
+                  {t('orChooseFromPresets', 'Or Choose from Presets:')}
                 </div>
                 <div className="flex items-center gap-2">
                   {AVATAR_PRESETS.map((preset, idx) => (
@@ -147,7 +149,7 @@ export const AdminSettings: React.FC = () => {
                     onClick={() => fileInputRef.current?.click()}
                     className="px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-800 text-[11px] font-bold rounded-xl border border-purple-200 transition-colors"
                   >
-                    Upload Custom Photo
+                    {t('uploadCustomPhoto', 'Upload Custom Photo')}
                   </button>
                 </div>
               </div>
@@ -159,13 +161,13 @@ export const AdminSettings: React.FC = () => {
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-soft space-y-4">
           <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
             <Sliders className="w-5 h-5 text-purple-700" />
-            <h3 className="text-base font-bold text-slate-900">Exchange Financial Parameters</h3>
+            <h3 className="text-base font-bold text-slate-900">{t('exchangeFinancialParameters', 'Exchange Financial Parameters')}</h3>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             <div>
               <label className="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Platform Trade Fee Commission (%)
+                {t('platformCommissionLabel', 'Platform Trade Fee Commission (%)')}
               </label>
               <input
                 type="number"
@@ -178,7 +180,7 @@ export const AdminSettings: React.FC = () => {
 
             <div>
               <label className="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Escrow Quality Verification Window (Hours)
+                {t('escrowVerificationWindowLabel', 'Escrow Quality Verification Window (Hours)')}
               </label>
               <input
                 type="number"
@@ -194,14 +196,14 @@ export const AdminSettings: React.FC = () => {
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-soft space-y-4">
           <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
             <Shield className="w-5 h-5 text-purple-700" />
-            <h3 className="text-base font-bold text-slate-900">Moderation & Security Policies</h3>
+            <h3 className="text-base font-bold text-slate-900">{t('moderationSecurityPolicies', 'Moderation & Security Policies')}</h3>
           </div>
 
           <div className="space-y-3">
             <label className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100/70 transition-colors cursor-pointer border border-slate-200/80">
               <div>
-                <div className="text-xs font-bold text-slate-800">Auto-Approve Verified Farmer Listings</div>
-                <div className="text-[11px] text-slate-500">Listings from KYC-verified farmers publish immediately without admin moderation queue</div>
+                <div className="text-xs font-bold text-slate-800">{t('autoApproveListingsTitle', 'Auto-Approve Verified Farmer Listings')}</div>
+                <div className="text-[11px] text-slate-500">{t('autoApproveListingsDesc', 'Listings from KYC-verified farmers publish immediately without admin moderation queue')}</div>
               </div>
               <input
                 type="checkbox"
@@ -213,8 +215,8 @@ export const AdminSettings: React.FC = () => {
 
             <label className="flex items-center justify-between p-3.5 rounded-2xl bg-rose-50/50 hover:bg-rose-50 transition-colors cursor-pointer border border-rose-200">
               <div>
-                <div className="text-xs font-bold text-rose-900">System Maintenance Mode</div>
-                <div className="text-[11px] text-rose-700">Temporarily suspend new order checkouts for scheduled backend upgrades</div>
+                <div className="text-xs font-bold text-rose-900">{t('maintenanceModeTitle', 'System Maintenance Mode')}</div>
+                <div className="text-[11px] text-rose-700">{t('maintenanceModeDesc', 'Temporarily suspend new order checkouts for scheduled backend upgrades')}</div>
               </div>
               <input
                 type="checkbox"
@@ -231,10 +233,11 @@ export const AdminSettings: React.FC = () => {
             type="submit"
             className="px-6 py-2.5 bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs rounded-xl shadow-md shadow-purple-700/20 flex items-center gap-2 transition-all hover:scale-105"
           >
-            <Save className="w-4 h-4" /> Save Configuration
+            <Save className="w-4 h-4" /> {t('saveConfiguration', 'Save Configuration')}
           </button>
         </div>
       </form>
     </div>
   );
 };
+
