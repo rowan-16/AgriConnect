@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Package,
@@ -19,6 +19,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { cropService } from '../../services/cropService';
 import { Crop } from '../../types';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
 import { Badge } from '../../components/common/Badge';
@@ -30,7 +31,7 @@ export const MyCrops: React.FC = () => {
   const { showToast } = useToast();
   const { t } = useLanguage();
 
-  const [crops, setCrops] = useState<Crop[]>(() => cropService.getCropsByFarmer(user.id));
+  const [crops, setCrops] = useState<Crop[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'active' | 'draft' | 'sold_out'>('All');
   
@@ -41,8 +42,15 @@ export const MyCrops: React.FC = () => {
   const [editStatus, setEditStatus] = useState<'active' | 'draft' | 'sold_out'>('active');
 
   const refreshCrops = () => {
-    setCrops(cropService.getCropsByFarmer(user.id));
+    if (user?.id) {
+      setCrops(cropService.getCropsByFarmer(user.id));
+    }
   };
+
+  useEffect(() => {
+    refreshCrops();
+  }, [user?.id]);
+
 
   const handleDelete = (cropId: string, cropName: string) => {
     if (window.confirm(`Are you sure you want to delete the listing for "${cropName}"?`)) {
