@@ -12,20 +12,22 @@ import {
   Info
 } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
 import { EmptyState } from '../../components/common/EmptyState';
 
 export const CartPage: React.FC = () => {
   const { cart, updateQuantity, removeFromCart, clearCart, subtotal, platformFee, deliveryFee, grandTotal } = useCart();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: 'Procurement Cart' }]} />
+      <Breadcrumb items={[{ label: t('cartTitle', 'Procurement Cart') }]} />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Produce Procurement Cart</h1>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">{t('cartTitle', 'Produce Procurement Cart')}</h1>
           <p className="text-xs sm:text-sm text-slate-500">
             Review your selected farm batches before proceeding to cold-chain logistics checkout.
           </p>
@@ -36,7 +38,7 @@ export const CartPage: React.FC = () => {
             onClick={clearCart}
             className="text-xs font-bold text-rose-600 hover:text-rose-700 p-2 hover:bg-rose-50 rounded-xl transition-colors self-start sm:self-auto"
           >
-            Clear Entire Cart
+            {t('clearAllBtn', 'Clear Entire Cart')}
           </button>
         )}
       </div>
@@ -44,9 +46,9 @@ export const CartPage: React.FC = () => {
       {cart.length === 0 ? (
         <EmptyState
           icon={ShoppingCart}
-          title="Your procurement cart is empty"
+          title={t('emptyCartTitle', 'Your procurement cart is empty')}
           description="Explore fresh organic vegetables, grains, fruits, and spices listed by verified growers on AgriConnect."
-          actionText="Explore Marketplace"
+          actionText={t('continueShoppingBtn', 'Explore Marketplace')}
           actionIcon={ShoppingBag}
           onAction={() => navigate('/buyer/browse')}
         />

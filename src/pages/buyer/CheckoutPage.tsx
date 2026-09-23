@@ -23,6 +23,7 @@ import confetti from 'canvas-confetti';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { orderService } from '../../services/orderService';
 import { PaymentMethod } from '../../types';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
@@ -32,6 +33,7 @@ export const CheckoutPage: React.FC = () => {
   const { user } = useAuth();
   const { cart, clearCart, subtotal, platformFee, deliveryFee, grandTotal } = useCart();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const [address, setAddress] = useState({
@@ -77,13 +79,13 @@ export const CheckoutPage: React.FC = () => {
   if (cart.length === 0) {
     return (
       <div className="text-center py-16 space-y-4">
-        <h2 className="text-xl font-bold text-slate-800">Your Cart is Empty</h2>
+        <h2 className="text-xl font-bold text-slate-800">{t('emptyCartTitle', 'Your Cart is Empty')}</h2>
         <p className="text-xs text-slate-500">Please add produce batches from the marketplace before checking out.</p>
         <Link
           to="/buyer/browse"
           className="inline-block px-5 py-2.5 bg-amber-600 text-white font-bold text-xs rounded-xl shadow-md hover:bg-amber-700 transition-all"
         >
-          Browse Marketplace
+          {t('continueShoppingBtn', 'Browse Marketplace')}
         </Link>
       </div>
     );

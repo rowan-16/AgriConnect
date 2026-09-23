@@ -4,12 +4,14 @@ import { authService } from '../../services/authService';
 import { cropService } from '../../services/cropService';
 import { notificationService } from '../../services/notificationService';
 import { useToast } from '../../context/ToastContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
 import { Badge } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
 
 export const ManageFarmers: React.FC = () => {
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [farmers, setFarmers] = useState(() => authService.getUsers().filter(u => u.role === 'farmer'));
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'pending_docs' | 'verified'>('all');
@@ -82,11 +84,11 @@ export const ManageFarmers: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: 'Manage Farmers' }]} />
+      <Breadcrumb items={[{ label: t('manageFarmers', 'Manage Farmers') }]} />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Farmer & Producer Management</h1>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">{t('manageFarmersTitle', 'Farmer & Producer Management')}</h1>
           <p className="text-xs sm:text-sm text-slate-500">
             Validate agricultural land extracts, crop certificates, and field photos uploaded by farmers.
           </p>

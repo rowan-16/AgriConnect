@@ -15,9 +15,10 @@ import {
   Calendar,
   Sparkles
 } from 'lucide-react';
+
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { cropService } from '../../services/cropService';
+import { useLanguage } from '../../context/LanguageContext';
 import { Crop } from '../../types';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
 import { Badge } from '../../components/common/Badge';
@@ -27,6 +28,7 @@ import { EmptyState } from '../../components/common/EmptyState';
 export const MyCrops: React.FC = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const { t } = useLanguage();
 
   const [crops, setCrops] = useState<Crop[]>(() => cropService.getCropsByFarmer(user.id));
   const [searchTerm, setSearchTerm] = useState('');
@@ -84,14 +86,14 @@ export const MyCrops: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: 'My Crops' }]} />
+      <Breadcrumb items={[{ label: t('myCrops', 'My Crops') }]} />
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Manage My Crop Listings</h1>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">{t('myActiveCropListings', 'Manage My Crop Listings')}</h1>
           <p className="text-xs sm:text-sm text-slate-500">
-            Publish harvest batches, adjust selling prices, and monitor stock availability for commercial buyers.
+            {t('manageStockDesc', 'Publish harvest batches, adjust selling prices, and monitor stock availability for commercial buyers.')}
           </p>
         </div>
 
@@ -99,7 +101,7 @@ export const MyCrops: React.FC = () => {
           to="/farmer/add-crop"
           className="px-5 py-2.5 bg-agri-600 hover:bg-agri-700 text-white text-xs font-bold rounded-xl shadow-md shadow-agri-600/20 flex items-center gap-2 transition-all hover:scale-105 self-start sm:self-auto"
         >
-          <PlusCircle className="w-4 h-4" /> Add New Crop Listing
+          <PlusCircle className="w-4 h-4" /> {t('addCrop', 'Add New Crop Listing')}
         </Link>
       </div>
 

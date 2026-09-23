@@ -17,6 +17,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { authService } from '../../services/authService';
 import { cropService } from '../../services/cropService';
 import { orderService } from '../../services/orderService';
@@ -26,6 +27,7 @@ import { Badge } from '../../components/common/Badge';
 
 export const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const allUsers = authService.getUsers();
@@ -47,10 +49,10 @@ export const AdminDashboard: React.FC = () => {
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-purple-200 text-xs font-semibold">
-              <ShieldCheck className="w-3.5 h-3.5 text-purple-300" /> AgriConnect System Control Room
+              <ShieldCheck className="w-3.5 h-3.5 text-purple-300" /> {t('adminConsole', 'Admin Console')}
             </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
-              Administrative Command Center
+              {t('adminHubTitle', 'Governance Control Center')}
             </h1>
             <p className="text-xs sm:text-sm text-purple-200 max-w-xl leading-relaxed">
               Platform status is healthy. Monitoring <strong>{allUsers.length} active registered users</strong>, <strong>{allCrops.length} listed crop batches</strong>, and <strong>₹{totalRevenue.toLocaleString('en-IN')} total gross transaction volume</strong>.
@@ -62,14 +64,14 @@ export const AdminDashboard: React.FC = () => {
               to="/admin/reports"
               className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl border border-white/20 transition-all flex items-center gap-1.5"
             >
-              <BarChart3 className="w-4 h-4" /> View Analytics
+              <BarChart3 className="w-4 h-4" /> {t('reportsAnalytics', 'Reports & Analytics')}
             </Link>
 
             <Link
               to="/admin/notifications"
               className="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5"
             >
-              <Sparkles className="w-4 h-4" /> Broadcast Notice
+              <Sparkles className="w-4 h-4" /> {t('notifications', 'Notifications')}
             </Link>
           </div>
         </div>
@@ -78,7 +80,7 @@ export const AdminDashboard: React.FC = () => {
       {/* 6 Top KPI Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <StatCard
-          title="Total Users"
+          title={t('manageUsersTitle', 'Total Users')}
           value={allUsers.length}
           icon={Users}
           color="purple"
@@ -87,7 +89,7 @@ export const AdminDashboard: React.FC = () => {
         />
 
         <StatCard
-          title="Registered Farmers"
+          title={t('totalRegisteredFarmers', 'Registered Farmers')}
           value={farmers.length}
           icon={Sprout}
           color="emerald"
@@ -96,7 +98,7 @@ export const AdminDashboard: React.FC = () => {
         />
 
         <StatCard
-          title="Active Buyers"
+          title={t('totalRegisteredBuyers', 'Commercial Buyers')}
           value={buyers.length}
           icon={Building2}
           color="amber"
@@ -105,7 +107,7 @@ export const AdminDashboard: React.FC = () => {
         />
 
         <StatCard
-          title="Crop Batches"
+          title={t('totalCropsModerated', 'Crop Batches')}
           value={allCrops.length}
           icon={Package}
           color="blue"
@@ -114,7 +116,7 @@ export const AdminDashboard: React.FC = () => {
         />
 
         <StatCard
-          title="Total Orders"
+          title={t('manageOrders', 'Total Orders')}
           value={allOrders.length}
           icon={ClipboardList}
           color="purple"
@@ -123,7 +125,7 @@ export const AdminDashboard: React.FC = () => {
         />
 
         <StatCard
-          title="Total GMV"
+          title={t('escrowLedgerValue', 'Total GMV')}
           value={`₹${(totalRevenue / 100000).toFixed(1)}L`}
           icon={DollarSign}
           color="emerald"
