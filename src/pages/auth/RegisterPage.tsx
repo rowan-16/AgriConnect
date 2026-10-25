@@ -197,7 +197,12 @@ export const RegisterPage: React.FC = () => {
 
       {/* Header */}
       <div className="sm:mx-auto sm:w-full sm:max-w-xl text-center">
-        <Link to="/" className="inline-flex items-center gap-2 group">
+        <Link to="/" className="inline-flex flex-col items-center gap-2 group">
+          <img
+            src="/logo.png"
+            alt="AgriConnect Logo"
+            className="h-14 sm:h-16 w-auto object-contain group-hover:scale-105 transition-transform"
+          />
           <span className="text-3xl font-black tracking-tight text-slate-900 group-hover:text-agri-700 transition-colors">
             Agri<span className="text-agri-600">Connect</span>
           </span>

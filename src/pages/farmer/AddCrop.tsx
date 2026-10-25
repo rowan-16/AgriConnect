@@ -17,6 +17,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { cropService } from '../../services/cropService';
+import { authService } from '../../services/authService';
 import { CropCategory } from '../../types';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
 import { Badge } from '../../components/common/Badge';
@@ -38,7 +39,11 @@ export const AddCrop: React.FC = () => {
   const { showToast } = useToast();
   const navigate = useNavigate();
 
-  const isFarmerVerified = Boolean(user.isVerified);
+  const isFarmerVerified = Boolean(user?.isVerified || user?.verificationDocuments?.status === 'approved');
+
+  React.useEffect(() => {
+    authService.fetchUsersFromMongoDB();
+  }, []);
 
   const [name, setName] = useState('');
   const [category, setCategory] = useState<CropCategory>('Fresh Vegetables');

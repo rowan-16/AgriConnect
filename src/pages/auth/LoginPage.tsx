@@ -7,20 +7,14 @@ import { useLanguage } from '../../context/LanguageContext';
 import { INITIAL_USERS } from '../../services/mockData';
 
 export const LoginPage: React.FC = () => {
-  const { user, isAuthenticated, login, loginWithGoogle } = useAuth();
+  const { user, isAuthenticated, login, loginWithGoogle, logout } = useAuth();
   const { showToast } = useToast();
   const { t } = useLanguage();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      navigate(`/${user.role}/dashboard`, { replace: true });
-    }
-  }, [isAuthenticated, user, navigate]);
-
   const [email, setEmail] = useState('ramesh.farmer@agriconnect.com');
   const [password, setPassword] = useState('password123');
-  const [rememberMe, setRememberMe] = useState(true);
+  const [rememberMe, setRememberMe] = useState(false);
   const [googleRole, setGoogleRole] = useState<'farmer' | 'buyer'>('farmer');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -48,7 +42,7 @@ export const LoginPage: React.FC = () => {
                 name: googleUser.name,
                 email: googleUser.email,
                 picture: googleUser.picture,
-              });
+              }, rememberMe);
               if (authRes.success && authRes.user) {
                 showToast(`Welcome ${authRes.user.name}! Signed in via Google.`, 'success', 'Google Authentication');
                 navigate(`/${authRes.user.role}/dashboard`);
@@ -60,7 +54,7 @@ export const LoginPage: React.FC = () => {
         console.error('GSI Init Error:', e);
       }
     }
-  }, [googleRole]);
+  }, [googleRole, rememberMe]);
 
   const handleGoogleLogin = (selectedRole: 'farmer' | 'buyer' = googleRole) => {
     setIsLoading(true);
@@ -86,7 +80,7 @@ export const LoginPage: React.FC = () => {
                 name: googleUser.name,
                 email: googleUser.email,
                 picture: googleUser.picture,
-              });
+              }, rememberMe);
               setIsLoading(false);
               if (authRes.success && authRes.user) {
                 showToast(`Welcome ${authRes.user.name}! Signed in via Google.`, 'success', 'Google Authentication');
@@ -101,7 +95,7 @@ export const LoginPage: React.FC = () => {
         // Display in-page prompt directly on current webpage without spawning new windows
         google.accounts.id.prompt((notification: any) => {
           if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            const res = loginWithGoogle(selectedRole);
+            const res = loginWithGoogle(selectedRole, undefined, rememberMe);
             setIsLoading(false);
             if (res.success && res.user) {
               showToast(`Signed in with Google as ${res.user.name}!`, 'success', 'Google Authentication');
@@ -117,7 +111,7 @@ export const LoginPage: React.FC = () => {
 
     // Direct in-page login fallback
     setTimeout(() => {
-      const res = loginWithGoogle(selectedRole);
+      const res = loginWithGoogle(selectedRole, undefined, rememberMe);
       setIsLoading(false);
       if (res.success && res.user) {
         showToast(`Signed in with Google as ${res.user.name}!`, 'success', 'Google Authentication');
@@ -134,7 +128,7 @@ export const LoginPage: React.FC = () => {
     setIsLoading(true);
 
     setTimeout(() => {
-      const res = login(email, password);
+      const res = login(email, password, rememberMe);
       setIsLoading(false);
 
       if (res.success && res.user) {
@@ -162,7 +156,12 @@ export const LoginPage: React.FC = () => {
 
       {/* Header Brand */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <Link to="/" className="inline-flex items-center gap-2 group">
+        <Link to="/" className="inline-flex flex-col items-center gap-2 group">
+          <img
+            src="/logo.png"
+            alt="AgriConnect Logo"
+            className="h-14 sm:h-16 w-auto object-contain group-hover:scale-105 transition-transform"
+          />
           <span className="text-3xl font-black tracking-tight text-slate-900 group-hover:text-agri-700 transition-colors">
             Agri<span className="text-agri-600">Connect</span>
           </span>
@@ -177,8 +176,37 @@ export const LoginPage: React.FC = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
         <div className="bg-white py-8 px-6 sm:px-8 shadow-soft-lg rounded-3xl border border-slate-200/80">
-          
-          {/* Google Sign-In Button */}
+          {isAuthenticated && user ? (
+            <div className="text-center space-y-4 py-2">
+              <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+                <CheckCircle2 className="w-8 h-8" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900">Already Signed In</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  You are currently logged in as <span className="font-bold text-slate-800">{user.name}</span> ({user.role}).
+                </p>
+              </div>
+              <div className="pt-2 space-y-2.5">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/${user.role}/dashboard`)}
+                  className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-md transition-all hover:scale-[1.01]"
+                >
+                  Continue to Dashboard
+                </button>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all"
+                >
+                  Sign In as a Different Account / Log Out
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Google Sign-In Button */}
           <div className="mb-5 space-y-2">
             <button
               type="button"
@@ -352,6 +380,8 @@ export const LoginPage: React.FC = () => {
               {t('registerHere', 'Register here')}
             </Link>
           </div>
+            </>
+          )}
         </div>
       </div>
     </div>

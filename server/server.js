@@ -12,7 +12,8 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Connect to MongoDB Atlas
 connectDB();
@@ -218,12 +219,31 @@ app.post('/api/users/register', async (req, res) => {
 
 app.patch('/api/users/:id', async (req, res) => {
   try {
+    const targetId = req.params.id;
     if (mongoose.connection.readyState === 1) {
-      const updated = await User.findOneAndUpdate({ id: req.params.id }, req.body, { returnDocument: 'after' });
+      const updated = await User.findOneAndUpdate(
+        { $or: [{ id: targetId }, { email: targetId.toLowerCase() }] },
+        { $set: req.body },
+        { returnDocument: 'after' }
+      );
       return res.json(updated);
     }
-    res.json({ id: req.params.id, ...req.body });
+    res.json({ id: targetId, ...req.body });
   } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete('/api/users/:id', async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    if (mongoose.connection.readyState === 1) {
+      await User.deleteMany({ $or: [{ id: targetId }, { email: targetId.toLowerCase() }] });
+      console.log(`🗑️ User deleted from MongoDB Atlas: ${targetId}`);
+    }
+    return res.json({ success: true, message: `User ${targetId} deleted successfully` });
+  } catch (err) {
+    console.error('❌ Error deleting user from MongoDB Atlas:', err.message);
     res.status(400).json({ error: err.message });
   }
 });

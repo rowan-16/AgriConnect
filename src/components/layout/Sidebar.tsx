@@ -70,7 +70,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { name: t('dashboard', 'Dashboard'), path: '/farmer/dashboard', icon: LayoutDashboard },
     { name: t('myProfile', 'My Profile'), path: '/farmer/profile', icon: User },
     { name: t('myCrops', 'My Crops'), path: '/farmer/crops', icon: Package },
-    { name: t('addCrop', 'Add Crop'), path: '/farmer/add-crop', icon: PlusCircle, highlight: true },
+    { name: t('addCrop', 'Add Crop'), path: '/farmer/add-crop', icon: PlusCircle },
     { name: t('cropAdvisory', 'Crop & Soil Advisory'), path: '/farmer/recommendations', icon: BrainCircuit, badge: 'Smart' },
     { name: t('weatherInfo', 'Weather Information'), path: '/farmer/weather', icon: CloudSun },
     { name: t('aiAssistant', 'AgriBot AI Assistant'), path: '/farmer/chatbot', icon: Bot, badge: '24/7 AI' },
@@ -100,7 +100,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { name: 'Manage Orders', path: '/admin/orders', icon: ClipboardList },
     { name: 'Payments Ledger', path: '/admin/payments', icon: DollarSign },
     { name: 'Reports & Analytics', path: '/admin/reports', icon: BarChart3 },
-    { name: t('aiAssistant', 'AgriBot AI Assistant'), path: '/admin/chatbot', icon: Bot, badge: '24/7 AI' },
     { name: t('notifications', 'Notifications Center'), path: '/admin/notifications', icon: Bell },
     { name: t('myProfile', 'My Profile'), path: '/admin/profile', icon: User },
     { name: t('settings', 'System Settings'), path: '/admin/settings', icon: Settings },
@@ -128,6 +127,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Mobile Header with Logo & Close Button (Only visible on mobile drawer) */}
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 lg:hidden bg-slate-50/90">
           <div className="flex items-center gap-2">
+            <img
+              src="/logo.png"
+              alt="AgriConnect"
+              className="h-7 w-auto object-contain"
+            />
             <span className="text-lg font-black tracking-tight text-slate-900">
               Agri<span className="text-emerald-600">Connect</span>
             </span>

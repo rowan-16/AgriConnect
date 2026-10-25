@@ -17,6 +17,14 @@ const userSchema = new mongoose.Schema(
     cropsGrown: [{ type: String }],
     farmerRating: { type: Number, default: 4.9 },
     isVerified: { type: Boolean, default: false },
+    verificationDocuments: {
+      landDocumentImage: { type: String, default: '' },
+      cropApprovalDocumentImage: { type: String, default: '' },
+      landImage: { type: String, default: '' },
+      submittedAt: { type: String, default: '' },
+      status: { type: String, default: 'unsubmitted' },
+      rejectionReason: { type: String, default: '' },
+    },
 
     // Buyer specific
     businessName: { type: String, default: '' },

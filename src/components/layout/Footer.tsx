@@ -15,7 +15,12 @@ export const Footer: React.FC = () => {
           
           {/* Col 1 & 2: Branding & Description */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
+              <img
+                src="/logo-dark-mode.png"
+                alt="AgriConnect"
+                className="h-9 w-auto object-contain"
+              />
               <span className="text-2xl font-black tracking-tight text-white">
                 Agri<span className="text-agri-400">Connect</span>
               </span>

@@ -30,7 +30,14 @@ export const AdminDashboard: React.FC = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
 
-  const allUsers = authService.getUsers();
+  const [allUsers, setAllUsers] = React.useState(() => authService.getUsers());
+
+  React.useEffect(() => {
+    authService.fetchUsersFromMongoDB().then(() => {
+      setAllUsers(authService.getUsers());
+    });
+  }, []);
+
   const farmers = allUsers.filter(u => u.role === 'farmer');
   const buyers = allUsers.filter(u => u.role === 'buyer');
   const allCrops = cropService.getAllCrops();

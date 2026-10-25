@@ -65,8 +65,8 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClo
           {/* Header Branding */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b-2 border-slate-900">
             <div>
-              <div className="flex items-center gap-2 text-slate-900 font-black text-2xl tracking-tight">
-                <Sprout className="w-7 h-7 text-emerald-600" />
+              <div className="flex items-center gap-2.5 text-slate-900 font-black text-2xl tracking-tight">
+                <img src="/logo.png" alt="AgriConnect Logo" className="h-8 w-auto object-contain" />
                 Agri<span className="text-emerald-600">Connect</span>
               </div>
               <p className="text-xs text-slate-500 mt-1">Direct Farmer-to-Consumer Agricultural Platform</p>

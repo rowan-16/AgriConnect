@@ -13,7 +13,8 @@ import {
   Mail,
   Phone,
   MapPin,
-  Sparkles
+  Sparkles,
+  Trash2
 } from 'lucide-react';
 import { authService } from '../../services/authService';
 import { useToast } from '../../context/ToastContext';
@@ -34,6 +35,12 @@ export const ManageUsers: React.FC = () => {
   // Selected user for modal details / edit
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
+  React.useEffect(() => {
+    authService.fetchUsersFromMongoDB().then(() => {
+      setUsers(authService.getUsers());
+    });
+  }, []);
+
   const refreshUsers = () => {
     setUsers(authService.getUsers());
   };
@@ -43,6 +50,15 @@ export const ManageUsers: React.FC = () => {
     authService.updateProfile(userId, { status: newStatus as any });
     refreshUsers();
     showToast(t('userStatusUpdatedToast', `User ${userName} is now ${newStatus.toUpperCase()}`), 'info', t('userStatusUpdated', 'User Status Updated'));
+  };
+
+  const handleDeleteUser = (userId: string, userName: string) => {
+    if (window.confirm(`Are you sure you want to permanently delete the account "${userName}"? This action cannot be undone.`)) {
+      authService.deleteAccount(userId);
+      refreshUsers();
+      if (selectedUser?.id === userId) setSelectedUser(null);
+      showToast(`User account "${userName}" has been permanently deleted.`, 'info', 'User Deleted');
+    }
   };
 
   const filteredUsers = users.filter((u) => {
@@ -189,17 +205,26 @@ export const ManageUsers: React.FC = () => {
                       </button>
 
                       {u.role !== 'admin' && (
-                        <button
-                          onClick={() => handleToggleStatus(u.id, u.status, u.name)}
-                          className={`p-1.5 rounded-lg transition-colors ${
-                            u.status === 'active'
-                              ? 'text-rose-500 hover:bg-rose-50 hover:text-rose-700'
-                              : 'text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700'
-                          }`}
-                          title={u.status === 'active' ? t('suspendUser', 'Suspend User') : t('activateUser', 'Activate User')}
-                        >
-                          {u.status === 'active' ? <Ban className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
-                        </button>
+                        <>
+                          <button
+                            onClick={() => handleToggleStatus(u.id, u.status, u.name)}
+                            className={`p-1.5 rounded-lg transition-colors ${
+                              u.status === 'active'
+                                ? 'text-amber-600 hover:bg-amber-50'
+                                : 'text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700'
+                            }`}
+                            title={u.status === 'active' ? t('suspendUser', 'Suspend User') : t('activateUser', 'Activate User')}
+                          >
+                            {u.status === 'active' ? <Ban className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(u.id, u.name)}
+                            className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                            title="Delete User Account"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
                       )}
                     </div>
                   </td>

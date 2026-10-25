@@ -6,9 +6,32 @@ const USERS_KEY = 'users';
 const CURRENT_USER_KEY = 'current_user';
 const API_BASE_URL = 'http://localhost:5000/api';
 
+const DEFAULT_LAND_DOC = 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&q=80&w=600';
+const DEFAULT_CROP_DOC = 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=80&w=600';
+const DEFAULT_LAND_IMG = 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=600';
+
 export const authService = {
   getUsers(): User[] {
-    return loadStorage<User[]>(USERS_KEY, INITIAL_USERS);
+    const rawUsers = loadStorage<User[]>(USERS_KEY, INITIAL_USERS);
+    return rawUsers.map(u => {
+      const isVerified = Boolean(u.isVerified || u.verificationDocuments?.status === 'approved');
+      if (u.role === 'farmer' && u.verificationDocuments) {
+        return {
+          ...u,
+          isVerified,
+          verificationDocuments: {
+            ...u.verificationDocuments,
+            landDocumentImage: u.verificationDocuments.landDocumentImage || DEFAULT_LAND_DOC,
+            cropApprovalDocumentImage: u.verificationDocuments.cropApprovalDocumentImage || DEFAULT_CROP_DOC,
+            landImage: u.verificationDocuments.landImage || DEFAULT_LAND_IMG,
+          }
+        };
+      }
+      return {
+        ...u,
+        isVerified,
+      };
+    });
   },
 
   async fetchUsersFromMongoDB(): Promise<User[]> {
@@ -18,7 +41,7 @@ export const authService = {
         const mongoUsers = await res.json();
         if (Array.isArray(mongoUsers) && mongoUsers.length > 0) {
           saveStorage(USERS_KEY, mongoUsers);
-          return mongoUsers;
+          return this.getUsers();
         }
       }
     } catch {
@@ -28,14 +51,55 @@ export const authService = {
   },
 
   getCurrentUser(): User | null {
-    return loadStorage<User | null>(CURRENT_USER_KEY, null);
+    try {
+      let user: User | null = null;
+      const sessionData = sessionStorage.getItem(`agriconnect_${CURRENT_USER_KEY}`);
+      if (sessionData) {
+        user = JSON.parse(sessionData) as User;
+      } else {
+        const localData = localStorage.getItem(`agriconnect_${CURRENT_USER_KEY}`);
+        if (localData) {
+          user = JSON.parse(localData) as User;
+        }
+      }
+
+      if (user) {
+        const allUsers = this.getUsers();
+        const latest = allUsers.find(u => u.id === user!.id || u.email.toLowerCase() === user!.email.toLowerCase());
+        if (latest) {
+          const isVerified = Boolean(latest.isVerified || latest.verificationDocuments?.status === 'approved');
+          const resolvedLatest = { ...latest, isVerified };
+          const isRemembered = Boolean(localStorage.getItem(`agriconnect_${CURRENT_USER_KEY}`));
+          this.setCurrentUser(resolvedLatest, isRemembered);
+          return resolvedLatest;
+        }
+
+        const isVerified = Boolean(user.isVerified || user.verificationDocuments?.status === 'approved');
+        return { ...user, isVerified };
+      }
+      return user;
+    } catch (e) {
+      console.error('Failed to get current user', e);
+    }
+    return null;
   },
 
-  setCurrentUser(user: User): void {
-    saveStorage(CURRENT_USER_KEY, user);
+  setCurrentUser(user: User | null, rememberMe = false): void {
+    if (!user) {
+      sessionStorage.removeItem(`agriconnect_${CURRENT_USER_KEY}`);
+      localStorage.removeItem(`agriconnect_${CURRENT_USER_KEY}`);
+      return;
+    }
+    if (rememberMe) {
+      localStorage.setItem(`agriconnect_${CURRENT_USER_KEY}`, JSON.stringify(user));
+      sessionStorage.setItem(`agriconnect_${CURRENT_USER_KEY}`, JSON.stringify(user));
+    } else {
+      sessionStorage.setItem(`agriconnect_${CURRENT_USER_KEY}`, JSON.stringify(user));
+      localStorage.removeItem(`agriconnect_${CURRENT_USER_KEY}`);
+    }
   },
 
-  login(email: string, password = ''): { success: boolean; user?: User; error?: string } {
+  login(email: string, password = '', rememberMe = false): { success: boolean; user?: User; error?: string } {
     const users = this.getUsers();
     const found = users.find(u => u.email.toLowerCase() === email.toLowerCase());
     if (found) {
@@ -45,7 +109,7 @@ export const authService = {
       if (found.email.toLowerCase() === 'admin@agriconnect.com' && password && password !== 'admin@agri') {
         return { success: false, error: 'Invalid Admin password. Use password: admin@agri' };
       }
-      this.setCurrentUser(found);
+      this.setCurrentUser(found, rememberMe);
       return { success: true, user: found };
     }
     return { success: false, error: 'Invalid credentials. Please check email and password.' };
@@ -111,7 +175,7 @@ export const authService = {
 
   updateProfile(userId: string, updates: Partial<User>): User | null {
     const users = this.getUsers();
-    const index = users.findIndex(u => u.id === userId);
+    const index = users.findIndex(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
     if (index === -1) return null;
 
     const updated = { ...users[index], ...updates };
@@ -119,20 +183,20 @@ export const authService = {
     saveStorage(USERS_KEY, users);
 
     // Sync to MongoDB Atlas
-    fetch(`${API_BASE_URL}/users/${userId}`, {
+    fetch(`${API_BASE_URL}/users/${encodeURIComponent(users[index].id)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
     }).catch(() => {});
 
     const currentUser = this.getCurrentUser();
-    if (currentUser.id === userId) {
+    if (currentUser?.id === userId || currentUser?.email?.toLowerCase() === userId.toLowerCase()) {
       this.setCurrentUser(updated);
     }
     return updated;
   },
 
-  loginWithGoogle(role: UserRole = 'farmer', googleProfile?: { name?: string; email?: string; picture?: string }): { success: boolean; user?: User; error?: string } {
+  loginWithGoogle(role: UserRole = 'farmer', googleProfile?: { name?: string; email?: string; picture?: string }, rememberMe = false): { success: boolean; user?: User; error?: string } {
     const targetEmail = googleProfile?.email || (role === 'farmer' ? 'ramesh.farmer@agriconnect.com' : 'priya.buyer@agriconnect.com');
     const targetName = googleProfile?.name || (googleProfile?.email ? googleProfile.email.split('@')[0] : (role === 'farmer' ? 'Ramesh Patel (Google User)' : 'Priya Sharma (Google User)'));
     const targetAvatar = googleProfile?.picture || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300';
@@ -177,16 +241,18 @@ export const authService = {
       body: JSON.stringify(found),
     }).catch(err => console.error('MongoDB sync error on Google login:', err));
 
-    this.setCurrentUser(found);
+    this.setCurrentUser(found, rememberMe);
     return { success: true, user: found };
   },
 
   submitVerificationDocuments(
     userId: string,
-    docs: { landDocumentImage: string; cropApprovalDocumentImage: string; landImage: string }
+    docs: { landDocumentImage?: string; cropApprovalDocumentImage?: string; landImage?: string }
   ): User | null {
     const verificationDocuments = {
-      ...docs,
+      landDocumentImage: docs.landDocumentImage || DEFAULT_LAND_DOC,
+      cropApprovalDocumentImage: docs.cropApprovalDocumentImage || DEFAULT_CROP_DOC,
+      landImage: docs.landImage || DEFAULT_LAND_IMG,
       submittedAt: new Date().toISOString(),
       status: 'pending' as const,
     };
@@ -203,7 +269,7 @@ export const authService = {
     rejectionReason?: string
   ): User | null {
     const users = this.getUsers();
-    const target = users.find(u => u.id === farmerId);
+    const target = users.find(u => u.id === farmerId || u.email.toLowerCase() === farmerId.toLowerCase());
     if (!target) return null;
 
     const currentDocs = target.verificationDocuments || {
@@ -216,7 +282,7 @@ export const authService = {
       rejectionReason: isApproved ? undefined : rejectionReason || 'Documents rejected by Admin.',
     };
 
-    return this.updateProfile(farmerId, {
+    return this.updateProfile(target.id, {
       isVerified: isApproved,
       status: isApproved ? 'active' : 'pending',
       verificationDocuments: updatedDocs,
@@ -225,20 +291,32 @@ export const authService = {
 
   deleteAccount(userId: string): boolean {
     const users = this.getUsers();
-    const filtered = users.filter(u => u.id !== userId);
+    const targetUser = users.find(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    const targetEmail = targetUser?.email || userId;
+
+    const filtered = users.filter(u => u.id !== userId && u.email.toLowerCase() !== targetEmail.toLowerCase());
     saveStorage(USERS_KEY, filtered);
 
-    // Sync deletion to MongoDB Atlas
-    fetch(`${API_BASE_URL}/users/${userId}`, {
+    // Sync deletion to MongoDB Atlas cloud database by ID and target email
+    fetch(`${API_BASE_URL}/users/${encodeURIComponent(userId)}`, {
       method: 'DELETE',
-    }).catch(() => {});
+    }).catch(err => console.error('MongoDB sync delete error:', err));
 
-    this.logout();
+    if (targetEmail && targetEmail !== userId) {
+      fetch(`${API_BASE_URL}/users/${encodeURIComponent(targetEmail)}`, {
+        method: 'DELETE',
+      }).catch(() => {});
+    }
+
+    const currentUser = this.getCurrentUser();
+    if (currentUser?.id === userId || currentUser?.email?.toLowerCase() === targetEmail.toLowerCase()) {
+      this.logout();
+    }
     return true;
   },
 
   logout(): void {
     // Clear session user
-    saveStorage(CURRENT_USER_KEY, null);
+    this.setCurrentUser(null);
   }
 };

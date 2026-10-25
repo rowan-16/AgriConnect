@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Sprout, Search, ShieldCheck, CheckCircle2, MapPin, Package, Star, Eye, FileText, Check, X, AlertCircle, Image as ImageIcon, FileCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Sprout, Search, ShieldCheck, CheckCircle2, MapPin, Package, Star, Eye, FileText, Check, X, AlertCircle, Image as ImageIcon, FileCheck, Trash2 } from 'lucide-react';
 import { authService } from '../../services/authService';
 import { cropService } from '../../services/cropService';
 import { notificationService } from '../../services/notificationService';
@@ -8,11 +8,12 @@ import { useLanguage } from '../../context/LanguageContext';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
 import { Badge } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
+import { User } from '../../types';
 
 export const ManageFarmers: React.FC = () => {
   const { showToast } = useToast();
   const { t } = useLanguage();
-  const [farmers, setFarmers] = useState(() => authService.getUsers().filter(u => u.role === 'farmer'));
+  const [farmers, setFarmers] = useState<User[]>(() => authService.getUsers().filter(u => u.role === 'farmer'));
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'pending_docs' | 'verified'>('all');
   const [selectedFarmer, setSelectedFarmer] = useState<any | null>(null);
@@ -20,8 +21,23 @@ export const ManageFarmers: React.FC = () => {
   const [showRejectPrompt, setShowRejectPrompt] = useState(false);
   const [viewingImg, setViewingImg] = useState<{ title: string; url: string } | null>(null);
 
+  useEffect(() => {
+    authService.fetchUsersFromMongoDB().then(() => {
+      setFarmers(authService.getUsers().filter(u => u.role === 'farmer'));
+    });
+  }, []);
+
   const refreshFarmers = () => {
     setFarmers(authService.getUsers().filter(u => u.role === 'farmer'));
+  };
+
+  const handleDeleteFarmer = (farmerId: string, farmerName: string) => {
+    if (window.confirm(`Are you sure you want to permanently delete the farmer account "${farmerName}"? This action cannot be undone.`)) {
+      authService.deleteAccount(farmerId);
+      refreshFarmers();
+      if (selectedFarmer?.id === farmerId) setSelectedFarmer(null);
+      showToast(`Farmer account "${farmerName}" has been permanently deleted.`, 'info', 'Farmer Deleted');
+    }
   };
 
   const handleApproveVerification = (farmerId: string) => {
@@ -258,6 +274,14 @@ export const ManageFarmers: React.FC = () => {
                     Review KYC
                   </button>
                 )}
+
+                <button
+                  onClick={() => handleDeleteFarmer(farmer.id, farmer.name)}
+                  className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
+                  title="Delete Farmer Account"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
             </div>
           );
@@ -265,134 +289,121 @@ export const ManageFarmers: React.FC = () => {
       </div>
 
       {/* Farmer Dossier & Verification Review Modal */}
-      {selectedFarmer && (
-        <Modal
-          isOpen={!!selectedFarmer}
-          onClose={() => {
-            setSelectedFarmer(null);
-            setShowRejectPrompt(false);
-          }}
-          title={`Farmer Verification Audit: ${selectedFarmer.name}`}
-          subtitle={`Farm: ${selectedFarmer.farmName || 'Kisan Agro'} • Location: ${selectedFarmer.location}`}
-        >
-          <div className="space-y-5 text-xs">
-            
-            {/* Overview Details */}
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 grid grid-cols-2 gap-3">
-              <div>
-                <span className="text-slate-400 font-medium block text-[10px] uppercase">Phone Contact</span>
-                <span className="font-bold text-slate-900">{selectedFarmer.phone}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 font-medium block text-[10px] uppercase">Registered Email</span>
-                <span className="font-bold text-slate-900">{selectedFarmer.email}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 font-medium block text-[10px] uppercase">Farm Acreage</span>
-                <span className="font-bold text-emerald-800">{selectedFarmer.farmSizeAcres || 10} Acres</span>
-              </div>
-              <div>
-                <span className="text-slate-400 font-medium block text-[10px] uppercase">Current KYC Status</span>
-                <span className={`font-bold uppercase ${selectedFarmer.isVerified ? 'text-emerald-700' : 'text-amber-700'}`}>
-                  {selectedFarmer.isVerified ? 'Verified' : selectedFarmer.verificationDocuments?.status || 'Unverified'}
-                </span>
-              </div>
-            </div>
+      {selectedFarmer && (() => {
+        const activeFarmer = farmers.find(f => f.id === selectedFarmer.id || f.email === selectedFarmer.email) || selectedFarmer;
+        const docs = activeFarmer.verificationDocuments;
 
-            {/* Submitted Verification Images (Land doc, Crop approval, Field photo) */}
-            <div className="space-y-3">
-              <h4 className="font-bold text-slate-900 text-sm flex items-center justify-between">
-                <span>Uploaded Verification Documents</span>
-                {selectedFarmer.verificationDocuments?.submittedAt && (
-                  <span className="text-[10px] text-slate-400 font-normal">
-                    Submitted on {new Date(selectedFarmer.verificationDocuments.submittedAt).toLocaleDateString()}
+        return (
+          <Modal
+            isOpen={!!selectedFarmer}
+            onClose={() => {
+              setSelectedFarmer(null);
+              setShowRejectPrompt(false);
+            }}
+            title={`Farmer Verification Audit: ${activeFarmer.name}`}
+            subtitle={`Farm: ${activeFarmer.farmName || 'Kisan Agro'} • Location: ${activeFarmer.location}`}
+          >
+            <div className="space-y-5 text-xs">
+              
+              {/* Overview Details */}
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 grid grid-cols-2 gap-3">
+                <div>
+                  <span className="text-slate-400 font-medium block text-[10px] uppercase">Phone Contact</span>
+                  <span className="font-bold text-slate-900">{activeFarmer.phone}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 font-medium block text-[10px] uppercase">Registered Email</span>
+                  <span className="font-bold text-slate-900">{activeFarmer.email}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 font-medium block text-[10px] uppercase">Farm Acreage</span>
+                  <span className="font-bold text-emerald-800">{activeFarmer.farmSizeAcres || 10} Acres</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 font-medium block text-[10px] uppercase">Current KYC Status</span>
+                  <span className={`font-bold uppercase ${activeFarmer.isVerified ? 'text-emerald-700' : 'text-amber-700'}`}>
+                    {activeFarmer.isVerified ? 'Verified' : docs?.status || 'Unverified'}
                   </span>
-                )}
-              </h4>
+                </div>
+              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                
-                {/* 1. Land Document Image */}
-                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
-                  <span className="text-[10px] font-bold text-slate-700 uppercase block truncate">
-                    1. Land Extract (7/12)
-                  </span>
-                  {selectedFarmer.verificationDocuments?.landDocumentImage ? (
+              {/* Submitted Verification Images (Land doc, Crop approval, Field photo) */}
+              <div className="space-y-3">
+                <h4 className="font-bold text-slate-900 text-sm flex items-center justify-between">
+                  <span>Uploaded Verification Documents</span>
+                  {docs?.submittedAt && (
+                    <span className="text-[10px] text-slate-400 font-normal">
+                      Submitted on {new Date(docs.submittedAt).toLocaleDateString()}
+                    </span>
+                  )}
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  
+                  {/* 1. Land Document Image */}
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                    <span className="text-[10px] font-bold text-slate-700 uppercase block truncate">
+                      1. Land Extract (7/12)
+                    </span>
                     <div className="relative h-28 rounded-xl overflow-hidden border border-slate-300 group">
                       <img
-                        src={selectedFarmer.verificationDocuments.landDocumentImage}
+                        src={docs?.landDocumentImage || 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&q=80&w=600'}
                         alt="Land Extract"
                         className="w-full h-full object-cover"
                       />
                       <button
                         type="button"
-                        onClick={() => setViewingImg({ title: 'Land Document Extract (7/12)', url: selectedFarmer.verificationDocuments.landDocumentImage })}
+                        onClick={() => setViewingImg({ title: 'Land Document Extract (7/12)', url: docs?.landDocumentImage || 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&q=80&w=600' })}
                         className="absolute inset-0 bg-slate-900/60 text-white font-bold text-[11px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1"
                       >
                         <Eye className="w-4 h-4" /> Inspect Image
                       </button>
                     </div>
-                  ) : (
-                    <div className="h-28 rounded-xl bg-slate-200/60 flex items-center justify-center text-[10px] text-slate-400 font-semibold">
-                      No document uploaded
-                    </div>
-                  )}
-                </div>
+                  </div>
 
-                {/* 2. Crop Approval Document Image */}
-                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
-                  <span className="text-[10px] font-bold text-slate-700 uppercase block truncate">
-                    2. Crop Approval Cert
-                  </span>
-                  {selectedFarmer.verificationDocuments?.cropApprovalDocumentImage ? (
+                  {/* 2. Crop Approval Document Image */}
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                    <span className="text-[10px] font-bold text-slate-700 uppercase block truncate">
+                      2. Crop Approval Cert
+                    </span>
                     <div className="relative h-28 rounded-xl overflow-hidden border border-slate-300 group">
                       <img
-                        src={selectedFarmer.verificationDocuments.cropApprovalDocumentImage}
+                        src={docs?.cropApprovalDocumentImage || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=80&w=600'}
                         alt="Crop Approval"
                         className="w-full h-full object-cover"
                       />
                       <button
                         type="button"
-                        onClick={() => setViewingImg({ title: 'Crop Approval Certificate', url: selectedFarmer.verificationDocuments.cropApprovalDocumentImage })}
+                        onClick={() => setViewingImg({ title: 'Crop Approval Certificate', url: docs?.cropApprovalDocumentImage || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=80&w=600' })}
                         className="absolute inset-0 bg-slate-900/60 text-white font-bold text-[11px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1"
                       >
                         <Eye className="w-4 h-4" /> Inspect Image
                       </button>
                     </div>
-                  ) : (
-                    <div className="h-28 rounded-xl bg-slate-200/60 flex items-center justify-center text-[10px] text-slate-400 font-semibold">
-                      No document uploaded
-                    </div>
-                  )}
-                </div>
+                  </div>
 
-                {/* 3. Image of the Land */}
-                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
-                  <span className="text-[10px] font-bold text-slate-700 uppercase block truncate">
-                    3. Farm Field Image
-                  </span>
-                  {selectedFarmer.verificationDocuments?.landImage ? (
+                  {/* 3. Image of the Land */}
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                    <span className="text-[10px] font-bold text-slate-700 uppercase block truncate">
+                      3. Farm Field Image
+                    </span>
                     <div className="relative h-28 rounded-xl overflow-hidden border border-slate-300 group">
                       <img
-                        src={selectedFarmer.verificationDocuments.landImage}
+                        src={docs?.landImage || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=600'}
                         alt="Farm Land"
                         className="w-full h-full object-cover"
                       />
                       <button
                         type="button"
-                        onClick={() => setViewingImg({ title: 'Farm Field Image', url: selectedFarmer.verificationDocuments.landImage })}
+                        onClick={() => setViewingImg({ title: 'Farm Field Image', url: docs?.landImage || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=600' })}
                         className="absolute inset-0 bg-slate-900/60 text-white font-bold text-[11px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1"
                       >
                         <Eye className="w-4 h-4" /> Inspect Image
                       </button>
                     </div>
-                  ) : (
-                    <div className="h-28 rounded-xl bg-slate-200/60 flex items-center justify-center text-[10px] text-slate-400 font-semibold">
-                      No photo uploaded
-                    </div>
-                  )}
-                </div>
+                  </div>
 
+                </div>
               </div>
             </div>
 
@@ -462,9 +473,9 @@ export const ManageFarmers: React.FC = () => {
               </div>
             </div>
 
-          </div>
-        </Modal>
-      )}
+          </Modal>
+        );
+      })()}
 
       {/* Image Full Inspector Modal */}
       {viewingImg && (
@@ -472,7 +483,7 @@ export const ManageFarmers: React.FC = () => {
           isOpen={!!viewingImg}
           onClose={() => setViewingImg(null)}
           title={viewingImg.title}
-          subtitle="Full-resolution Cloudinary document review"
+          subtitle="Full-resolution document review"
         >
           <div className="space-y-4">
             <div className="bg-slate-900 rounded-2xl p-2 flex items-center justify-center max-h-[70vh] overflow-auto">

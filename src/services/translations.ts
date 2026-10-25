@@ -1055,12 +1055,6 @@ export const TRANSLATIONS: TranslationDictionary = {
     mr: 'प्रशासन नियंत्रण केंद्र',
     ta: 'நிர்வாக கட்டுப்பாட்டு மையம்',
   },
-  welcomeBack: {
-    en: 'Welcome back',
-    hi: 'फिर से स्वागत है',
-    mr: 'परत स्वागत आहे',
-    ta: 'மீண்டும் வருக',
-  },
   microClimate: {
     en: 'Micro-Climate',
     hi: 'सूक्ष्म-जलवायु',
@@ -1126,12 +1120,6 @@ export const TRANSLATIONS: TranslationDictionary = {
     hi: 'हाल में प्राप्त ऑर्डर',
     mr: 'अलीकडे प्राप्त ऑर्डर्स',
     ta: 'சமீபத்தில் பெறப்பட்ட ஆர்டர்கள்',
-  },
-  viewAllCrops: {
-    en: 'View All Crops',
-    hi: 'सभी फसलें देखें',
-    mr: 'सर्व पिके पहा',
-    ta: 'அனைத்து பயிர்களையும் பார்க்க',
   },
   viewAllOrders: {
     en: 'View All Orders',
@@ -1216,12 +1204,6 @@ export const TRANSLATIONS: TranslationDictionary = {
     hi: 'अस्वीकृत',
     mr: 'नाकारले',
     ta: 'நிராகரிக்கப்பட்டது',
-  },
-  searchPlaceholder: {
-    en: 'Search crops, farmers, cities...',
-    hi: 'फसलें, किसान, शहर खोजें...',
-    mr: 'पिके, शेतकरी, शहरे शोधा...',
-    ta: 'பயிர்கள், விவசாயிகள், நகரங்களைத் தேட...',
   },
 
   // Landing Page Detailed Translations
@@ -2169,12 +2151,6 @@ export const TRANSLATIONS: TranslationDictionary = {
     mr: 'वाऱ्याचा वेग',
     ta: 'காற்றின் வேகம்',
   },
-  soilMoisture: {
-    en: 'Soil Moisture',
-    hi: 'मिट्टी की नमी',
-    mr: 'मातीतील ओलावा',
-    ta: 'மண் ஈரப்பதம்',
-  },
   feelsLike: {
     en: 'Feels like',
     hi: 'महसूस होता है',
@@ -2236,12 +2212,6 @@ export const TRANSLATIONS: TranslationDictionary = {
     hi: 'फार्म और पर्यावरण इनपुट',
     mr: 'शेती आणि पर्यावरण इनपुट',
     ta: 'பண்ணை மற்றும் சுற்றுச்சூழல் உள்ளீடு',
-  },
-  soilClassification: {
-    en: 'Soil Classification',
-    hi: 'मिट्टी का प्रकार',
-    mr: 'मातीचे प्रकार',
-    ta: 'மண் வகைப்பாடு',
   },
   croppingSeason: {
     en: 'Cropping Season',

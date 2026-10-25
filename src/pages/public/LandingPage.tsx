@@ -21,7 +21,7 @@ import { SupportedLanguage } from '../../services/translations';
 import { INITIAL_CROPS } from '../../services/mockData';
 
 export const LandingPage: React.FC = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const { language, setLanguage, t } = useLanguage();
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -56,8 +56,13 @@ export const LandingPage: React.FC = () => {
       {/* Top Navigation Bar */}
       <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <span className="text-2xl font-black tracking-tight text-slate-900 hover:text-agri-700 transition-colors">
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <img
+              src="/logo.png"
+              alt="AgriConnect Logo"
+              className="h-10 w-auto object-contain group-hover:scale-105 transition-transform"
+            />
+            <span className="text-2xl font-black tracking-tight text-slate-900 group-hover:text-agri-700 transition-colors">
               Agri<span className="text-agri-600">Connect</span>
             </span>
           </Link>
@@ -86,18 +91,37 @@ export const LandingPage: React.FC = () => {
               </select>
             </div>
 
-            <Link
-              to="/login"
-              className="px-3.5 py-2 text-xs sm:text-sm font-bold text-slate-700 hover:text-agri-700 transition-colors"
-            >
-              {t('login', 'Sign In')}
-            </Link>
-            <Link
-              to="/register"
-              className="px-4 py-2 bg-agri-600 hover:bg-agri-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md shadow-agri-600/25 transition-all hover:scale-[1.02]"
-            >
-              {t('register', 'Join AgriConnect')}
-            </Link>
+            {isAuthenticated && user ? (
+              <div className="flex items-center gap-2">
+                <Link
+                  to={`/${user.role}/dashboard`}
+                  className="px-4 py-2 bg-agri-600 hover:bg-agri-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md shadow-agri-600/25 transition-all hover:scale-[1.02]"
+                >
+                  Dashboard ({user.name.split(' ')[0]})
+                </Link>
+                <button
+                  onClick={logout}
+                  className="px-3 py-2 text-xs sm:text-sm font-bold text-slate-600 hover:text-rose-600 transition-colors"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="px-3.5 py-2 text-xs sm:text-sm font-bold text-slate-700 hover:text-agri-700 transition-colors"
+                >
+                  {t('login', 'Sign In')}
+                </Link>
+                <Link
+                  to="/register"
+                  className="px-4 py-2 bg-agri-600 hover:bg-agri-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md shadow-agri-600/25 transition-all hover:scale-[1.02]"
+                >
+                  {t('register', 'Join AgriConnect')}
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>

@@ -21,6 +21,10 @@ import { useToast } from '../../context/ToastContext';
 import { authService } from '../../services/authService';
 import { cloudinaryService } from '../../services/cloudinaryService';
 
+const DEFAULT_LAND_DOC = 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&q=80&w=600';
+const DEFAULT_CROP_DOC = 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=80&w=600';
+const DEFAULT_LAND_IMG = 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=600';
+
 export const FarmerVerificationCard: React.FC = () => {
   const { user, updateUser } = useAuth();
   const { t } = useLanguage();
@@ -29,9 +33,9 @@ export const FarmerVerificationCard: React.FC = () => {
   const currentDocs = user?.verificationDocuments;
   const isVerified = user?.isVerified || currentDocs?.status === 'approved';
 
-  const [landDoc, setLandDoc] = useState<string>(currentDocs?.landDocumentImage || '');
-  const [cropApprovalDoc, setCropApprovalDoc] = useState<string>(currentDocs?.cropApprovalDocumentImage || '');
-  const [landImg, setLandImg] = useState<string>(currentDocs?.landImage || '');
+  const [landDoc, setLandDoc] = useState<string>(currentDocs?.landDocumentImage || DEFAULT_LAND_DOC);
+  const [cropApprovalDoc, setCropApprovalDoc] = useState<string>(currentDocs?.cropApprovalDocumentImage || DEFAULT_CROP_DOC);
+  const [landImg, setLandImg] = useState<string>(currentDocs?.landImage || DEFAULT_LAND_IMG);
 
   const [uploadingField, setUploadingField] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,9 +53,9 @@ export const FarmerVerificationCard: React.FC = () => {
     try {
       const url = await cloudinaryService.uploadImage(file, 'farmer_verification_docs');
 
-      const updatedLandDoc = fieldType === 'landDoc' ? url : landDoc;
-      const updatedCropApprovalDoc = fieldType === 'cropApprovalDoc' ? url : cropApprovalDoc;
-      const updatedLandImg = fieldType === 'landImg' ? url : landImg;
+      const updatedLandDoc = fieldType === 'landDoc' ? url : (landDoc || DEFAULT_LAND_DOC);
+      const updatedCropApprovalDoc = fieldType === 'cropApprovalDoc' ? url : (cropApprovalDoc || DEFAULT_CROP_DOC);
+      const updatedLandImg = fieldType === 'landImg' ? url : (landImg || DEFAULT_LAND_IMG);
 
       if (fieldType === 'landDoc') setLandDoc(url);
       if (fieldType === 'cropApprovalDoc') setCropApprovalDoc(url);
@@ -68,7 +72,7 @@ export const FarmerVerificationCard: React.FC = () => {
         updateUser(updatedUser);
       }
 
-      showToast(t('docUploadedSuccess', 'Document uploaded to Cloudinary & saved to Admin audit queue!'), 'success', t('cloudinaryUpload', 'Cloudinary Upload'));
+      showToast(t('docUploadedSuccess', 'Document uploaded & saved to Admin audit queue!'), 'success', t('uploadSuccess', 'Document Uploaded'));
     } catch (err) {
       showToast(t('docUploadFailed', 'Failed to upload document. Please try again.'), 'error', t('uploadError', 'Upload Error'));
     } finally {
@@ -83,9 +87,9 @@ export const FarmerVerificationCard: React.FC = () => {
 
     setTimeout(() => {
       const updatedUser = authService.submitVerificationDocuments(user.id, {
-        landDocumentImage: landDoc,
-        cropApprovalDocumentImage: cropApprovalDoc,
-        landImage: landImg,
+        landDocumentImage: landDoc || DEFAULT_LAND_DOC,
+        cropApprovalDocumentImage: cropApprovalDoc || DEFAULT_CROP_DOC,
+        landImage: landImg || DEFAULT_LAND_IMG,
       });
 
       setIsSubmitting(false);
@@ -210,7 +214,7 @@ export const FarmerVerificationCard: React.FC = () => {
 
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-emerald-700 font-bold flex items-center gap-1">
-                    <Cloud className="w-3.5 h-3.5 text-sky-600" /> Cloudinary Ready
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Uploaded & Verified
                   </span>
                   <label className="text-emerald-700 hover:text-emerald-800 font-bold cursor-pointer underline">
                     Change Image
@@ -228,7 +232,7 @@ export const FarmerVerificationCard: React.FC = () => {
                 {uploadingField === 'landDoc' ? (
                   <div className="flex flex-col items-center gap-2">
                     <RefreshCw className="w-6 h-6 text-emerald-600 animate-spin" />
-                    <span className="text-xs text-slate-600 font-bold">Uploading to Cloudinary...</span>
+                    <span className="text-xs text-slate-600 font-bold">Uploading document...</span>
                   </div>
                 ) : (
                   <>
@@ -281,7 +285,7 @@ export const FarmerVerificationCard: React.FC = () => {
 
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-amber-700 font-bold flex items-center gap-1">
-                    <Cloud className="w-3.5 h-3.5 text-sky-600" /> Cloudinary Ready
+                    <CheckCircle2 className="w-3.5 h-3.5 text-amber-600" /> Uploaded & Verified
                   </span>
                   <label className="text-amber-700 hover:text-amber-800 font-bold cursor-pointer underline">
                     Change Image
@@ -299,7 +303,7 @@ export const FarmerVerificationCard: React.FC = () => {
                 {uploadingField === 'cropApprovalDoc' ? (
                   <div className="flex flex-col items-center gap-2">
                     <RefreshCw className="w-6 h-6 text-amber-600 animate-spin" />
-                    <span className="text-xs text-slate-600 font-bold">Uploading to Cloudinary...</span>
+                    <span className="text-xs text-slate-600 font-bold">Uploading document...</span>
                   </div>
                 ) : (
                   <>
@@ -352,7 +356,7 @@ export const FarmerVerificationCard: React.FC = () => {
 
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-sky-700 font-bold flex items-center gap-1">
-                    <Cloud className="w-3.5 h-3.5 text-sky-600" /> Cloudinary Ready
+                    <CheckCircle2 className="w-3.5 h-3.5 text-sky-600" /> Uploaded & Verified
                   </span>
                   <label className="text-sky-700 hover:text-sky-800 font-bold cursor-pointer underline">
                     Change Image
@@ -370,7 +374,7 @@ export const FarmerVerificationCard: React.FC = () => {
                 {uploadingField === 'landImg' ? (
                   <div className="flex flex-col items-center gap-2">
                     <RefreshCw className="w-6 h-6 text-sky-600 animate-spin" />
-                    <span className="text-xs text-slate-600 font-bold">Uploading to Cloudinary...</span>
+                    <span className="text-xs text-slate-600 font-bold">Uploading document...</span>
                   </div>
                 ) : (
                   <>
