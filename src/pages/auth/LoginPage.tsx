@@ -34,7 +34,7 @@ export const LoginPage: React.FC = () => {
               const jsonPayload = decodeURIComponent(
                 atob(base64)
                   .split('')
-                  .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                  .map((c: string) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
                   .join('')
               );
               const googleUser = JSON.parse(jsonPayload);
@@ -51,85 +51,97 @@ export const LoginPage: React.FC = () => {
           },
         });
       } catch (e) {
-        console.error('GSI Init Error:', e);
+        console.warn('GSI Init Warning:', e);
       }
     }
   }, [googleRole, rememberMe]);
 
   const handleGoogleLogin = (selectedRole: 'farmer' | 'buyer' = googleRole) => {
     setIsLoading(true);
+    setError('');
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1083891046091-1ccc01k2vjl76hl46p5of1bnnu0rjog9.apps.googleusercontent.com';
     const google = (window as any).google;
 
-    let hasHandledAuth = false;
+    if (!google) {
+      setIsLoading(false);
+      setError('Google Sign-In is still loading. Please check your internet connection.');
+      return;
+    }
 
-    // Guaranteed fallback: If Google rejects origin, times out, or popup is blocked
-    const fallbackTimer = setTimeout(() => {
-      if (!hasHandledAuth) {
-        hasHandledAuth = true;
-        const res = loginWithGoogle(selectedRole, undefined, rememberMe);
-        setIsLoading(false);
-        if (res.success && res.user) {
-          showToast(`Welcome ${res.user.name}! Signed in via Google.`, 'success', 'Google Authentication');
-          navigate(`/${res.user.role}/dashboard`);
-        } else {
-          setError(res.error || 'Google login failed.');
-        }
-      }
-    }, 1500);
-
-    if (google?.accounts?.id && clientId) {
+    // 1. Primary: Official Google OAuth 2.0 Account Picker Popup
+    if (google.accounts?.oauth2) {
       try {
-        google.accounts.id.initialize({
+        const client = google.accounts.oauth2.initTokenClient({
           client_id: clientId,
-          callback: (response: any) => {
-            clearTimeout(fallbackTimer);
-            hasHandledAuth = true;
-            if (response.credential) {
-              const base64Url = response.credential.split('.')[1];
-              const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-              const jsonPayload = decodeURIComponent(
-                atob(base64)
-                  .split('')
-                  .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-                  .join('')
-              );
-              const googleUser = JSON.parse(jsonPayload);
-              const authRes = loginWithGoogle(selectedRole, {
-                name: googleUser.name,
-                email: googleUser.email,
-                picture: googleUser.picture,
-              }, rememberMe);
+          scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+          callback: async (tokenResponse: any) => {
+            if (tokenResponse.error) {
               setIsLoading(false);
-              if (authRes.success && authRes.user) {
-                showToast(`Welcome ${authRes.user.name}! Signed in via Google.`, 'success', 'Google Authentication');
-                navigate(`/${authRes.user.role}/dashboard`);
-              } else {
-                setError(authRes.error || 'Google login failed.');
+              if (tokenResponse.error !== 'popup_closed_by_user') {
+                setError(`Google Sign-In failed: ${tokenResponse.error_description || tokenResponse.error}`);
               }
+              return;
             }
+
+            try {
+              // Fetch authenticated user's real name, email, and photo from Google
+              const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+              });
+              const profile = await res.json();
+              if (profile && profile.email) {
+                const authRes = loginWithGoogle(selectedRole, {
+                  name: profile.name || profile.email.split('@')[0],
+                  email: profile.email,
+                  picture: profile.picture,
+                }, rememberMe);
+                setIsLoading(false);
+                if (authRes.success && authRes.user) {
+                  showToast(`Welcome ${authRes.user.name}! Signed in with Google account.`, 'success', 'Google Authentication');
+                  navigate(`/${authRes.user.role}/dashboard`);
+                } else {
+                  setError(authRes.error || 'Failed to initialize session with Google.');
+                }
+              } else {
+                setIsLoading(false);
+                setError('Unable to retrieve account details from Google.');
+              }
+            } catch (fetchErr: any) {
+              setIsLoading(false);
+              setError('Failed to contact Google servers for profile data.');
+            }
+          },
+          error_callback: (err: any) => {
+            setIsLoading(false);
+            if (err?.type === 'popup_closed') return;
+            setError(err?.message || 'Google Sign-In window was closed or blocked.');
           },
         });
 
-        // Display in-page prompt directly on current webpage
+        // Open actual Google account selection popup
+        client.requestAccessToken({ prompt: 'select_account' });
+        return;
+      } catch (oauthErr) {
+        console.warn('OAuth2 client init failed, trying ID prompt:', oauthErr);
+      }
+    }
+
+    // 2. Secondary fallback: Google Identity One-Tap Prompt
+    if (google.accounts?.id) {
+      try {
         google.accounts.id.prompt((notification: any) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            if (!hasHandledAuth) {
-              clearTimeout(fallbackTimer);
-              hasHandledAuth = true;
-              const res = loginWithGoogle(selectedRole, undefined, rememberMe);
-              setIsLoading(false);
-              if (res.success && res.user) {
-                showToast(`Signed in with Google as ${res.user.name}!`, 'success', 'Google Authentication');
-                navigate(`/${res.user.role}/dashboard`);
-              }
-            }
+          setIsLoading(false);
+          if (notification.isNotDisplayed()) {
+            setError('Google popup could not be displayed. Please check pop-up blocker or ensure your domain is whitelisted in Google Cloud Console.');
           }
         });
-        return;
-      } catch (err) {
-        console.error('In-page Google Auth error:', err);
+      } catch (idErr) {
+        setIsLoading(false);
+        setError('Google Sign-In service error.');
       }
+    } else {
+      setIsLoading(false);
+      setError('Google Sign-In library is unavailable.');
     }
   };
 
