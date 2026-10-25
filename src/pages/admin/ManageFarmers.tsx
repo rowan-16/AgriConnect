@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Sprout, Search, ShieldCheck, CheckCircle2, MapPin, Package, Star, Eye, FileText, Check, X, AlertCircle, Image as ImageIcon, FileCheck, Trash2 } from 'lucide-react';
-import { authService } from '../../services/authService';
+import { authService, cleanDocUrl } from '../../services/authService';
 import { cropService } from '../../services/cropService';
 import { notificationService } from '../../services/notificationService';
 import { useToast } from '../../context/ToastContext';
@@ -345,20 +345,27 @@ export const ManageFarmers: React.FC = () => {
                     <span className="text-[10px] font-bold text-slate-700 uppercase block truncate">
                       1. Land Extract (7/12)
                     </span>
-                    <div className="relative h-28 rounded-xl overflow-hidden border border-slate-300 group">
-                      <img
-                        src={docs?.landDocumentImage || 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&q=80&w=600'}
-                        alt="Land Extract"
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setViewingImg({ title: 'Land Document Extract (7/12)', url: docs?.landDocumentImage || 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&q=80&w=600' })}
-                        className="absolute inset-0 bg-slate-900/60 text-white font-bold text-[11px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1"
-                      >
-                        <Eye className="w-4 h-4" /> Inspect Image
-                      </button>
-                    </div>
+                    {cleanDocUrl(docs?.landDocumentImage) ? (
+                      <div className="relative h-28 rounded-xl overflow-hidden border border-slate-300 group">
+                        <img
+                          src={cleanDocUrl(docs?.landDocumentImage)}
+                          alt="Land Extract"
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setViewingImg({ title: 'Land Document Extract (7/12)', url: cleanDocUrl(docs?.landDocumentImage) })}
+                          className="absolute inset-0 bg-slate-900/60 text-white font-bold text-[11px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1"
+                        >
+                          <Eye className="w-4 h-4" /> Inspect Image
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="h-28 rounded-xl border border-dashed border-slate-300 bg-white flex flex-col items-center justify-center text-slate-400 p-2 text-center">
+                        <FileText className="w-5 h-5 mb-1 text-slate-300" />
+                        <span className="text-[11px] font-medium text-slate-500">Not Uploaded</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* 2. Crop Approval Document Image */}
@@ -366,20 +373,27 @@ export const ManageFarmers: React.FC = () => {
                     <span className="text-[10px] font-bold text-slate-700 uppercase block truncate">
                       2. Crop Approval Cert
                     </span>
-                    <div className="relative h-28 rounded-xl overflow-hidden border border-slate-300 group">
-                      <img
-                        src={docs?.cropApprovalDocumentImage || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=80&w=600'}
-                        alt="Crop Approval"
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setViewingImg({ title: 'Crop Approval Certificate', url: docs?.cropApprovalDocumentImage || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=80&w=600' })}
-                        className="absolute inset-0 bg-slate-900/60 text-white font-bold text-[11px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1"
-                      >
-                        <Eye className="w-4 h-4" /> Inspect Image
-                      </button>
-                    </div>
+                    {cleanDocUrl(docs?.cropApprovalDocumentImage) ? (
+                      <div className="relative h-28 rounded-xl overflow-hidden border border-slate-300 group">
+                        <img
+                          src={cleanDocUrl(docs?.cropApprovalDocumentImage)}
+                          alt="Crop Approval"
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setViewingImg({ title: 'Crop Approval Certificate', url: cleanDocUrl(docs?.cropApprovalDocumentImage) })}
+                          className="absolute inset-0 bg-slate-900/60 text-white font-bold text-[11px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1"
+                        >
+                          <Eye className="w-4 h-4" /> Inspect Image
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="h-28 rounded-xl border border-dashed border-slate-300 bg-white flex flex-col items-center justify-center text-slate-400 p-2 text-center">
+                        <FileCheck className="w-5 h-5 mb-1 text-slate-300" />
+                        <span className="text-[11px] font-medium text-slate-500">Not Uploaded</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* 3. Image of the Land */}
@@ -387,20 +401,27 @@ export const ManageFarmers: React.FC = () => {
                     <span className="text-[10px] font-bold text-slate-700 uppercase block truncate">
                       3. Farm Field Image
                     </span>
-                    <div className="relative h-28 rounded-xl overflow-hidden border border-slate-300 group">
-                      <img
-                        src={docs?.landImage || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=600'}
-                        alt="Farm Land"
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setViewingImg({ title: 'Farm Field Image', url: docs?.landImage || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=600' })}
-                        className="absolute inset-0 bg-slate-900/60 text-white font-bold text-[11px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1"
-                      >
-                        <Eye className="w-4 h-4" /> Inspect Image
-                      </button>
-                    </div>
+                    {cleanDocUrl(docs?.landImage) ? (
+                      <div className="relative h-28 rounded-xl overflow-hidden border border-slate-300 group">
+                        <img
+                          src={cleanDocUrl(docs?.landImage)}
+                          alt="Farm Land"
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setViewingImg({ title: 'Farm Field Image', url: cleanDocUrl(docs?.landImage) })}
+                          className="absolute inset-0 bg-slate-900/60 text-white font-bold text-[11px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1"
+                        >
+                          <Eye className="w-4 h-4" /> Inspect Image
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="h-28 rounded-xl border border-dashed border-slate-300 bg-white flex flex-col items-center justify-center text-slate-400 p-2 text-center">
+                        <ImageIcon className="w-5 h-5 mb-1 text-slate-300" />
+                        <span className="text-[11px] font-medium text-slate-500">Not Uploaded</span>
+                      </div>
+                    )}
                   </div>
 
                 </div>

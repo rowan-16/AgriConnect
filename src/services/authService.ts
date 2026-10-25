@@ -6,9 +6,12 @@ const USERS_KEY = 'users';
 const CURRENT_USER_KEY = 'current_user';
 import { API_BASE_URL } from './apiConfig';
 
-const DEFAULT_LAND_DOC = 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&q=80&w=600';
-const DEFAULT_CROP_DOC = 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=80&w=600';
-const DEFAULT_LAND_IMG = 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=600';
+const DEMO_IMAGE_PATTERNS = ['photo-1568605117036', 'photo-1589829545856', 'photo-1500382017468'];
+export const cleanDocUrl = (url?: string): string => {
+  if (!url) return '';
+  if (DEMO_IMAGE_PATTERNS.some(p => url.includes(p))) return '';
+  return url;
+};
 
 export const authService = {
   getUsers(): User[] {
@@ -21,9 +24,9 @@ export const authService = {
           isVerified,
           verificationDocuments: {
             ...u.verificationDocuments,
-            landDocumentImage: u.verificationDocuments.landDocumentImage || DEFAULT_LAND_DOC,
-            cropApprovalDocumentImage: u.verificationDocuments.cropApprovalDocumentImage || DEFAULT_CROP_DOC,
-            landImage: u.verificationDocuments.landImage || DEFAULT_LAND_IMG,
+            landDocumentImage: cleanDocUrl(u.verificationDocuments.landDocumentImage),
+            cropApprovalDocumentImage: cleanDocUrl(u.verificationDocuments.cropApprovalDocumentImage),
+            landImage: cleanDocUrl(u.verificationDocuments.landImage),
           }
         };
       }
@@ -253,10 +256,14 @@ export const authService = {
     userId: string,
     docs: { landDocumentImage?: string; cropApprovalDocumentImage?: string; landImage?: string }
   ): User | null {
+    const users = this.getUsers();
+    const target = users.find(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    const existing = target?.verificationDocuments;
+
     const verificationDocuments = {
-      landDocumentImage: docs.landDocumentImage || DEFAULT_LAND_DOC,
-      cropApprovalDocumentImage: docs.cropApprovalDocumentImage || DEFAULT_CROP_DOC,
-      landImage: docs.landImage || DEFAULT_LAND_IMG,
+      landDocumentImage: docs.landDocumentImage !== undefined ? cleanDocUrl(docs.landDocumentImage) : (existing?.landDocumentImage || ''),
+      cropApprovalDocumentImage: docs.cropApprovalDocumentImage !== undefined ? cleanDocUrl(docs.cropApprovalDocumentImage) : (existing?.cropApprovalDocumentImage || ''),
+      landImage: docs.landImage !== undefined ? cleanDocUrl(docs.landImage) : (existing?.landImage || ''),
       submittedAt: new Date().toISOString(),
       status: 'pending' as const,
     };

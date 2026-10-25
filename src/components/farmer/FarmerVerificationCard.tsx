@@ -18,12 +18,8 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
-import { authService } from '../../services/authService';
+import { authService, cleanDocUrl } from '../../services/authService';
 import { cloudinaryService } from '../../services/cloudinaryService';
-
-const DEFAULT_LAND_DOC = 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&q=80&w=600';
-const DEFAULT_CROP_DOC = 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=80&w=600';
-const DEFAULT_LAND_IMG = 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=600';
 
 export const FarmerVerificationCard: React.FC = () => {
   const { user, updateUser } = useAuth();
@@ -31,11 +27,13 @@ export const FarmerVerificationCard: React.FC = () => {
   const { showToast } = useToast();
 
   const currentDocs = user?.verificationDocuments;
-  const isVerified = user?.isVerified || currentDocs?.status === 'approved';
 
-  const [landDoc, setLandDoc] = useState<string>(currentDocs?.landDocumentImage || DEFAULT_LAND_DOC);
-  const [cropApprovalDoc, setCropApprovalDoc] = useState<string>(currentDocs?.cropApprovalDocumentImage || DEFAULT_CROP_DOC);
-  const [landImg, setLandImg] = useState<string>(currentDocs?.landImage || DEFAULT_LAND_IMG);
+  const [landDoc, setLandDoc] = useState<string>(() => cleanDocUrl(currentDocs?.landDocumentImage));
+  const [cropApprovalDoc, setCropApprovalDoc] = useState<string>(() => cleanDocUrl(currentDocs?.cropApprovalDocumentImage));
+  const [landImg, setLandImg] = useState<string>(() => cleanDocUrl(currentDocs?.landImage));
+
+  const hasUploadedDocs = Boolean(landDoc || cropApprovalDoc || landImg);
+  const isVerified = Boolean((user?.isVerified || currentDocs?.status === 'approved') && hasUploadedDocs);
 
   const [uploadingField, setUploadingField] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,15 +51,14 @@ export const FarmerVerificationCard: React.FC = () => {
     try {
       const url = await cloudinaryService.uploadImage(file, 'farmer_verification_docs');
 
-      const updatedLandDoc = fieldType === 'landDoc' ? url : (landDoc || DEFAULT_LAND_DOC);
-      const updatedCropApprovalDoc = fieldType === 'cropApprovalDoc' ? url : (cropApprovalDoc || DEFAULT_CROP_DOC);
-      const updatedLandImg = fieldType === 'landImg' ? url : (landImg || DEFAULT_LAND_IMG);
+      const updatedLandDoc = fieldType === 'landDoc' ? url : landDoc;
+      const updatedCropApprovalDoc = fieldType === 'cropApprovalDoc' ? url : cropApprovalDoc;
+      const updatedLandImg = fieldType === 'landImg' ? url : landImg;
 
       if (fieldType === 'landDoc') setLandDoc(url);
       if (fieldType === 'cropApprovalDoc') setCropApprovalDoc(url);
       if (fieldType === 'landImg') setLandImg(url);
 
-      // Auto-save uploaded image immediately so Admin dossier receives it right away
       const updatedUser = authService.submitVerificationDocuments(user.id, {
         landDocumentImage: updatedLandDoc,
         cropApprovalDocumentImage: updatedCropApprovalDoc,
@@ -73,23 +70,43 @@ export const FarmerVerificationCard: React.FC = () => {
       }
 
       showToast(t('docUploadedSuccess', 'Document uploaded & saved to Admin audit queue!'), 'success', t('uploadSuccess', 'Document Uploaded'));
-    } catch (err) {
+    } catch {
       showToast(t('docUploadFailed', 'Failed to upload document. Please try again.'), 'error', t('uploadError', 'Upload Error'));
     } finally {
       setUploadingField(null);
     }
   };
 
+  const handleRemoveImage = (fieldType: 'landDoc' | 'cropApprovalDoc' | 'landImg') => {
+    const updatedLandDoc = fieldType === 'landDoc' ? '' : landDoc;
+    const updatedCropApprovalDoc = fieldType === 'cropApprovalDoc' ? '' : cropApprovalDoc;
+    const updatedLandImg = fieldType === 'landImg' ? '' : landImg;
+
+    if (fieldType === 'landDoc') setLandDoc('');
+    if (fieldType === 'cropApprovalDoc') setCropApprovalDoc('');
+    if (fieldType === 'landImg') setLandImg('');
+
+    const updatedUser = authService.submitVerificationDocuments(user.id, {
+      landDocumentImage: updatedLandDoc,
+      cropApprovalDocumentImage: updatedCropApprovalDoc,
+      landImage: updatedLandImg,
+    });
+
+    if (updatedUser) {
+      updateUser(updatedUser);
+    }
+    showToast('Document removed. Reverted to blank filling slot.', 'info', 'Document Removed');
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
     setIsSubmitting(true);
 
     setTimeout(() => {
       const updatedUser = authService.submitVerificationDocuments(user.id, {
-        landDocumentImage: landDoc || DEFAULT_LAND_DOC,
-        cropApprovalDocumentImage: cropApprovalDoc || DEFAULT_CROP_DOC,
-        landImage: landImg || DEFAULT_LAND_IMG,
+        landDocumentImage: landDoc,
+        cropApprovalDocumentImage: cropApprovalDoc,
+        landImage: landImg,
       });
 
       setIsSubmitting(false);
@@ -214,21 +231,30 @@ export const FarmerVerificationCard: React.FC = () => {
 
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-emerald-700 font-bold flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Uploaded & Verified
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Uploaded & Saved
                   </span>
-                  <label className="text-emerald-700 hover:text-emerald-800 font-bold cursor-pointer underline">
-                    Change Image
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleFileUpload(e, 'landDoc')}
-                      className="hidden"
-                    />
-                  </label>
+                  <div className="flex items-center gap-2.5">
+                    <label className="text-emerald-700 hover:text-emerald-800 font-bold cursor-pointer underline">
+                      Change Image
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileUpload(e, 'landDoc')}
+                        className="hidden"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage('landDoc')}
+                      className="text-rose-600 hover:text-rose-700 font-bold underline cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (
-              <label className="border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-white hover:bg-emerald-50/50 rounded-xl p-5 text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-2">
+              <label className="border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-white hover:bg-emerald-50/50 rounded-xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-2 min-h-[144px]">
                 {uploadingField === 'landDoc' ? (
                   <div className="flex flex-col items-center gap-2">
                     <RefreshCw className="w-6 h-6 text-emerald-600 animate-spin" />
@@ -236,7 +262,9 @@ export const FarmerVerificationCard: React.FC = () => {
                   </div>
                 ) : (
                   <>
-                    <Upload className="w-6 h-6 text-slate-400 group-hover:text-emerald-600" />
+                    <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                      <Upload className="w-5 h-5" />
+                    </div>
                     <span className="text-xs font-bold text-slate-700">Click to Upload Land Extract</span>
                     <span className="text-[10px] text-slate-400">JPG, PNG, WEBP (Max 10MB)</span>
                   </>
@@ -285,21 +313,30 @@ export const FarmerVerificationCard: React.FC = () => {
 
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-amber-700 font-bold flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-amber-600" /> Uploaded & Verified
+                    <CheckCircle2 className="w-3.5 h-3.5 text-amber-600" /> Uploaded & Saved
                   </span>
-                  <label className="text-amber-700 hover:text-amber-800 font-bold cursor-pointer underline">
-                    Change Image
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleFileUpload(e, 'cropApprovalDoc')}
-                      className="hidden"
-                    />
-                  </label>
+                  <div className="flex items-center gap-2.5">
+                    <label className="text-amber-700 hover:text-amber-800 font-bold cursor-pointer underline">
+                      Change Image
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileUpload(e, 'cropApprovalDoc')}
+                        className="hidden"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage('cropApprovalDoc')}
+                      className="text-rose-600 hover:text-rose-700 font-bold underline cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (
-              <label className="border-2 border-dashed border-slate-300 hover:border-amber-500 bg-white hover:bg-amber-50/50 rounded-xl p-5 text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-2">
+              <label className="border-2 border-dashed border-slate-300 hover:border-amber-500 bg-white hover:bg-amber-50/50 rounded-xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-2 min-h-[144px]">
                 {uploadingField === 'cropApprovalDoc' ? (
                   <div className="flex flex-col items-center gap-2">
                     <RefreshCw className="w-6 h-6 text-amber-600 animate-spin" />
@@ -307,7 +344,9 @@ export const FarmerVerificationCard: React.FC = () => {
                   </div>
                 ) : (
                   <>
-                    <Upload className="w-6 h-6 text-slate-400 group-hover:text-amber-600" />
+                    <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
+                      <Upload className="w-5 h-5" />
+                    </div>
                     <span className="text-xs font-bold text-slate-700">Upload Crop Approval Doc</span>
                     <span className="text-[10px] text-slate-400">JPG, PNG, WEBP (Max 10MB)</span>
                   </>
@@ -356,21 +395,30 @@ export const FarmerVerificationCard: React.FC = () => {
 
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-sky-700 font-bold flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-sky-600" /> Uploaded & Verified
+                    <CheckCircle2 className="w-3.5 h-3.5 text-sky-600" /> Uploaded & Saved
                   </span>
-                  <label className="text-sky-700 hover:text-sky-800 font-bold cursor-pointer underline">
-                    Change Image
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleFileUpload(e, 'landImg')}
-                      className="hidden"
-                    />
-                  </label>
+                  <div className="flex items-center gap-2.5">
+                    <label className="text-sky-700 hover:text-sky-800 font-bold cursor-pointer underline">
+                      Change Image
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileUpload(e, 'landImg')}
+                        className="hidden"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage('landImg')}
+                      className="text-rose-600 hover:text-rose-700 font-bold underline cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (
-              <label className="border-2 border-dashed border-slate-300 hover:border-sky-500 bg-white hover:bg-sky-50/50 rounded-xl p-5 text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-2">
+              <label className="border-2 border-dashed border-slate-300 hover:border-sky-500 bg-white hover:bg-sky-50/50 rounded-xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-2 min-h-[144px]">
                 {uploadingField === 'landImg' ? (
                   <div className="flex flex-col items-center gap-2">
                     <RefreshCw className="w-6 h-6 text-sky-600 animate-spin" />
@@ -378,7 +426,9 @@ export const FarmerVerificationCard: React.FC = () => {
                   </div>
                 ) : (
                   <>
-                    <Upload className="w-6 h-6 text-slate-400 group-hover:text-sky-600" />
+                    <div className="w-10 h-10 rounded-full bg-sky-50 text-sky-600 flex items-center justify-center">
+                      <Upload className="w-5 h-5" />
+                    </div>
                     <span className="text-xs font-bold text-slate-700">Upload Farm Land Photo</span>
                     <span className="text-[10px] text-slate-400">JPG, PNG, WEBP (Max 10MB)</span>
                   </>
