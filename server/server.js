@@ -1,12 +1,19 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
 import { connectDB } from './db.js';
 import { User } from './models/User.js';
 import { Crop } from './models/Crop.js';
 import { Order } from './models/Order.js';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const distPath = path.join(__dirname, '../dist');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -18,8 +25,8 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // Connect to MongoDB Atlas
 connectDB();
 
-// Root Server Landing Page
-app.get('/', (req, res) => {
+// API Server Overview & Documentation
+app.get('/api', (req, res) => {
   res.send(`
     <!DOCTYPE html>
     <html>
@@ -316,6 +323,21 @@ app.patch('/api/orders/:id/status', async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
+
+// Serve Vite React frontend if built (Single-Service Deployment on Render)
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  app.use((req, res, next) => {
+    if (req.method === 'GET' && !req.path.startsWith('/api')) {
+      return res.sendFile(path.join(distPath, 'index.html'));
+    }
+    next();
+  });
+} else {
+  app.get('/', (req, res) => {
+    res.redirect('/api');
+  });
+}
 
 const server = app.listen(PORT, () => {
   console.log(`🚀 AgriConnect Express Server running on http://localhost:${PORT}`);
