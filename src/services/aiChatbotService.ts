@@ -4,6 +4,7 @@ import { weatherService } from './weatherService';
 import { orderService } from './orderService';
 import { cropService } from './cropService';
 import { loadStorage, saveStorage } from './storageUtils';
+import { API_BASE_URL } from './apiConfig';
 
 export type LanguageCode = 'en' | 'hi' | 'mr' | 'ta';
 
@@ -60,7 +61,7 @@ export const aiChatbotService = {
 
   async fetchCropsFromMongoDB(): Promise<Crop[]> {
     try {
-      const res = await fetch('http://localhost:5000/api/crops');
+      const res = await fetch(`${API_BASE_URL}/crops`);
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {

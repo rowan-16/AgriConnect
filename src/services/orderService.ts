@@ -2,6 +2,7 @@ import { Order, OrderStatus, CartItem, User, PaymentMethod, OrderFeedback } from
 import { INITIAL_ORDERS } from './mockData';
 import { loadStorage, saveStorage } from './storageUtils';
 import { notificationService } from './notificationService';
+import { API_BASE_URL } from './apiConfig';
 
 const ORDERS_KEY = 'orders';
 
@@ -116,7 +117,7 @@ export const orderService = {
 
     // Persist order directly into MongoDB Atlas via Express Backend API
     try {
-      fetch('http://localhost:5000/api/orders', {
+      fetch(`${API_BASE_URL}/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newOrder),
@@ -173,7 +174,7 @@ export const orderService = {
 
     // Sync status change directly to MongoDB Atlas via Express API
     try {
-      fetch(`http://localhost:5000/api/orders/${orderId}/status`, {
+      fetch(`${API_BASE_URL}/orders/${orderId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),

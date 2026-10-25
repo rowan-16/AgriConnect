@@ -4,7 +4,7 @@ import { loadStorage, saveStorage } from './storageUtils';
 
 const USERS_KEY = 'users';
 const CURRENT_USER_KEY = 'current_user';
-const API_BASE_URL = 'http://localhost:5000/api';
+import { API_BASE_URL } from './apiConfig';
 
 const DEFAULT_LAND_DOC = 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&q=80&w=600';
 const DEFAULT_CROP_DOC = 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=80&w=600';
