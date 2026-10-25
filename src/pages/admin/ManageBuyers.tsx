@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, Search, ShoppingBag, Eye, MapPin, Phone, Mail, Trash2 } from 'lucide-react';
+import { Building2, Search, ShoppingBag, Eye, MapPin, Phone, Mail, Trash2, RefreshCw } from 'lucide-react';
 import { authService } from '../../services/authService';
 import { orderService } from '../../services/orderService';
 import { useToast } from '../../context/ToastContext';
@@ -15,11 +15,22 @@ export const ManageBuyers: React.FC = () => {
   const [buyers, setBuyers] = useState<User[]>(() => authService.getUsers().filter(u => u.role === 'buyer'));
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBuyer, setSelectedBuyer] = useState<any | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const syncBuyers = async () => {
+    setIsSyncing(true);
+    try {
+      await authService.fetchUsersFromMongoDB();
+      setBuyers(authService.getUsers().filter(u => u.role === 'buyer'));
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   React.useEffect(() => {
-    authService.fetchUsersFromMongoDB().then(() => {
-      setBuyers(authService.getUsers().filter(u => u.role === 'buyer'));
-    });
+    syncBuyers();
+    const interval = setInterval(syncBuyers, 6000);
+    return () => clearInterval(interval);
   }, []);
 
   const refreshBuyers = () => {
@@ -53,8 +64,19 @@ export const ManageBuyers: React.FC = () => {
           </p>
         </div>
 
-        <div className="text-xs font-bold text-slate-600 bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-soft">
-          {t('activeBuyersLabel', 'Active Buyers:')} <strong className="text-amber-700">{buyers.length}</strong>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={syncBuyers}
+            disabled={isSyncing}
+            className="flex items-center gap-1.5 text-xs font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 px-3.5 py-2 rounded-2xl border border-amber-200 transition-all cursor-pointer disabled:opacity-50"
+            title="Refresh buyers from MongoDB Atlas"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>{isSyncing ? 'Syncing...' : 'Sync Live'}</span>
+          </button>
+          <div className="text-xs font-bold text-slate-600 bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-soft">
+            {t('activeBuyersLabel', 'Active Buyers:')} <strong className="text-amber-700">{buyers.length}</strong>
+          </div>
         </div>
       </div>
 

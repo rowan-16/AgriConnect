@@ -131,6 +131,30 @@ export const INITIAL_USERS: User[] = [
     createdAt: '2025-12-10',
   },
   {
+    id: 'usr_buyer_pushpitha',
+    name: 'Pushpitha .K',
+    email: 'pushpitha.k@agriconnect.com',
+    role: 'buyer',
+    phone: '+91 98765 00000',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=300',
+    location: 'Bengaluru, Karnataka',
+    businessName: 'Direct Commercial Farm Procurement Hub',
+    buyerType: 'Wholesale Distributor',
+    savedAddresses: [
+      {
+        id: 'addr_pk',
+        label: 'Commercial Procurement Hub',
+        street: 'Central Market Road',
+        city: 'Bengaluru',
+        state: 'Karnataka',
+        pincode: '560001',
+        isDefault: true,
+      }
+    ],
+    status: 'active',
+    createdAt: '2026-10-25',
+  },
+  {
     id: 'usr_admin_1',
     name: 'AgriConnect Admin',
     email: 'admin@agriconnect.com',

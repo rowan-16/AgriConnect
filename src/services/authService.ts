@@ -41,9 +41,42 @@ export const authService = {
     try {
       const res = await fetch(`${API_BASE_URL}/users`);
       if (res.ok) {
-        const mongoUsers = await res.json();
+        const mongoUsers: User[] = await res.json();
         if (Array.isArray(mongoUsers) && mongoUsers.length > 0) {
-          saveStorage(USERS_KEY, mongoUsers);
+          const localUsers = loadStorage<User[]>(USERS_KEY, INITIAL_USERS);
+          const currentUser = this.getCurrentUser();
+          const mergedUsers = [...mongoUsers];
+
+          // Preserve any locally created/logged in users not yet in MongoDB Atlas and sync them up
+          for (const lu of localUsers) {
+            const exists = mergedUsers.some(
+              mu => mu.id === lu.id || mu.email.toLowerCase() === lu.email.toLowerCase()
+            );
+            if (!exists) {
+              mergedUsers.push(lu);
+              fetch(`${API_BASE_URL}/users/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(lu),
+              }).catch(() => {});
+            }
+          }
+
+          if (currentUser) {
+            const exists = mergedUsers.some(
+              mu => mu.id === currentUser.id || mu.email.toLowerCase() === currentUser.email.toLowerCase()
+            );
+            if (!exists) {
+              mergedUsers.push(currentUser);
+              fetch(`${API_BASE_URL}/users/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(currentUser),
+              }).catch(() => {});
+            }
+          }
+
+          saveStorage(USERS_KEY, mergedUsers);
           return this.getUsers();
         }
       }
