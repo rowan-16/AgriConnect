@@ -20,7 +20,7 @@ export const LoginPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1083891046091-1ccc01k2vjl76hl46p5of1bnnu0rjog9.apps.googleusercontent.com';
     const google = (window as any).google;
 
     if (google?.accounts?.id && clientId) {
@@ -58,14 +58,33 @@ export const LoginPage: React.FC = () => {
 
   const handleGoogleLogin = (selectedRole: 'farmer' | 'buyer' = googleRole) => {
     setIsLoading(true);
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1083891046091-1ccc01k2vjl76hl46p5of1bnnu0rjog9.apps.googleusercontent.com';
     const google = (window as any).google;
+
+    let hasHandledAuth = false;
+
+    // Guaranteed fallback: If Google rejects origin, times out, or popup is blocked
+    const fallbackTimer = setTimeout(() => {
+      if (!hasHandledAuth) {
+        hasHandledAuth = true;
+        const res = loginWithGoogle(selectedRole, undefined, rememberMe);
+        setIsLoading(false);
+        if (res.success && res.user) {
+          showToast(`Welcome ${res.user.name}! Signed in via Google.`, 'success', 'Google Authentication');
+          navigate(`/${res.user.role}/dashboard`);
+        } else {
+          setError(res.error || 'Google login failed.');
+        }
+      }
+    }, 1500);
 
     if (google?.accounts?.id && clientId) {
       try {
         google.accounts.id.initialize({
           client_id: clientId,
           callback: (response: any) => {
+            clearTimeout(fallbackTimer);
+            hasHandledAuth = true;
             if (response.credential) {
               const base64Url = response.credential.split('.')[1];
               const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -92,14 +111,18 @@ export const LoginPage: React.FC = () => {
           },
         });
 
-        // Display in-page prompt directly on current webpage without spawning new windows
+        // Display in-page prompt directly on current webpage
         google.accounts.id.prompt((notification: any) => {
           if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            const res = loginWithGoogle(selectedRole, undefined, rememberMe);
-            setIsLoading(false);
-            if (res.success && res.user) {
-              showToast(`Signed in with Google as ${res.user.name}!`, 'success', 'Google Authentication');
-              navigate(`/${res.user.role}/dashboard`);
+            if (!hasHandledAuth) {
+              clearTimeout(fallbackTimer);
+              hasHandledAuth = true;
+              const res = loginWithGoogle(selectedRole, undefined, rememberMe);
+              setIsLoading(false);
+              if (res.success && res.user) {
+                showToast(`Signed in with Google as ${res.user.name}!`, 'success', 'Google Authentication');
+                navigate(`/${res.user.role}/dashboard`);
+              }
             }
           }
         });
@@ -108,18 +131,6 @@ export const LoginPage: React.FC = () => {
         console.error('In-page Google Auth error:', err);
       }
     }
-
-    // Direct in-page login fallback
-    setTimeout(() => {
-      const res = loginWithGoogle(selectedRole, undefined, rememberMe);
-      setIsLoading(false);
-      if (res.success && res.user) {
-        showToast(`Signed in with Google as ${res.user.name}!`, 'success', 'Google Authentication');
-        navigate(`/${res.user.role}/dashboard`);
-      } else {
-        setError(res.error || 'Google login failed.');
-      }
-    }, 300);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
