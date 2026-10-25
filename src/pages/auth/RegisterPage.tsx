@@ -71,67 +71,87 @@ export const RegisterPage: React.FC = () => {
 
   const handleGoogleLogin = () => {
     setIsLoading(true);
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    setError('');
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1083891046091-1ccc01k2vjl76hl46p5of1bnnu0rjog9.apps.googleusercontent.com';
     const google = (window as any).google;
 
-    if (google?.accounts?.id && clientId) {
+    if (!google) {
+      setIsLoading(false);
+      setError('Google Sign-In is still loading. Please check your internet connection or try again.');
+      return;
+    }
+
+    if (google.accounts?.oauth2) {
       try {
-        google.accounts.id.initialize({
+        const client = google.accounts.oauth2.initTokenClient({
           client_id: clientId,
-          callback: (response: any) => {
-            if (response.credential) {
-              const base64Url = response.credential.split('.')[1];
-              const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-              const jsonPayload = decodeURIComponent(
-                atob(base64)
-                  .split('')
-                  .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-                  .join('')
-              );
-              const googleUser = JSON.parse(jsonPayload);
-              const authRes = loginWithGoogle(role, {
-                name: googleUser.name,
-                email: googleUser.email,
-                picture: googleUser.picture,
-              });
+          scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+          callback: async (tokenResponse: any) => {
+            if (tokenResponse.error) {
               setIsLoading(false);
-              if (authRes.success && authRes.user) {
-                showToast(`Welcome ${authRes.user.name}! Registered via Google.`, 'success', 'Google Registration');
-                navigate(`/${authRes.user.role}/dashboard`);
-              } else {
-                setError(authRes.error || 'Google registration failed.');
+              if (tokenResponse.error !== 'popup_closed_by_user') {
+                setError(`Google Sign-In failed: ${tokenResponse.error_description || tokenResponse.error}`);
               }
+              return;
             }
+
+            try {
+              const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+              });
+              const profile = await res.json();
+              if (profile && profile.email) {
+                const authRes = loginWithGoogle(role, {
+                  name: profile.name || profile.given_name || profile.email.split('@')[0],
+                  email: profile.email,
+                  picture: profile.picture,
+                });
+                setIsLoading(false);
+                if (authRes.success && authRes.user) {
+                  showToast(`Welcome ${authRes.user.name}! Registered via Google.`, 'success', 'Google Registration');
+                  navigate(`/${authRes.user.role}/dashboard`);
+                } else {
+                  setError(authRes.error || 'Failed to complete Google registration.');
+                }
+              } else {
+                setIsLoading(false);
+                setError('Unable to retrieve profile from Google.');
+              }
+            } catch {
+              setIsLoading(false);
+              setError('Failed to contact Google servers for profile data.');
+            }
+          },
+          error_callback: (err: any) => {
+            setIsLoading(false);
+            if (err?.type === 'popup_closed') return;
+            setError(err?.message || 'Google popup was closed or origin was restricted in Google Cloud Console.');
           },
         });
 
-        google.accounts.id.prompt((notification: any) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            const res = loginWithGoogle(role);
-            setIsLoading(false);
-            if (res.success && res.user) {
-              showToast(`Signed up with Google as ${role.toUpperCase()}!`, 'success', 'Google Registration');
-              navigate(`/${res.user.role}/dashboard`);
-            }
-          }
-        });
+        client.requestAccessToken({ prompt: 'select_account' });
         return;
-      } catch (err) {
-        console.error('In-page Google Auth error:', err);
+      } catch (oauthErr) {
+        console.warn('OAuth2 client init failed, trying ID prompt:', oauthErr);
       }
     }
 
-    // Direct in-page login fallback
-    setTimeout(() => {
-      const res = loginWithGoogle(role);
-      setIsLoading(false);
-      if (res.success && res.user) {
-        showToast(`Signed up with Google as ${role.toUpperCase()}!`, 'success', 'Google Registration');
-        navigate(`/${res.user.role}/dashboard`);
-      } else {
-        setError(res.error || 'Google signup failed.');
+    if (google.accounts?.id) {
+      try {
+        google.accounts.id.prompt((notification: any) => {
+          setIsLoading(false);
+          if (notification.isNotDisplayed()) {
+            setError('Google popup was suppressed. Please ensure popups are allowed for this site.');
+          }
+        });
+      } catch {
+        setIsLoading(false);
+        setError('Google Sign-In service error.');
       }
-    }, 300);
+    } else {
+      setIsLoading(false);
+      setError('Google Sign-In library is unavailable.');
+    }
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -197,9 +197,13 @@ export const authService = {
   },
 
   loginWithGoogle(role: UserRole = 'farmer', googleProfile?: { name?: string; email?: string; picture?: string }, rememberMe = false): { success: boolean; user?: User; error?: string } {
-    const targetEmail = googleProfile?.email || (role === 'farmer' ? 'ramesh.farmer@agriconnect.com' : 'priya.buyer@agriconnect.com');
-    const targetName = googleProfile?.name || (googleProfile?.email ? googleProfile.email.split('@')[0] : (role === 'farmer' ? 'Ramesh Patel (Google User)' : 'Priya Sharma (Google User)'));
-    const targetAvatar = googleProfile?.picture || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300';
+    if (!googleProfile || !googleProfile.email) {
+      return { success: false, error: 'No Google account selected. Please pick your Google account.' };
+    }
+
+    const targetEmail = googleProfile.email.toLowerCase().trim();
+    const targetName = googleProfile.name || targetEmail.split('@')[0];
+    const targetAvatar = googleProfile.picture || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300';
 
     const users = this.getUsers();
     let found = users.find(u => u.email.toLowerCase() === targetEmail.toLowerCase());
