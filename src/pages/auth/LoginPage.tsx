@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Sprout, Lock, Mail, ArrowRight, Sparkles, CheckCircle2, AlertCircle, ShoppingBag, ShieldCheck } from 'lucide-react';
+import { Sprout, Lock, Mail, ArrowRight, Sparkles, AlertCircle, ShoppingBag, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -24,108 +24,187 @@ export const LoginPage: React.FC = () => {
   const [googleRole, setGoogleRole] = useState<'farmer' | 'buyer'>('farmer');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  // Fallback Google Sign-In dialog
+  const [showGoogleDialog, setShowGoogleDialog] = useState(false);
+  const [customGoogleEmail, setCustomGoogleEmail] = useState('');
+  const [customGoogleName, setCustomGoogleName] = useState('');
+
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1083891046091-1ccc01k2vjl76hl46p5of1bnnu0rjog9.apps.googleusercontent.com';
 
   useEffect(() => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    const google = (window as any).google;
-
-    if (google?.accounts?.id && clientId) {
-      try {
-        google.accounts.id.initialize({
-          client_id: clientId,
-          callback: (response: any) => {
-            if (response.credential) {
-              const base64Url = response.credential.split('.')[1];
-              const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-              const jsonPayload = decodeURIComponent(
-                atob(base64)
-                  .split('')
-                  .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-                  .join('')
-              );
-              const googleUser = JSON.parse(jsonPayload);
-              const authRes = loginWithGoogle(googleRole, {
-                name: googleUser.name,
-                email: googleUser.email,
-                picture: googleUser.picture,
-              });
-              if (authRes.success && authRes.user) {
-                showToast(`Welcome ${authRes.user.name}! Signed in via Google.`, 'success', 'Google Authentication');
-                navigate(`/${authRes.user.role}/dashboard`);
+    const renderGoogleBtn = () => {
+      const google = (window as any).google;
+      if (google?.accounts?.id && clientId) {
+        try {
+          google.accounts.id.initialize({
+            client_id: clientId,
+            callback: (response: any) => {
+              if (response.credential) {
+                try {
+                  const base64Url = response.credential.split('.')[1];
+                  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                  const jsonPayload = decodeURIComponent(
+                    atob(base64)
+                      .split('')
+                      .map((c: string) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                      .join('')
+                  );
+                  const googleUser = JSON.parse(jsonPayload);
+                  const authRes = loginWithGoogle(googleRole, {
+                    name: googleUser.name || googleUser.given_name || 'Google User',
+                    email: googleUser.email,
+                    picture: googleUser.picture,
+                  });
+                  if (authRes.success && authRes.user) {
+                    showToast(`Welcome ${authRes.user.name}! Signed in via Google.`, 'success', 'Google Authentication');
+                    navigate(`/${authRes.user.role}/dashboard`);
+                  }
+                } catch (parseErr) {
+                  console.error('Failed to parse Google credential token:', parseErr);
+                }
               }
-            }
-          },
-        });
-      } catch (e) {
-        console.error('GSI Init Error:', e);
+            },
+          });
+
+          const officialBtnSlot = document.getElementById('google-official-button-container');
+          if (officialBtnSlot) {
+            officialBtnSlot.innerHTML = '';
+            google.accounts.id.renderButton(officialBtnSlot, {
+              theme: 'outline',
+              size: 'large',
+              type: 'standard',
+              text: 'signin_with',
+              shape: 'pill',
+              width: 360,
+              logo_alignment: 'left',
+            });
+          }
+          return true;
+        } catch (e) {
+          console.warn('GSI Init Warning:', e);
+        }
       }
+      return false;
+    };
+
+    if (!renderGoogleBtn()) {
+      const interval = setInterval(() => {
+        if (renderGoogleBtn()) {
+          clearInterval(interval);
+        }
+      }, 300);
+      return () => clearInterval(interval);
     }
   }, [googleRole]);
 
   const handleGoogleLogin = (selectedRole: 'farmer' | 'buyer' = googleRole) => {
-    setIsLoading(true);
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    setIsGoogleLoading(true);
+    setError('');
     const google = (window as any).google;
 
-    if (google?.accounts?.id && clientId) {
+    if (!google) {
+      setIsGoogleLoading(false);
+      setShowGoogleDialog(true);
+      return;
+    }
+
+    // 1. Primary: Official Google OAuth 2.0 Account Picker Popup
+    if (google.accounts?.oauth2) {
       try {
-        google.accounts.id.initialize({
+        const client = google.accounts.oauth2.initTokenClient({
           client_id: clientId,
-          callback: (response: any) => {
-            if (response.credential) {
-              const base64Url = response.credential.split('.')[1];
-              const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-              const jsonPayload = decodeURIComponent(
-                atob(base64)
-                  .split('')
-                  .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-                  .join('')
-              );
-              const googleUser = JSON.parse(jsonPayload);
-              const authRes = loginWithGoogle(selectedRole, {
-                name: googleUser.name,
-                email: googleUser.email,
-                picture: googleUser.picture,
-              });
-              setIsLoading(false);
-              if (authRes.success && authRes.user) {
-                showToast(`Welcome ${authRes.user.name}! Signed in via Google.`, 'success', 'Google Authentication');
-                navigate(`/${authRes.user.role}/dashboard`);
-              } else {
-                setError(authRes.error || 'Google login failed.');
+          scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+          callback: async (tokenResponse: any) => {
+            if (tokenResponse.error) {
+              setIsGoogleLoading(false);
+              if (tokenResponse.error !== 'popup_closed_by_user') {
+                setError(`Google Sign-In: ${tokenResponse.error_description || tokenResponse.error}`);
               }
+              return;
             }
+
+            try {
+              const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+              });
+              const profile = await res.json();
+              if (profile && profile.email) {
+                const authRes = loginWithGoogle(selectedRole, {
+                  name: profile.name || profile.email.split('@')[0],
+                  email: profile.email,
+                  picture: profile.picture,
+                });
+                setIsGoogleLoading(false);
+                if (authRes.success && authRes.user) {
+                  showToast(`Welcome ${authRes.user.name}! Signed in with Google account.`, 'success', 'Google Authentication');
+                  navigate(`/${authRes.user.role}/dashboard`);
+                } else {
+                  setError(authRes.error || 'Failed to initialize session with Google.');
+                }
+              } else {
+                setIsGoogleLoading(false);
+                setError('Unable to retrieve account details from Google.');
+              }
+            } catch {
+              setIsGoogleLoading(false);
+              setError('Failed to contact Google servers for profile data.');
+            }
+          },
+          error_callback: (err: any) => {
+            setIsGoogleLoading(false);
+            if (err?.type === 'popup_closed') return;
+            setShowGoogleDialog(true);
           },
         });
 
-        // Display in-page prompt directly on current webpage without spawning new windows
-        google.accounts.id.prompt((notification: any) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            const res = loginWithGoogle(selectedRole);
-            setIsLoading(false);
-            if (res.success && res.user) {
-              showToast(`Signed in with Google as ${res.user.name}!`, 'success', 'Google Authentication');
-              navigate(`/${res.user.role}/dashboard`);
-            }
-          }
-        });
+        // Request access token with account picker popup and WAIT
+        client.requestAccessToken({ prompt: 'select_account' });
         return;
-      } catch (err) {
-        console.error('In-page Google Auth error:', err);
+      } catch (oauthErr) {
+        console.warn('OAuth2 client init error:', oauthErr);
       }
     }
 
-    // Direct in-page login fallback
-    setTimeout(() => {
-      const res = loginWithGoogle(selectedRole);
-      setIsLoading(false);
-      if (res.success && res.user) {
-        showToast(`Signed in with Google as ${res.user.name}!`, 'success', 'Google Authentication');
-        navigate(`/${res.user.role}/dashboard`);
-      } else {
-        setError(res.error || 'Google login failed.');
+    // 2. Google Identity Services Prompt
+    if (google.accounts?.id) {
+      try {
+        google.accounts.id.prompt((notification: any) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            setIsGoogleLoading(false);
+            setShowGoogleDialog(true);
+          }
+        });
+      } catch {
+        setIsGoogleLoading(false);
+        setShowGoogleDialog(true);
       }
-    }, 300);
+    } else {
+      setIsGoogleLoading(false);
+      setShowGoogleDialog(true);
+    }
+  };
+
+  const handleCustomGoogleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customGoogleEmail.trim()) return;
+    setIsGoogleLoading(true);
+
+    const name = customGoogleName.trim() || customGoogleEmail.split('@')[0];
+    const authRes = loginWithGoogle(googleRole, {
+      name,
+      email: customGoogleEmail.trim(),
+    });
+    setIsGoogleLoading(false);
+    setShowGoogleDialog(false);
+
+    if (authRes.success && authRes.user) {
+      showToast(`Welcome ${authRes.user.name}! Signed in via Google.`, 'success', 'Google Authentication');
+      navigate(`/${authRes.user.role}/dashboard`);
+    } else {
+      setError(authRes.error || 'Failed to sign in with Google ID.');
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -180,23 +259,36 @@ export const LoginPage: React.FC = () => {
         <div className="bg-white py-8 px-6 sm:px-8 shadow-soft-lg rounded-3xl border border-slate-200/80">
           
           {/* Google Sign-In Button */}
-          <div className="mb-5 space-y-2">
+          <div className="mb-5 space-y-2.5">
+            {/* Google Official Button slot (rendered by Google Identity Services) */}
+            <div id="google-official-button-container" className="flex justify-center w-full min-h-[44px]"></div>
+
             <button
               type="button"
               onClick={() => handleGoogleLogin(googleRole)}
-              className="w-full py-3 px-4 bg-white hover:bg-slate-50 text-slate-700 font-bold text-sm rounded-2xl border border-slate-200 shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-3 group"
+              disabled={isGoogleLoading}
+              className="w-full py-3 px-4 bg-white hover:bg-slate-50 text-slate-700 font-bold text-sm rounded-2xl border border-slate-200 shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-3 group cursor-pointer disabled:opacity-60"
             >
-              <svg className="w-5 h-5 shrink-0 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-              </svg>
-              <span>{t('continueWithGoogle', 'Continue with Google')}</span>
+              {isGoogleLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-agri-600 border-t-transparent rounded-full animate-spin" />
+                  <span>{t('waitingGoogle', 'Waiting for Google Account...')}</span>
+                </div>
+              ) : (
+                <>
+                  <svg className="w-5 h-5 shrink-0 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                  </svg>
+                  <span>{t('continueWithGoogle', 'Continue with Google')}</span>
+                </>
+              )}
             </button>
 
             {/* Quick role selector for Google login */}
-            <div className="flex items-center justify-center gap-4 text-[11px] text-slate-500 font-medium">
+            <div className="flex items-center justify-center gap-4 text-[11px] text-slate-500 font-medium pt-1">
               <span>{t('loginAs', 'Login as:')}</span>
               <label className="flex items-center gap-1 cursor-pointer hover:text-emerald-700">
                 <input
@@ -246,7 +338,7 @@ export const LoginPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleDemoSelect('ramesh.farmer@agriconnect.com')}
-                className="px-3 py-2 bg-white hover:bg-emerald-50 border border-emerald-300 text-emerald-800 text-[11px] font-bold rounded-xl shadow-xs transition-all text-center truncate hover:scale-[1.02] flex items-center justify-center gap-1.5"
+                className="px-3 py-2 bg-white hover:bg-emerald-50 border border-emerald-300 text-emerald-800 text-[11px] font-bold rounded-xl shadow-xs transition-all text-center truncate hover:scale-[1.02] flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Sprout className="w-3.5 h-3.5 text-emerald-600" />
                 <span>{t('autoFillFarmer', 'Auto-fill Farmer')}</span>
@@ -255,7 +347,7 @@ export const LoginPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleDemoSelect('priya.buyer@agriconnect.com')}
-                className="px-3 py-2 bg-white hover:bg-amber-50 border border-amber-300 text-amber-800 text-[11px] font-bold rounded-xl shadow-xs transition-all text-center truncate hover:scale-[1.02] flex items-center justify-center gap-1.5"
+                className="px-3 py-2 bg-white hover:bg-amber-50 border border-amber-300 text-amber-800 text-[11px] font-bold rounded-xl shadow-xs transition-all text-center truncate hover:scale-[1.02] flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <ShoppingBag className="w-3.5 h-3.5 text-amber-600" />
                 <span>{t('autoFillBuyer', 'Auto-fill Buyer')}</span>
@@ -318,22 +410,15 @@ export const LoginPage: React.FC = () => {
                 {t('rememberMe', 'Remember me')}
               </label>
 
-              <a
-                href="#forgot"
-                onClick={(e) => {
-                  e.preventDefault();
-                  showToast('Password reset link sent to registered email.', 'info', 'Password Reset');
-                }}
-                className="text-agri-600 hover:text-agri-700 font-semibold"
-              >
-                {t('forgotPassword', 'Forgot Password?')}
+              <a href="#forgot" onClick={(e) => { e.preventDefault(); showToast('Password reset link sent to demo email.', 'info'); }} className="text-agri-600 hover:text-agri-700 font-bold">
+                {t('forgotPassword', 'Forgot password?')}
               </a>
             </div>
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full mt-2 py-3 bg-agri-600 hover:bg-agri-700 disabled:bg-slate-300 text-white font-bold text-sm rounded-xl shadow-md shadow-agri-600/25 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
+              className="w-full mt-2 py-3 bg-agri-600 hover:bg-agri-700 disabled:bg-slate-300 text-white font-bold text-sm rounded-xl shadow-md shadow-agri-600/25 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
             >
               {isLoading ? (
                 <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -355,6 +440,87 @@ export const LoginPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Interactive Google Sign-In Dialog (Used if popup is blocked or custom ID needed) */}
+      {showGoogleDialog && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                </svg>
+                <h3 className="font-bold text-sm">Sign in with Google Account</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowGoogleDialog(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCustomGoogleSubmit} className="p-6 space-y-4">
+              <p className="text-xs text-slate-500">
+                Enter your Google account email to sign in directly:
+              </p>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Google Email ID <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="email"
+                    required
+                    value={customGoogleEmail}
+                    onChange={(e) => setCustomGoogleEmail(e.target.value)}
+                    placeholder="yourname@gmail.com"
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Your Full Name
+                </label>
+                <input
+                  type="text"
+                  value={customGoogleName}
+                  onChange={(e) => setCustomGoogleName(e.target.value)}
+                  placeholder="e.g. Rockland Rowan"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setShowGoogleDialog(false)}
+                  className="w-1/3 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={isGoogleLoading}
+                  className="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <span>Continue with this Google ID</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

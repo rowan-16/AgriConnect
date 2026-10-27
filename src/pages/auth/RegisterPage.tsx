@@ -212,37 +212,82 @@ export const RegisterPage: React.FC = () => {
 
   const handleGoogleLogin = () => {
     setIsLoading(true);
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    setError('');
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1083891046091-1ccc01k2vjl76hl46p5of1bnnu0rjog9.apps.googleusercontent.com';
     const google = (window as any).google;
 
-    if (google?.accounts?.id && clientId) {
+    if (!google) {
+      setIsLoading(false);
+      setError('Google Sign-In is loading. Please check your internet connection.');
+      return;
+    }
+
+    if (google.accounts?.oauth2) {
       try {
-        google.accounts.id.prompt((notification: any) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            const res = loginWithGoogle(role);
-            setIsLoading(false);
-            if (res.success && res.user) {
-              showToast(`Signed up with Google as ${role.toUpperCase()}!`, 'success', 'Google Registration');
-              navigate(`/${res.user.role}/dashboard`);
+        const client = google.accounts.oauth2.initTokenClient({
+          client_id: clientId,
+          scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+          callback: async (tokenResponse: any) => {
+            if (tokenResponse.error) {
+              setIsLoading(false);
+              if (tokenResponse.error !== 'popup_closed_by_user') {
+                setError(`Google Sign-In: ${tokenResponse.error_description || tokenResponse.error}`);
+              }
+              return;
             }
-          }
+
+            try {
+              const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+              });
+              const profile = await res.json();
+              if (profile && profile.email) {
+                const authRes = loginWithGoogle(role, {
+                  name: profile.name || profile.email.split('@')[0],
+                  email: profile.email,
+                  picture: profile.picture,
+                });
+                setIsLoading(false);
+                if (authRes.success && authRes.user) {
+                  showToast(`Welcome ${authRes.user.name}! Registered via Google.`, 'success', 'Google Registration');
+                  navigate(`/${authRes.user.role}/dashboard`);
+                } else {
+                  setError(authRes.error || 'Failed to initialize session.');
+                }
+              } else {
+                setIsLoading(false);
+                setError('Unable to retrieve profile from Google.');
+              }
+            } catch {
+              setIsLoading(false);
+              setError('Failed to contact Google servers for profile.');
+            }
+          },
+          error_callback: () => {
+            setIsLoading(false);
+          },
         });
+
+        client.requestAccessToken({ prompt: 'select_account' });
         return;
-      } catch (err) {
-        console.error('In-page Google Auth error:', err);
+      } catch (oauthErr) {
+        console.warn('OAuth2 client init error:', oauthErr);
       }
     }
 
-    setTimeout(() => {
-      const res = loginWithGoogle(role);
-      setIsLoading(false);
-      if (res.success && res.user) {
-        showToast(`Signed up with Google as ${role.toUpperCase()}!`, 'success', 'Google Registration');
-        navigate(`/${res.user.role}/dashboard`);
-      } else {
-        setError(res.error || 'Google signup failed.');
+    if (google.accounts?.id) {
+      try {
+        google.accounts.id.prompt((notification: any) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            setIsLoading(false);
+          }
+        });
+      } catch {
+        setIsLoading(false);
       }
-    }, 300);
+    } else {
+      setIsLoading(false);
+    }
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
