@@ -11,15 +11,14 @@ import {
   Eye,
   X,
   FileCheck,
-  Sparkles,
-  MapPin,
   Image as ImageIcon
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
-import { authService, cleanDocUrl } from '../../services/authService';
+import { authService } from '../../services/authService';
 import { cloudinaryService } from '../../services/cloudinaryService';
+import { FarmerEvidenceCategory } from '../../types';
 
 export const FarmerVerificationCard: React.FC = () => {
   const { user, updateUser } = useAuth();
@@ -27,13 +26,15 @@ export const FarmerVerificationCard: React.FC = () => {
   const { showToast } = useToast();
 
   const currentDocs = user?.verificationDocuments;
+  const isVerified = user?.isVerified || currentDocs?.status === 'approved';
 
-  const [landDoc, setLandDoc] = useState<string>(() => cleanDocUrl(currentDocs?.landDocumentImage));
-  const [cropApprovalDoc, setCropApprovalDoc] = useState<string>(() => cleanDocUrl(currentDocs?.cropApprovalDocumentImage));
-  const [landImg, setLandImg] = useState<string>(() => cleanDocUrl(currentDocs?.landImage));
-
-  const hasUploadedDocs = Boolean(landDoc || cropApprovalDoc || landImg);
-  const isVerified = Boolean((user?.isVerified || currentDocs?.status === 'approved') && hasUploadedDocs);
+  const [documentType, setDocumentType] = useState<FarmerEvidenceCategory>(
+    currentDocs?.documentType || 'land_record'
+  );
+  const [primaryDocUrl, setPrimaryDocUrl] = useState<string>(
+    currentDocs?.documentUrl || currentDocs?.landDocumentImage || ''
+  );
+  const [landImg, setLandImg] = useState<string>(currentDocs?.landImage || '');
 
   const [uploadingField, setUploadingField] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,7 +42,7 @@ export const FarmerVerificationCard: React.FC = () => {
 
   const handleFileUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
-    fieldType: 'landDoc' | 'cropApprovalDoc' | 'landImg'
+    fieldType: 'primaryDoc' | 'landImg'
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -51,17 +52,18 @@ export const FarmerVerificationCard: React.FC = () => {
     try {
       const url = await cloudinaryService.uploadImage(file, 'farmer_verification_docs');
 
-      const updatedLandDoc = fieldType === 'landDoc' ? url : landDoc;
-      const updatedCropApprovalDoc = fieldType === 'cropApprovalDoc' ? url : cropApprovalDoc;
+      const updatedPrimaryDoc = fieldType === 'primaryDoc' ? url : primaryDocUrl;
       const updatedLandImg = fieldType === 'landImg' ? url : landImg;
 
-      if (fieldType === 'landDoc') setLandDoc(url);
-      if (fieldType === 'cropApprovalDoc') setCropApprovalDoc(url);
+      if (fieldType === 'primaryDoc') setPrimaryDocUrl(url);
       if (fieldType === 'landImg') setLandImg(url);
 
+      // Auto-save uploaded document to Admin audit queue
       const updatedUser = authService.submitVerificationDocuments(user.id, {
-        landDocumentImage: updatedLandDoc,
-        cropApprovalDocumentImage: updatedCropApprovalDoc,
+        documentType,
+        documentName: file.name,
+        documentUrl: updatedPrimaryDoc,
+        landDocumentImage: updatedPrimaryDoc,
         landImage: updatedLandImg,
       });
 
@@ -69,33 +71,12 @@ export const FarmerVerificationCard: React.FC = () => {
         updateUser(updatedUser);
       }
 
-      showToast(t('docUploadedSuccess', 'Document uploaded & saved to Admin audit queue!'), 'success', t('uploadSuccess', 'Document Uploaded'));
+      showToast(t('docUploadedSuccess', 'Document uploaded and synced to Admin audit queue.'), 'success', 'Verification Upload');
     } catch {
-      showToast(t('docUploadFailed', 'Failed to upload document. Please try again.'), 'error', t('uploadError', 'Upload Error'));
+      showToast(t('docUploadFailed', 'Failed to upload document. Please try again.'), 'error', 'Upload Error');
     } finally {
       setUploadingField(null);
     }
-  };
-
-  const handleRemoveImage = (fieldType: 'landDoc' | 'cropApprovalDoc' | 'landImg') => {
-    const updatedLandDoc = fieldType === 'landDoc' ? '' : landDoc;
-    const updatedCropApprovalDoc = fieldType === 'cropApprovalDoc' ? '' : cropApprovalDoc;
-    const updatedLandImg = fieldType === 'landImg' ? '' : landImg;
-
-    if (fieldType === 'landDoc') setLandDoc('');
-    if (fieldType === 'cropApprovalDoc') setCropApprovalDoc('');
-    if (fieldType === 'landImg') setLandImg('');
-
-    const updatedUser = authService.submitVerificationDocuments(user.id, {
-      landDocumentImage: updatedLandDoc,
-      cropApprovalDocumentImage: updatedCropApprovalDoc,
-      landImage: updatedLandImg,
-    });
-
-    if (updatedUser) {
-      updateUser(updatedUser);
-    }
-    showToast('Document removed. Reverted to blank filling slot.', 'info', 'Document Removed');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -104,8 +85,9 @@ export const FarmerVerificationCard: React.FC = () => {
 
     setTimeout(() => {
       const updatedUser = authService.submitVerificationDocuments(user.id, {
-        landDocumentImage: landDoc,
-        cropApprovalDocumentImage: cropApprovalDoc,
+        documentType,
+        documentUrl: primaryDocUrl,
+        landDocumentImage: primaryDocUrl,
         landImage: landImg,
       });
 
@@ -113,10 +95,16 @@ export const FarmerVerificationCard: React.FC = () => {
 
       if (updatedUser) {
         updateUser(updatedUser);
-        showToast(t('verificationSubmittedMsg', 'Your verification documents have been submitted to Admin for validation!'), 'success', t('verificationSubmitted', 'Verification Submitted'));
+        showToast(
+          t('verificationSubmittedMsg', 'Your verification documents have been submitted to Admin for validation!'),
+          'success',
+          'Verification Submitted'
+        );
       }
     }, 400);
   };
+
+  const appRef = user?.applicationRef || currentDocs?.applicationRef || 'AGC-APP-PENDING';
 
   return (
     <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-soft space-y-6">
@@ -126,17 +114,17 @@ export const FarmerVerificationCard: React.FC = () => {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <h3 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              {t('farmerVerificationTitle', 'Farmer Identity & Land Verification Dossier')}
+              {t('farmerVerificationTitle', 'Farmer Identity & Cultivation Verification')}
             </h3>
             {isVerified && <ShieldCheck className="w-5 h-5 text-emerald-600 fill-emerald-100" />}
           </div>
           <p className="text-xs text-slate-500 font-medium">
-            Upload verified agricultural land extract, crop approval license, and farm photos for Admin validation.
+            Account-level verification required before publishing crop listings. Verified via land records, lease, or cultivator ID.
           </p>
         </div>
 
-        {/* Status Badge */}
-        <div className="self-start sm:self-auto">
+        {/* Status Badge & App Reference */}
+        <div className="flex flex-col sm:items-end gap-1.5 self-start sm:self-auto">
           {isVerified ? (
             <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-300">
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -146,6 +134,11 @@ export const FarmerVerificationCard: React.FC = () => {
             <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-100 text-amber-800 text-xs font-bold border border-amber-300 animate-pulse">
               <Clock className="w-4 h-4 text-amber-600" />
               {t('pendingAdminValidation', 'Pending Admin Validation')}
+            </span>
+          ) : currentDocs?.status === 'needs_evidence' ? (
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-sky-100 text-sky-800 text-xs font-bold border border-sky-300">
+              <AlertCircle className="w-4 h-4 text-sky-600" />
+              {t('additionalEvidenceRequested', 'Additional Evidence Requested')}
             </span>
           ) : currentDocs?.status === 'rejected' ? (
             <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-rose-100 text-rose-800 text-xs font-bold border border-rose-300">
@@ -158,11 +151,14 @@ export const FarmerVerificationCard: React.FC = () => {
               {t('notSubmitted', 'Not Submitted')}
             </span>
           )}
+
+          <span className="text-[11px] font-mono font-bold text-slate-500">
+            Ref: {appRef}
+          </span>
         </div>
       </div>
 
-
-      {/* Verified Info Callout if verified */}
+      {/* Verified Info Callout */}
       {isVerified && (
         <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 text-emerald-900 text-xs flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-600/20">
@@ -171,222 +167,131 @@ export const FarmerVerificationCard: React.FC = () => {
           <div>
             <h4 className="font-bold text-emerald-950 text-sm">Your Account & Farm Land are Authenticated</h4>
             <p className="text-emerald-800/90 text-xs mt-0.5">
-              Your official land extract and crop cultivation certificates have been approved. All your crop listings now display the official **Verified Farmer** badge.
+              Your official cultivator proof has been approved. You are authorized to create and publish active crop harvest listings on the marketplace.
             </p>
           </div>
         </div>
       )}
 
-      {/* Admin Rejection Notice */}
-      {currentDocs?.status === 'rejected' && (
-        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs space-y-1">
+      {/* Admin Rejection or Additional Evidence Notice */}
+      {(currentDocs?.status === 'rejected' || currentDocs?.status === 'needs_evidence') && (
+        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs space-y-1.5">
           <div className="flex items-center gap-2 font-bold text-rose-700">
             <AlertCircle className="w-4 h-4" />
-            Verification Documents Rejected by Admin
+            {currentDocs.status === 'needs_evidence'
+              ? 'Administrator Requested Additional Cultivation Evidence'
+              : 'Verification Application Requires Updates'}
           </div>
           <p className="text-rose-800 leading-relaxed">
-            Reason: <strong>{currentDocs.rejectionReason || 'Please provide clear, legible land documents.'}</strong>
+            Admin Feedback: <strong>{currentDocs.rejectionReason || currentDocs.adminNotes || 'Please provide clear, legible land records or valid cultivator identification.'}</strong>
           </p>
-          <p className="text-[11px] text-rose-600 font-medium pt-1">
-            Please re-upload updated images below and click Submit for Validation.
+          <p className="text-[11px] text-rose-600 font-medium">
+            Please attach an updated document below and click Resubmit for Validation.
           </p>
         </div>
       )}
 
       {/* Document Upload Grid */}
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           
-          {/* 1. Land Document Image */}
+          {/* 1. Primary Cultivation Proof */}
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 flex flex-col justify-between">
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                   <FileText className="w-4 h-4 text-emerald-600" />
-                  1. Land Document Image
+                  1. Cultivation / Land Proof
                 </span>
-                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
-                  7/12 Extract / Khasra
+                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full capitalize">
+                  {documentType.replace('_', ' ')}
                 </span>
               </div>
               <p className="text-[11px] text-slate-500">
-                Official government revenue land holding extract certificate.
+                Land revenue record (7-12 / Patta / Chitta), tenant lease deed, or Government Farmer ID.
               </p>
             </div>
 
-            {landDoc ? (
+            {primaryDocUrl ? (
               <div className="space-y-2">
-                <div className="relative h-36 rounded-xl overflow-hidden border border-slate-300 group bg-slate-900/10">
-                  <img src={landDoc} alt="Land Document" className="w-full h-full object-cover" />
+                <div className="relative h-40 rounded-xl overflow-hidden border border-slate-300 group bg-slate-900/10">
+                  <img src={primaryDocUrl} alt="Cultivation Document" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                     <button
                       type="button"
-                      onClick={() => setPreviewModalImg({ title: 'Land Document Image', url: landDoc })}
-                      className="p-2 bg-white/90 text-slate-900 rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-white"
+                      onClick={() => setPreviewModalImg({ title: 'Cultivation Evidence Document', url: primaryDocUrl })}
+                      className="p-2 bg-white/90 text-slate-900 rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-white cursor-pointer"
                     >
-                      <Eye className="w-3.5 h-3.5" /> Preview
+                      <Eye className="w-3.5 h-3.5" /> Inspect Document
                     </button>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-emerald-700 font-bold flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Uploaded & Saved
+                    <Cloud className="w-3.5 h-3.5 text-sky-600" /> Uploaded to Secure Vault
                   </span>
-                  <div className="flex items-center gap-2.5">
-                    <label className="text-emerald-700 hover:text-emerald-800 font-bold cursor-pointer underline">
-                      Change Image
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleFileUpload(e, 'landDoc')}
-                        className="hidden"
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveImage('landDoc')}
-                      className="text-rose-600 hover:text-rose-700 font-bold underline cursor-pointer"
-                    >
-                      Remove
-                    </button>
-                  </div>
+                  <label className="text-emerald-700 hover:text-emerald-800 font-bold cursor-pointer underline">
+                    Replace Document
+                    <input
+                      type="file"
+                      accept=".jpg,.jpeg,.png,.webp,.pdf"
+                      onChange={(e) => handleFileUpload(e, 'primaryDoc')}
+                      className="hidden"
+                    />
+                  </label>
                 </div>
               </div>
             ) : (
-              <label className="border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-white hover:bg-emerald-50/50 rounded-xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-2 min-h-[144px]">
-                {uploadingField === 'landDoc' ? (
+              <label className="border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-white hover:bg-emerald-50/50 rounded-xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-2">
+                {uploadingField === 'primaryDoc' ? (
                   <div className="flex flex-col items-center gap-2">
                     <RefreshCw className="w-6 h-6 text-emerald-600 animate-spin" />
-                    <span className="text-xs text-slate-600 font-bold">Uploading document...</span>
+                    <span className="text-xs text-slate-600 font-bold">Uploading to Secure Vault...</span>
                   </div>
                 ) : (
                   <>
-                    <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                      <Upload className="w-5 h-5" />
-                    </div>
-                    <span className="text-xs font-bold text-slate-700">Click to Upload Land Extract</span>
-                    <span className="text-[10px] text-slate-400">JPG, PNG, WEBP (Max 10MB)</span>
+                    <Upload className="w-6 h-6 text-slate-400 group-hover:text-emerald-600" />
+                    <span className="text-xs font-bold text-slate-700">Click to Upload Evidence Document</span>
+                    <span className="text-[10px] text-slate-400">PDF, JPG, PNG, WEBP (Max 10MB)</span>
                   </>
                 )}
                 <input
                   type="file"
-                  accept="image/*"
-                  onChange={(e) => handleFileUpload(e, 'landDoc')}
+                  accept=".jpg,.jpeg,.png,.webp,.pdf"
+                  onChange={(e) => handleFileUpload(e, 'primaryDoc')}
                   className="hidden"
                 />
               </label>
             )}
           </div>
 
-          {/* 2. Crop Approval Document Image */}
+          {/* 2. Farm Field Image */}
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 flex flex-col justify-between">
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                  <FileCheck className="w-4 h-4 text-amber-600" />
-                  2. Crop Approval Doc
-                </span>
-                <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">
-                  Agri License / Passbook
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500">
-                Department certificate, Organic cert, or Kisan passbook.
-              </p>
-            </div>
-
-            {cropApprovalDoc ? (
-              <div className="space-y-2">
-                <div className="relative h-36 rounded-xl overflow-hidden border border-slate-300 group bg-slate-900/10">
-                  <img src={cropApprovalDoc} alt="Crop Approval Document" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setPreviewModalImg({ title: 'Crop Approval Certificate', url: cropApprovalDoc })}
-                      className="p-2 bg-white/90 text-slate-900 rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-white"
-                    >
-                      <Eye className="w-3.5 h-3.5" /> Preview
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-amber-700 font-bold flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-amber-600" /> Uploaded & Saved
-                  </span>
-                  <div className="flex items-center gap-2.5">
-                    <label className="text-amber-700 hover:text-amber-800 font-bold cursor-pointer underline">
-                      Change Image
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleFileUpload(e, 'cropApprovalDoc')}
-                        className="hidden"
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveImage('cropApprovalDoc')}
-                      className="text-rose-600 hover:text-rose-700 font-bold underline cursor-pointer"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <label className="border-2 border-dashed border-slate-300 hover:border-amber-500 bg-white hover:bg-amber-50/50 rounded-xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-2 min-h-[144px]">
-                {uploadingField === 'cropApprovalDoc' ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <RefreshCw className="w-6 h-6 text-amber-600 animate-spin" />
-                    <span className="text-xs text-slate-600 font-bold">Uploading document...</span>
-                  </div>
-                ) : (
-                  <>
-                    <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
-                      <Upload className="w-5 h-5" />
-                    </div>
-                    <span className="text-xs font-bold text-slate-700">Upload Crop Approval Doc</span>
-                    <span className="text-[10px] text-slate-400">JPG, PNG, WEBP (Max 10MB)</span>
-                  </>
-                )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleFileUpload(e, 'cropApprovalDoc')}
-                  className="hidden"
-                />
-              </label>
-            )}
-          </div>
-
-          {/* 3. Image of the Land / Farm Field */}
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 flex flex-col justify-between">
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                   <ImageIcon className="w-4 h-4 text-sky-600" />
-                  3. Image of the Land
+                  2. Farm Field Photo (Optional)
                 </span>
                 <span className="text-[10px] bg-sky-100 text-sky-800 font-bold px-2 py-0.5 rounded-full">
-                  Farm Photo
+                  Supporting Image
                 </span>
               </div>
               <p className="text-[11px] text-slate-500">
-                Clear photo of your agricultural field & crops.
+                Clear photo of your agricultural field, greenhouse, or growing crops.
               </p>
             </div>
 
             {landImg ? (
               <div className="space-y-2">
-                <div className="relative h-36 rounded-xl overflow-hidden border border-slate-300 group bg-slate-900/10">
-                  <img src={landImg} alt="Land Field Photo" className="w-full h-full object-cover" />
+                <div className="relative h-40 rounded-xl overflow-hidden border border-slate-300 group bg-slate-900/10">
+                  <img src={landImg} alt="Farm Field" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                     <button
                       type="button"
                       onClick={() => setPreviewModalImg({ title: 'Farm Field Image', url: landImg })}
-                      className="p-2 bg-white/90 text-slate-900 rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-white"
+                      className="p-2 bg-white/90 text-slate-900 rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-white cursor-pointer"
                     >
                       <Eye className="w-3.5 h-3.5" /> Preview
                     </button>
@@ -395,47 +300,36 @@ export const FarmerVerificationCard: React.FC = () => {
 
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-sky-700 font-bold flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-sky-600" /> Uploaded & Saved
+                    <Cloud className="w-3.5 h-3.5 text-sky-600" /> Uploaded to Secure Vault
                   </span>
-                  <div className="flex items-center gap-2.5">
-                    <label className="text-sky-700 hover:text-sky-800 font-bold cursor-pointer underline">
-                      Change Image
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleFileUpload(e, 'landImg')}
-                        className="hidden"
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveImage('landImg')}
-                      className="text-rose-600 hover:text-rose-700 font-bold underline cursor-pointer"
-                    >
-                      Remove
-                    </button>
-                  </div>
+                  <label className="text-sky-700 hover:text-sky-800 font-bold cursor-pointer underline">
+                    Replace Photo
+                    <input
+                      type="file"
+                      accept=".jpg,.jpeg,.png,.webp"
+                      onChange={(e) => handleFileUpload(e, 'landImg')}
+                      className="hidden"
+                    />
+                  </label>
                 </div>
               </div>
             ) : (
-              <label className="border-2 border-dashed border-slate-300 hover:border-sky-500 bg-white hover:bg-sky-50/50 rounded-xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-2 min-h-[144px]">
+              <label className="border-2 border-dashed border-slate-300 hover:border-sky-500 bg-white hover:bg-sky-50/50 rounded-xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-2">
                 {uploadingField === 'landImg' ? (
                   <div className="flex flex-col items-center gap-2">
                     <RefreshCw className="w-6 h-6 text-sky-600 animate-spin" />
-                    <span className="text-xs text-slate-600 font-bold">Uploading document...</span>
+                    <span className="text-xs text-slate-600 font-bold">Uploading photo...</span>
                   </div>
                 ) : (
                   <>
-                    <div className="w-10 h-10 rounded-full bg-sky-50 text-sky-600 flex items-center justify-center">
-                      <Upload className="w-5 h-5" />
-                    </div>
-                    <span className="text-xs font-bold text-slate-700">Upload Farm Land Photo</span>
+                    <Upload className="w-6 h-6 text-slate-400 group-hover:text-sky-600" />
+                    <span className="text-xs font-bold text-slate-700">Upload Farm Field Photo</span>
                     <span className="text-[10px] text-slate-400">JPG, PNG, WEBP (Max 10MB)</span>
                   </>
                 )}
                 <input
                   type="file"
-                  accept="image/*"
+                  accept=".jpg,.jpeg,.png,.webp"
                   onChange={(e) => handleFileUpload(e, 'landImg')}
                   className="hidden"
                 />
@@ -449,8 +343,8 @@ export const FarmerVerificationCard: React.FC = () => {
         <div className="pt-2 flex justify-end">
           <button
             type="submit"
-            disabled={isSubmitting || (!landDoc && !cropApprovalDoc && !landImg)}
-            className="py-3 px-6 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/20 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center gap-2"
+            disabled={isSubmitting || (!primaryDocUrl && !landImg)}
+            className="py-3 px-6 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/20 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center gap-2 cursor-pointer"
           >
             {isSubmitting ? (
               <>
@@ -460,7 +354,7 @@ export const FarmerVerificationCard: React.FC = () => {
             ) : (
               <>
                 <FileCheck className="w-4 h-4" />
-                {isVerified ? 'Update Verification Documents for Admin Review' : 'Submit Verification Documents for Admin Approval'}
+                {isVerified ? 'Update Verification Documents' : 'Submit Documents for Admin Approval'}
               </>
             )}
           </button>
@@ -476,7 +370,7 @@ export const FarmerVerificationCard: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setPreviewModalImg(null)}
-                className="p-1 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                className="p-1 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -490,7 +384,7 @@ export const FarmerVerificationCard: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setPreviewModalImg(null)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl cursor-pointer"
               >
                 Close Preview
               </button>

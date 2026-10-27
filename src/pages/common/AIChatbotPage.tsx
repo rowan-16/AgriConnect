@@ -8,23 +8,15 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { aiChatbotService, ChatMessage, LanguageCode } from '../../services/aiChatbotService';
+import { FormattedChatMessage } from '../../components/common/FormattedChatMessage';
 
 export const AIChatbotPage: React.FC = () => {
   const { user, role } = useAuth();
-  const { t } = useLanguage();
+  const { language, supportedLanguages, setLanguage, t } = useLanguage();
   const { showToast } = useToast();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [language, setLanguageState] = useState<LanguageCode>(() => {
-    const saved = localStorage.getItem('agriconnect_chatbot_language');
-    return (saved as LanguageCode) || 'en';
-  });
-
-  const setLanguage = (lang: LanguageCode) => {
-    setLanguageState(lang);
-    localStorage.setItem('agriconnect_chatbot_language', lang);
-  };
   const [isListening, setIsListening] = useState(false);
   const [activeCategory, setActiveCategory] = useState<'all' | 'crop' | 'pest' | 'weather' | 'market' | 'orders'>('all');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -132,6 +124,12 @@ export const AIChatbotPage: React.FC = () => {
             <TrendingUp className="w-3.5 h-3.5" /> {t('marketDemandIndex', 'Market Demand Index')}
           </span>
         );
+      case 'top_selling_crops':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-100 text-amber-900 border border-amber-200 text-xs font-bold">
+            <TrendingUp className="w-3.5 h-3.5 text-amber-600" /> {t('topSellingCrops', 'Top Selling Crops (Verified)')}
+          </span>
+        );
       case 'order_tracking':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-100 text-purple-800 text-xs font-bold">
@@ -156,6 +154,13 @@ export const AIChatbotPage: React.FC = () => {
   };
 
   const presetCards = [
+    {
+      title: t('topSellingCrops', 'Top Selling Crops'),
+      desc: t('topSellingDesc', 'Verified highest volume & most profitable crops for farmers on AgriConnect.'),
+      prompt: 'Which are the top selling crops on AgriConnect for farmers?',
+      icon: TrendingUp,
+      color: 'from-amber-600 to-emerald-600',
+    },
     {
       title: t('listProductsAndFarmers', 'List Products & Farmers'),
       desc: t('listProductsDesc', 'Fetch live agricultural produce and farmer details directly from MongoDB Atlas.'),
@@ -238,13 +243,15 @@ export const AIChatbotPage: React.FC = () => {
               <Globe className="w-4 h-4 text-emerald-400 mr-2" />
               <select
                 value={language}
-                onChange={(e) => setLanguage(e.target.value as LanguageCode)}
+                onChange={(e) => setLanguage(e.target.value as any)}
+                aria-label={t('selectLanguage', 'Select Language')}
                 className="bg-transparent text-white font-bold outline-none cursor-pointer"
               >
-                <option value="en" className="bg-slate-900 text-white">English (EN)</option>
-                <option value="hi" className="bg-slate-900 text-white">हिन्दी (Hindi)</option>
-                <option value="mr" className="bg-slate-900 text-white">मराठी (Marathi)</option>
-                <option value="ta" className="bg-slate-900 text-white">தமிழ் (Tamil)</option>
+                {supportedLanguages.map((l) => (
+                  <option key={l.code} value={l.code} className="bg-slate-900 text-white">
+                    {l.nativeName} ({l.name})
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -347,7 +354,7 @@ export const AIChatbotPage: React.FC = () => {
                 )}
 
                 {/* Message Body */}
-                <div className="whitespace-pre-line font-sans text-slate-900">{t(msg.text, msg.text)}</div>
+                <FormattedChatMessage content={t(msg.text, msg.text)} isUser={msg.sender === 'user'} />
 
                 {/* Suggested Action Chips */}
                 {msg.suggestedActions && msg.suggestedActions.length > 0 && (

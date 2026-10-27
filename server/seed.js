@@ -102,6 +102,12 @@ const INITIAL_CROPS = [
     minOrder: 50,
     shelfLifeDays: 14,
     gradeQuality: 'Grade A Premium',
+    salesVolume: 6800,
+    totalSold: 6800,
+    demandTrend: 'High',
+    isTopSelling: true,
+    salesRevenue: 190400,
+    orderCount: 47,
   },
   {
     id: 'crp_102',
@@ -124,6 +130,12 @@ const INITIAL_CROPS = [
     minOrder: 5,
     shelfLifeDays: 365,
     gradeQuality: 'Grade A Export',
+    salesVolume: 480,
+    totalSold: 480,
+    demandTrend: 'Surging',
+    isTopSelling: true,
+    salesRevenue: 1632000,
+    orderCount: 38,
   },
   {
     id: 'crp_103',
@@ -146,6 +158,12 @@ const INITIAL_CROPS = [
     minOrder: 10,
     shelfLifeDays: 180,
     gradeQuality: 'Grade A Extra Hot',
+    salesVolume: 3850,
+    totalSold: 3850,
+    demandTrend: 'High',
+    isTopSelling: true,
+    salesRevenue: 712250,
+    orderCount: 31,
   },
   {
     id: 'crp_104',
@@ -168,6 +186,12 @@ const INITIAL_CROPS = [
     minOrder: 20,
     shelfLifeDays: 540,
     gradeQuality: 'Export Quality',
+    salesVolume: 18000,
+    totalSold: 18000,
+    demandTrend: 'Very High',
+    isTopSelling: true,
+    salesRevenue: 1710000,
+    orderCount: 52,
   },
   {
     id: 'crp_105',
@@ -190,6 +214,109 @@ const INITIAL_CROPS = [
     minOrder: 100,
     shelfLifeDays: 120,
     gradeQuality: 'Grade A Storage',
+    salesVolume: 24500,
+    totalSold: 24500,
+    demandTrend: 'Very High',
+    isTopSelling: true,
+    salesRevenue: 686000,
+    orderCount: 64,
+  }
+];
+
+const INITIAL_ORDERS = [
+  {
+    id: 'ORD-2026-8941',
+    buyerId: 'usr_buyer_priya',
+    buyerName: 'Priya Sharma',
+    buyerEmail: 'priya.buyer@agriconnect.com',
+    buyerPhone: '+91 91234 56789',
+    farmerId: 'usr_farmer_ramesh',
+    farmerName: 'Ramesh Patel',
+    deliveryAddress: {
+      street: 'Plot 42, APMC Market Yard, Vashi',
+      city: 'Navi Mumbai',
+      state: 'Maharashtra',
+      pincode: '400703',
+    },
+    items: [
+      {
+        cropId: 'crp_101',
+        cropName: 'Organic Vine-Ripened Tomatoes',
+        category: 'Fresh Vegetables',
+        quantity: 250,
+        unit: 'kg',
+        unitPrice: 28,
+        total: 7000,
+        image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&q=80&w=600',
+      },
+      {
+        cropId: 'crp_105',
+        cropName: 'Nashik Red Storage Onions',
+        category: 'Fresh Vegetables',
+        quantity: 500,
+        unit: 'kg',
+        unitPrice: 28,
+        total: 14000,
+        image: 'https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?auto=format&fit=crop&q=80&w=600',
+      }
+    ],
+    subtotal: 21000,
+    platformFee: 420,
+    deliveryFee: 1200,
+    totalAmount: 22620,
+    paymentMethod: 'upi',
+    paymentStatus: 'paid',
+    orderStatus: 'shipped',
+    orderDate: '2026-10-18T10:30:00Z',
+    estimatedDelivery: '2026-10-22',
+    trackingNumber: 'AGC-TRK-982341-MH',
+    timeline: [
+      { status: 'confirmed', title: 'Order Confirmed', description: 'Buyer payment verified via UPI Escrow.', timestamp: '18 Oct, 10:30 AM', completed: true },
+      { status: 'processing', title: 'Grading & Quality Packaged', description: 'Farmer packaged produce with moisture-seal bags.', timestamp: '19 Oct, 02:15 PM', completed: true },
+      { status: 'shipped', title: 'Consignment Dispatched', description: 'Dispatched via AgriConnect Agri-Logistics van.', timestamp: '20 Oct, 08:00 AM', completed: true }
+    ]
+  },
+  {
+    id: 'ORD-2026-8942',
+    buyerId: 'usr_buyer_priya',
+    buyerName: 'Priya Sharma',
+    buyerEmail: 'priya.buyer@agriconnect.com',
+    buyerPhone: '+91 91234 56789',
+    farmerId: 'usr_farmer_sukhwinder',
+    farmerName: 'Sukhwinder Singh',
+    deliveryAddress: {
+      street: 'Grain Hub Terminal, Sector 18',
+      city: 'Delhi NCR',
+      state: 'Delhi',
+      pincode: '110034',
+    },
+    items: [
+      {
+        cropId: 'crp_102',
+        cropName: 'Sharbati Royal Golden Wheat',
+        category: 'Grains & Cereals',
+        quantity: 25,
+        unit: 'quintal',
+        unitPrice: 3400,
+        total: 85000,
+        image: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&q=80&w=600',
+      }
+    ],
+    subtotal: 85000,
+    platformFee: 1700,
+    deliveryFee: 2500,
+    totalAmount: 89200,
+    paymentMethod: 'netbanking',
+    paymentStatus: 'paid',
+    orderStatus: 'delivered',
+    orderDate: '2026-10-12T14:00:00Z',
+    estimatedDelivery: '2026-10-16',
+    trackingNumber: 'AGC-TRK-771239-DL',
+    timeline: [
+      { status: 'confirmed', title: 'Order Confirmed', description: 'Bank transfer verified.', timestamp: '12 Oct, 02:00 PM', completed: true },
+      { status: 'shipped', title: 'Dispatched', description: 'Loaded into express freight.', timestamp: '13 Oct, 09:00 AM', completed: true },
+      { status: 'delivered', title: 'Delivered', description: 'Received and verified by buyer.', timestamp: '16 Oct, 11:30 AM', completed: true }
+    ]
   }
 ];
 
@@ -199,12 +326,16 @@ async function seedDatabase() {
   console.log('🧹 Clearing existing collections...');
   await User.deleteMany({});
   await Crop.deleteMany({});
+  await Order.deleteMany({});
 
   console.log('🌱 Seeding Users into MongoDB Atlas...');
   await User.insertMany(INITIAL_USERS);
 
-  console.log('🌾 Seeding Crops into MongoDB Atlas...');
+  console.log('🌾 Seeding Crops with Top-Selling Analytics into MongoDB Atlas...');
   await Crop.insertMany(INITIAL_CROPS);
+
+  console.log('📦 Seeding Orders into MongoDB Atlas...');
+  await Order.insertMany(INITIAL_ORDERS);
 
   console.log('✅ MongoDB Atlas Seed Completed Successfully!');
   process.exit(0);

@@ -13,7 +13,10 @@ import {
   ArrowRight,
   ShieldCheck,
   ChevronDown,
-  FileText
+  FileText,
+  Download,
+  Printer,
+  RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -36,9 +39,34 @@ export const FarmerOrders: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'All' | OrderStatus>('All');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
+  const [downloadingOrderId, setDownloadingOrderId] = useState<string | null>(null);
 
   const refreshOrders = () => {
     setOrders(orderService.getOrdersByFarmer(user.id));
+  };
+
+  const handleDownloadPdf = async (order: Order) => {
+    setDownloadingOrderId(order.id);
+    try {
+      const response = await fetch(`http://localhost:5000/api/invoices/${order.id}/pdf`);
+      if (!response.ok) {
+        throw new Error('PDF generator status ' + response.status);
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `AgriConnect-Invoice-${order.id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      showToast(t('invoiceDownloadedToast', `Invoice for order #${order.id} downloaded successfully.`), 'success', t('invoiceDownloaded', 'Invoice Downloaded'));
+    } catch {
+      setInvoiceOrder(order);
+    } finally {
+      setDownloadingOrderId(null);
+    }
   };
 
   const handleUpdateStatus = (orderId: string, newStatus: OrderStatus) => {
@@ -191,12 +219,38 @@ export const FarmerOrders: React.FC = () => {
                     </td>
 
                     <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => setSelectedOrder(order)}
-                        className="px-3.5 py-1.5 bg-agri-50 hover:bg-agri-600 text-agri-700 hover:text-white font-bold text-xs rounded-xl border border-agri-200 hover:border-transparent transition-all"
-                      >
-                        {t('manageUpdateBtn', 'Manage & Update')}
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setInvoiceOrder(order)}
+                          className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all flex items-center gap-1 cursor-pointer"
+                          title={t('viewInvoiceBtn', 'View Invoice')}
+                        >
+                          <FileText className="w-3.5 h-3.5 text-slate-500" />
+                          <span className="hidden sm:inline">{t('invoiceLabel', 'Invoice')}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={downloadingOrderId === order.id}
+                          onClick={() => handleDownloadPdf(order)}
+                          className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl border border-emerald-200 transition-all cursor-pointer"
+                          title={t('downloadPdfBtn', 'Download PDF')}
+                        >
+                          {downloadingOrderId === order.id ? (
+                            <RefreshCw className="w-3.5 h-3.5 text-emerald-600 animate-spin" />
+                          ) : (
+                            <Download className="w-3.5 h-3.5 text-emerald-600" />
+                          )}
+                        </button>
+
+                        <button
+                          onClick={() => setSelectedOrder(order)}
+                          className="px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white font-bold text-xs rounded-xl border border-emerald-200 hover:border-transparent transition-all cursor-pointer"
+                        >
+                          {t('manageUpdateBtn', 'Manage')}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -300,18 +354,34 @@ export const FarmerOrders: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex justify-between items-center pt-2">
-              <button
-                type="button"
-                onClick={() => setInvoiceOrder(selectedOrder)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl flex items-center gap-1.5 border border-slate-200"
-              >
-                <FileText className="w-4 h-4 text-slate-600" /> {t('viewTaxInvoice', 'View Tax Invoice')}
-              </button>
+            <div className="flex justify-between items-center pt-2 flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setInvoiceOrder(selectedOrder)}
+                  className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl flex items-center gap-1.5 border border-slate-200 cursor-pointer"
+                >
+                  <FileText className="w-4 h-4 text-slate-600" /> {t('viewTaxInvoice', 'View Tax Invoice')}
+                </button>
+
+                <button
+                  type="button"
+                  disabled={downloadingOrderId === selectedOrder.id}
+                  onClick={() => handleDownloadPdf(selectedOrder)}
+                  className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs rounded-xl flex items-center gap-1.5 border border-emerald-200 cursor-pointer"
+                >
+                  {downloadingOrderId === selectedOrder.id ? (
+                    <RefreshCw className="w-4 h-4 text-emerald-600 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4 text-emerald-600" />
+                  )}
+                  <span>{t('downloadPdfBtn', 'Download PDF')}</span>
+                </button>
+              </div>
 
               <button
                 onClick={() => setSelectedOrder(null)}
-                className="px-5 py-2 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200"
+                className="px-5 py-2 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200 cursor-pointer"
               >
                 {t('closeWindowBtn', 'Close Window')}
               </button>

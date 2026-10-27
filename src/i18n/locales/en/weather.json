@@ -1,0 +1,15 @@
+{
+  "weatherInfo": "Weather Information",
+  "microClimate": "Micro-Climate",
+  "humidity": "Humidity",
+  "soilMoisture": "Soil Moisture",
+  "weatherInfoTitle": "Micro-Climate Weather & Advisory",
+  "rainfall24h": "24h Rainfall",
+  "windVelocity": "Wind Velocity",
+  "feelsLike": "Feels like",
+  "forecast5Day": "5-Day Meteorological Forecast",
+  "agronomicGuidance": "Actionable Agronomic Guidance",
+  "weatherForecast": "weatherForecast",
+  "rainChance": "rainChance",
+  "weatherAdvisory": "weatherAdvisory"
+}

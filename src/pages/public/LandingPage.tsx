@@ -21,8 +21,8 @@ import { SupportedLanguage } from '../../services/translations';
 import { INITIAL_CROPS } from '../../services/mockData';
 
 export const LandingPage: React.FC = () => {
-  const { user, isAuthenticated, logout } = useAuth();
-  const { language, setLanguage, t } = useLanguage();
+  const { user, isAuthenticated } = useAuth();
+  const { language, supportedLanguages, setLanguage, t } = useLanguage();
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -57,11 +57,7 @@ export const LandingPage: React.FC = () => {
       <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5 group">
-            <img
-              src="/logo.png"
-              alt="AgriConnect Logo"
-              className="h-10 w-auto object-contain group-hover:scale-105 transition-transform"
-            />
+            <img src="/logo.png" alt="AgriConnect Logo" className="w-8 h-8 object-contain rounded-md shrink-0 group-hover:scale-105 transition-transform" />
             <span className="text-2xl font-black tracking-tight text-slate-900 group-hover:text-agri-700 transition-colors">
               Agri<span className="text-agri-600">Connect</span>
             </span>
@@ -81,183 +77,154 @@ export const LandingPage: React.FC = () => {
               <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
-                aria-label="Select Webpage Language"
+                aria-label={t('selectLanguage', 'Select Webpage Language')}
                 className="bg-transparent text-slate-900 text-xs font-bold outline-none cursor-pointer pr-1"
               >
-                <option value="en">English (EN)</option>
-                <option value="hi">हिन्दी (HI)</option>
-                <option value="mr">मराठी (MR)</option>
-                <option value="ta">தமிழ் (TA)</option>
+                {supportedLanguages.map((l) => (
+                  <option key={l.code} value={l.code} className="text-slate-900 font-medium">
+                    {l.nativeName} ({l.name})
+                  </option>
+                ))}
               </select>
             </div>
 
-            {isAuthenticated && user ? (
-              <div className="flex items-center gap-2">
-                <Link
-                  to={`/${user.role}/dashboard`}
-                  className="px-4 py-2 bg-agri-600 hover:bg-agri-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md shadow-agri-600/25 transition-all hover:scale-[1.02]"
-                >
-                  Dashboard ({user.name.split(' ')[0]})
-                </Link>
-                <button
-                  onClick={logout}
-                  className="px-3 py-2 text-xs sm:text-sm font-bold text-slate-600 hover:text-rose-600 transition-colors"
-                >
-                  Logout
-                </button>
-              </div>
-            ) : (
-              <>
-                <Link
-                  to="/login"
-                  className="px-3.5 py-2 text-xs sm:text-sm font-bold text-slate-700 hover:text-agri-700 transition-colors"
-                >
-                  {t('login', 'Sign In')}
-                </Link>
-                <Link
-                  to="/register"
-                  className="px-4 py-2 bg-agri-600 hover:bg-agri-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md shadow-agri-600/25 transition-all hover:scale-[1.02]"
-                >
-                  {t('register', 'Join AgriConnect')}
-                </Link>
-              </>
-            )}
+            <Link
+              to="/login"
+              className="px-3.5 py-2 text-xs sm:text-sm font-bold text-slate-700 hover:text-agri-700 transition-colors"
+            >
+              {t('login', 'Sign In')}
+            </Link>
+            <Link
+              to="/register"
+              className="px-4 py-2 bg-agri-600 hover:bg-agri-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md shadow-agri-600/25 transition-all hover:scale-[1.02]"
+            >
+              {t('register', 'Join AgriConnect')}
+            </Link>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden pt-12 pb-20 lg:pt-20 lg:pb-28 bg-gradient-to-b from-agri-50/60 via-white to-slate-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            
-            {/* Left Hero Content */}
-            <div className="lg:col-span-7 space-y-6 text-left">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-100/80 border border-emerald-300/80 text-emerald-800 text-xs font-bold shadow-xs">
-                <Sprout className="w-3.5 h-3.5 text-emerald-600" />
-                <span>{t('heroBadge', 'Modern Agricultural & Direct Trade Marketplace')}</span>
-              </div>
+      {/* Hero Section with Full-Bleed Background Video (Crystal-Clear Transparent Mode) */}
+      <section className="relative overflow-hidden min-h-[600px] lg:min-h-[680px] flex items-center justify-center pt-16 pb-20 lg:pt-24 lg:pb-28">
+        {/* Full Background Video Layer (Completely Transparent, High Clarity) */}
+        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none z-0">
+          <video
+            ref={videoRef}
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="auto"
+            poster="https://images.unsplash.com/photo-1592982537447-6f2a6a0c5c1b?auto=format&fit=crop&q=80&w=1200"
+            className="w-full h-full object-cover scale-105 animate-wind-sway"
+          >
+            <source src="/grass-field.mp4" type="video/mp4" />
+            <img
+              src="https://images.unsplash.com/photo-1592982537447-6f2a6a0c5c1b?auto=format&fit=crop&q=80&w=1200"
+              alt="Lush green grass blowing in wind"
+              className="w-full h-full object-cover animate-wind-sway"
+            />
+          </video>
+        </div>
 
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-950 tracking-tight leading-[1.12]">
-                {t('heroTitle1', 'Connecting Farmers.')} <br />
-                <span className="bg-gradient-to-r from-agri-600 via-emerald-600 to-teal-700 bg-clip-text text-transparent">
-                  {t('heroTitle2', 'Empowering Agriculture.')}
-                </span>
-              </h1>
-
-              <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl font-normal">
-                {t('heroDesc', 'AgriConnect is an accessible digital marketplace eliminating unnecessary middlemen. We empower farmers with real-time agronomic crop suitability guidance, localized weather insights, and direct fair-price trading channels with verified buyers.')}
-              </p>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap items-center gap-4 pt-2">
-                <Link
-                  to="/login"
-                  className="px-6 py-3.5 bg-agri-600 hover:bg-agri-700 text-white font-bold text-sm sm:text-base rounded-full shadow-lg shadow-agri-600/30 transition-all hover:scale-[1.02] flex items-center gap-2"
-                >
-                  <ShoppingBag className="w-5 h-5" />
-                  {t('exploreMarketplace', 'Explore Marketplace')}
-                </Link>
-
-                <Link
-                  to="/register"
-                  className="px-6 py-3.5 bg-white hover:bg-slate-50 text-slate-800 font-bold text-sm sm:text-base rounded-full border border-slate-200 shadow-soft transition-all hover:border-slate-300 flex items-center gap-2"
-                >
-                  {t('joinAsFarmerOrBuyer', 'Join as Farmer or Buyer')}
-                  <ArrowRight className="w-4 h-4 text-slate-400" />
-                </Link>
-              </div>
-
-              {/* Trust Indicators */}
-              <div className="pt-6 border-t border-slate-200/80 grid grid-cols-3 gap-4">
-                <div>
-                  <div className="text-2xl font-black text-slate-900">4,800+</div>
-                  <div className="text-xs text-slate-500 font-medium">{t('verifiedFarmers', 'Verified Farmers')}</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-black text-slate-900">₹18.4 Cr+</div>
-                  <div className="text-xs text-slate-500 font-medium">{t('directTradeGmv', 'Direct Trade GMV')}</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-black text-slate-900">96.8%</div>
-                  <div className="text-xs text-slate-500 font-medium">{t('advisoryAccuracy', 'Advisory Accuracy')}</div>
-                </div>
-              </div>
+        {/* Hero Content Layer */}
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <div className="max-w-3xl space-y-6 text-left">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/90 border border-emerald-400 text-emerald-900 text-xs font-bold shadow-xs backdrop-blur-md">
+              <Sprout className="w-3.5 h-3.5 text-emerald-600" />
+              <span>{t('heroBadge', 'Modern Agricultural & Direct Trade Marketplace')}</span>
             </div>
 
-            {/* Right Hero Video Showcase */}
-            <div className="lg:col-span-5 relative">
-              <div className="relative mx-auto max-w-md lg:max-w-none">
-                <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-emerald-950 h-[480px]">
-                  {/* Local fast-loading video stream */}
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    preload="auto"
-                    poster="https://images.unsplash.com/photo-1592982537447-6f2a6a0c5c1b?auto=format&fit=crop&q=80&w=1200"
-                    className="w-full h-full object-cover animate-wind-sway"
-                  >
-                    <source src="/grass-field.mp4" type="video/mp4" />
-                    <img
-                      src="https://images.unsplash.com/photo-1592982537447-6f2a6a0c5c1b?auto=format&fit=crop&q=80&w=1200"
-                      alt="Lush green grass blowing in wind"
-                      className="w-full h-full object-cover animate-wind-sway"
-                    />
-                  </video>
-                  
-                  <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/20 via-transparent to-transparent pointer-events-none" />
-                </div>
-              </div>
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-950 tracking-tight leading-[1.12] drop-shadow-sm">
+              {t('heroTitle1', 'Connecting Farmers.')} <br />
+              <span className="bg-gradient-to-r from-agri-700 via-emerald-600 to-teal-800 bg-clip-text text-transparent">
+                {t('heroTitle2', 'Empowering Agriculture.')}
+              </span>
+            </h1>
+
+            <p className="text-base sm:text-lg text-slate-900 leading-relaxed max-w-2xl font-medium drop-shadow-xs">
+              {t('heroDesc', 'AgriConnect is an accessible digital marketplace eliminating unnecessary middlemen. We empower farmers with real-time agronomic crop suitability guidance, localized weather insights, and direct fair-price trading channels with verified buyers.')}
+            </p>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap items-center gap-4 pt-2">
+              <Link
+                to="/login"
+                className="px-6 py-3.5 bg-agri-600 hover:bg-agri-700 text-white font-bold text-sm sm:text-base rounded-full shadow-lg shadow-agri-600/30 transition-all hover:scale-[1.02] flex items-center gap-2"
+              >
+                <ShoppingBag className="w-5 h-5" />
+                {t('exploreMarketplace', 'Explore Marketplace')}
+              </Link>
+
+              <Link
+                to="/register"
+                className="px-6 py-3.5 bg-white/95 hover:bg-white text-slate-900 font-bold text-sm sm:text-base rounded-full border border-slate-300 shadow-md transition-all hover:border-slate-400 backdrop-blur-md flex items-center gap-2"
+              >
+                {t('joinAsFarmerOrBuyer', 'Join as Farmer or Buyer')}
+                <ArrowRight className="w-4 h-4 text-agri-600" />
+              </Link>
             </div>
 
+            {/* Trust Indicators */}
+            <div className="pt-8 border-t border-slate-400/50 grid grid-cols-3 gap-6 max-w-xl">
+              <div>
+                <div className="text-2xl sm:text-3xl font-black text-slate-950 drop-shadow-xs">4,800+</div>
+                <div className="text-xs text-slate-800 font-bold drop-shadow-xs">{t('verifiedFarmers', 'Verified Farmers')}</div>
+              </div>
+              <div>
+                <div className="text-2xl sm:text-3xl font-black text-slate-950 drop-shadow-xs">₹18.4 Cr+</div>
+                <div className="text-xs text-slate-800 font-bold drop-shadow-xs">{t('directTradeGmv', 'Direct Trade GMV')}</div>
+              </div>
+              <div>
+                <div className="text-2xl sm:text-3xl font-black text-slate-950 drop-shadow-xs">96.8%</div>
+                <div className="text-xs text-slate-800 font-bold drop-shadow-xs">{t('advisoryAccuracy', 'Advisory Accuracy')}</div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Live Market Price Ticker with Infinite Auto-Scroll */}
-      <div className="bg-slate-900 text-slate-200 py-3 border-y border-slate-800 overflow-hidden relative">
+      {/* Live Market Price Ticker with Infinite Auto-Scroll (White Mode) */}
+      <div className="bg-white text-slate-800 py-3 border-y border-slate-200/90 shadow-xs overflow-hidden relative">
         <div className="animate-ticker flex items-center gap-8 text-xs whitespace-nowrap">
           {/* Ticker Set 1 */}
           <div className="flex items-center gap-6 shrink-0">
-            <span className="font-bold text-agri-400 uppercase tracking-wider flex items-center gap-1.5 shrink-0">
-              <TrendingUp className="w-4 h-4" /> {t('mandiTicker', "Today's Mandi Ticker:")}
+            <span className="font-bold text-agri-700 uppercase tracking-wider flex items-center gap-1.5 shrink-0">
+              <TrendingUp className="w-4 h-4 text-agri-600" /> {t('mandiTicker', "Today's Mandi Ticker:")}
             </span>
-            <span className="text-slate-300">Organic Tomatoes: <strong>₹28/kg</strong> <span className="text-emerald-400 font-semibold">(+4.2%)</span></span>
-            <span className="text-slate-500">•</span>
-            <span className="text-slate-300">Sharbati Wheat: <strong>₹2,850/Qtl</strong> <span className="text-emerald-400 font-semibold">(+1.8%)</span></span>
-            <span className="text-slate-500">•</span>
-            <span className="text-slate-300">Alphonso Mangoes: <strong>₹1,400/Crate</strong> <span className="text-emerald-400 font-semibold">(+6.0%)</span></span>
-            <span className="text-slate-500">•</span>
-            <span className="text-slate-300">Guntur Red Chilli: <strong>₹195/kg</strong> <span className="text-rose-400 font-semibold">(-0.8%)</span></span>
-            <span className="text-slate-500">•</span>
-            <span className="text-slate-300">XXL Basmati Rice: <strong>₹5,200/Qtl</strong> <span className="text-emerald-400 font-semibold">(+2.5%)</span></span>
-            <span className="text-slate-500">•</span>
-            <span className="text-slate-300">Nashik Red Onions: <strong>₹24/kg</strong> <span className="text-emerald-400 font-semibold">(+3.1%)</span></span>
-            <span className="text-slate-500">•</span>
-            <span className="text-slate-300">Mysore Bananas: <strong>₹32/Dozen</strong> <span className="text-emerald-400 font-semibold">(+1.2%)</span></span>
+            <span className="text-slate-700">Organic Tomatoes: <strong className="text-slate-950">₹28/kg</strong> <span className="text-emerald-600 font-semibold">(+4.2%)</span></span>
+            <span className="text-slate-300">•</span>
+            <span className="text-slate-700">Sharbati Wheat: <strong className="text-slate-950">₹2,850/Qtl</strong> <span className="text-emerald-600 font-semibold">(+1.8%)</span></span>
+            <span className="text-slate-300">•</span>
+            <span className="text-slate-700">Alphonso Mangoes: <strong className="text-slate-950">₹1,400/Crate</strong> <span className="text-emerald-600 font-semibold">(+6.0%)</span></span>
+            <span className="text-slate-300">•</span>
+            <span className="text-slate-700">Guntur Red Chilli: <strong className="text-slate-950">₹195/kg</strong> <span className="text-rose-600 font-semibold">(-0.8%)</span></span>
+            <span className="text-slate-300">•</span>
+            <span className="text-slate-700">XXL Basmati Rice: <strong className="text-slate-950">₹5,200/Qtl</strong> <span className="text-emerald-600 font-semibold">(+2.5%)</span></span>
+            <span className="text-slate-300">•</span>
+            <span className="text-slate-700">Nashik Red Onions: <strong className="text-slate-950">₹24/kg</strong> <span className="text-emerald-600 font-semibold">(+3.1%)</span></span>
+            <span className="text-slate-300">•</span>
+            <span className="text-slate-700">Mysore Bananas: <strong className="text-slate-950">₹32/Dozen</strong> <span className="text-emerald-600 font-semibold">(+1.2%)</span></span>
           </div>
 
           {/* Ticker Set 2 */}
           <div className="flex items-center gap-6 shrink-0" aria-hidden="true">
-            <span className="font-bold text-agri-400 uppercase tracking-wider flex items-center gap-1.5 shrink-0">
-              <TrendingUp className="w-4 h-4" /> {t('mandiTicker', "Today's Mandi Ticker:")}
+            <span className="font-bold text-agri-700 uppercase tracking-wider flex items-center gap-1.5 shrink-0">
+              <TrendingUp className="w-4 h-4 text-agri-600" /> {t('mandiTicker', "Today's Mandi Ticker:")}
             </span>
-            <span className="text-slate-300">Organic Tomatoes: <strong>₹28/kg</strong> <span className="text-emerald-400 font-semibold">(+4.2%)</span></span>
-            <span className="text-slate-500">•</span>
-            <span className="text-slate-300">Sharbati Wheat: <strong>₹2,850/Qtl</strong> <span className="text-emerald-400 font-semibold">(+1.8%)</span></span>
-            <span className="text-slate-500">•</span>
-            <span className="text-slate-300">Alphonso Mangoes: <strong>₹1,400/Crate</strong> <span className="text-emerald-400 font-semibold">(+6.0%)</span></span>
-            <span className="text-slate-500">•</span>
-            <span className="text-slate-300">Guntur Red Chilli: <strong>₹195/kg</strong> <span className="text-rose-400 font-semibold">(-0.8%)</span></span>
-            <span className="text-slate-500">•</span>
-            <span className="text-slate-300">XXL Basmati Rice: <strong>₹5,200/Qtl</strong> <span className="text-emerald-400 font-semibold">(+2.5%)</span></span>
-            <span className="text-slate-500">•</span>
-            <span className="text-slate-300">Nashik Red Onions: <strong>₹24/kg</strong> <span className="text-emerald-400 font-semibold">(+3.1%)</span></span>
-            <span className="text-slate-500">•</span>
-            <span className="text-slate-300">Mysore Bananas: <strong>₹32/Dozen</strong> <span className="text-emerald-400 font-semibold">(+1.2%)</span></span>
+            <span className="text-slate-700">Organic Tomatoes: <strong className="text-slate-950">₹28/kg</strong> <span className="text-emerald-600 font-semibold">(+4.2%)</span></span>
+            <span className="text-slate-300">•</span>
+            <span className="text-slate-700">Sharbati Wheat: <strong className="text-slate-950">₹2,850/Qtl</strong> <span className="text-emerald-600 font-semibold">(+1.8%)</span></span>
+            <span className="text-slate-300">•</span>
+            <span className="text-slate-700">Alphonso Mangoes: <strong className="text-slate-950">₹1,400/Crate</strong> <span className="text-emerald-600 font-semibold">(+6.0%)</span></span>
+            <span className="text-slate-300">•</span>
+            <span className="text-slate-700">Guntur Red Chilli: <strong className="text-slate-950">₹195/kg</strong> <span className="text-rose-600 font-semibold">(-0.8%)</span></span>
+            <span className="text-slate-300">•</span>
+            <span className="text-slate-700">XXL Basmati Rice: <strong className="text-slate-950">₹5,200/Qtl</strong> <span className="text-emerald-600 font-semibold">(+2.5%)</span></span>
+            <span className="text-slate-300">•</span>
+            <span className="text-slate-700">Nashik Red Onions: <strong className="text-slate-950">₹24/kg</strong> <span className="text-emerald-600 font-semibold">(+3.1%)</span></span>
+            <span className="text-slate-300">•</span>
+            <span className="text-slate-700">Mysore Bananas: <strong className="text-slate-950">₹32/Dozen</strong> <span className="text-emerald-600 font-semibold">(+1.2%)</span></span>
           </div>
         </div>
       </div>
@@ -601,8 +568,8 @@ export const LandingPage: React.FC = () => {
       {/* Call To Action Banner */}
       <section className="py-16 bg-gradient-to-tr from-agri-900 via-agri-800 to-emerald-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
-          <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md text-agri-300 flex items-center justify-center mx-auto shadow-inner">
-            <Sprout className="w-8 h-8" />
+          <div className="w-16 h-16 rounded-2xl bg-white p-2.5 flex items-center justify-center mx-auto shadow-xl">
+            <img src="/logo.png" alt="AgriConnect Logo" className="w-full h-full object-contain" />
           </div>
           <h2 className="text-3xl sm:text-4xl font-black tracking-tight max-w-2xl mx-auto">
             {t('ctaTitle', 'Ready to Experience the Future of Agricultural Commerce?')}

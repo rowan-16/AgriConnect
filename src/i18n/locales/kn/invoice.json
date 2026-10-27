@@ -1,0 +1,13 @@
+{
+  "unitPrice": "इकाई मूल्य",
+  "officialTaxInvoice": "ಅಗ್ರಿ-ಕನೆಕ್ಟ್ ಅಧಿಕೃತ ತೆರಿಗೆ ಸರಕುಪಟ್ಟಿ",
+  "printDownloadPdf": "ಮುದ್ರಿಸಿ / PDF ಡೌನ್‌ಲೋಡ್",
+  "subtotal": "ಉಪಮೊತ್ತ",
+  "invoice": "ಸರಕುಪಟ್ಟಿ / ರಶೀದಿ",
+  "sellerDetails": "ಮಾರಾಟಗಾರ (ನೋಂದಾಯಿತ ರೈತ)",
+  "itemDescription": "ವಸ್ತುವಿನ ವಿವರಣೆ",
+  "hsnSac": "HSN/SAC ಕೋಡ್",
+  "gstExempt": "ತಾಜಾ ಕೃಷಿ ಉತ್ಪನ್ನಗಳಿಗೆ ಜಿಎಸ್‌ಟಿ ವಿನಾಯಿತಿ ಇದೆ",
+  "totalPayable": "ಒಟ್ಟು ಪಾವತಿಸಬೇಕಾದ ಮೊತ್ತ",
+  "paymentConfirmed": "ಪಾವತಿ ದೃಢೀಕರಿಸಲಾಗಿದೆ"
+}

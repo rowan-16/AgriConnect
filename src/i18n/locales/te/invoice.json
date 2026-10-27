@@ -1,0 +1,13 @@
+{
+  "unitPrice": "इकाई मूल्य",
+  "officialTaxInvoice": "అగ్రి-కనెక్ట్ అధికారిక పన్ను ఇన్వాయిస్",
+  "printDownloadPdf": "ప్రింట్ / PDF డౌన్‌లోడ్",
+  "subtotal": "ఉప మొత్తం",
+  "invoice": "ఇన్వాయిస్ / రసీదు",
+  "sellerDetails": "విక్రేత (నమోదిత రైతు)",
+  "itemDescription": "వస్తువు వివరాలు",
+  "hsnSac": "HSN/SAC కోడ్",
+  "gstExempt": "తాజా వ్యవసాయ ఉత్పత్తులకు GST మినహాయింపు ఉంది",
+  "totalPayable": "మొత్తం చెల్లించవలసినది",
+  "paymentConfirmed": "చెల్లింపు నిర్ధారించబడింది"
+}

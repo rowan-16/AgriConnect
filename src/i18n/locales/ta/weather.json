@@ -1,0 +1,15 @@
+{
+  "weatherInfo": "வானிலை தகவல்",
+  "microClimate": "நுண் காலநிலை",
+  "humidity": "ஈரப்பதம்",
+  "soilMoisture": "மண் ஈரப்பதம்",
+  "weatherInfoTitle": "நுண் காலநிலை மற்றும் ஆலோசனைகள்",
+  "rainfall24h": "24 மணி நேர மழை",
+  "windVelocity": "காற்றின் வேகம்",
+  "feelsLike": "போன்ற உணர்வு",
+  "forecast5Day": "5 நாள் வானிலை முன்னறிவிப்பு",
+  "agronomicGuidance": "செயல்படக்கூடிய விவசாய வழிகாட்டுதல்",
+  "weatherForecast": "weatherForecast",
+  "rainChance": "rainChance",
+  "weatherAdvisory": "weatherAdvisory"
+}

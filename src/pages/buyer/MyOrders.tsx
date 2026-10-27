@@ -13,11 +13,16 @@ import {
   Star,
   MessageSquarePlus,
   Sparkles,
-  FileText
+  FileText,
+  Download,
+  Printer,
+  Eye,
+  RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { orderService } from '../../services/orderService';
+import { reviewService } from '../../services/reviewService';
 import { Order, OrderStatus } from '../../types';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
 import { Badge } from '../../components/common/Badge';
@@ -38,6 +43,7 @@ export const MyOrders: React.FC = () => {
 
   // Invoice & Review Modal State
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
+  const [downloadingOrderId, setDownloadingOrderId] = useState<string | null>(null);
   const [reviewOrder, setReviewOrder] = useState<Order | null>(null);
   const [rating, setRating] = useState<number>(5);
   const [qualityTag, setQualityTag] = useState<string>('Exceptional Freshness & Aroma');
@@ -45,6 +51,31 @@ export const MyOrders: React.FC = () => {
 
   const refreshOrders = () => {
     setOrders(orderService.getOrdersByBuyer(user.id));
+  };
+
+  const handleDownloadPdf = async (order: Order) => {
+    setDownloadingOrderId(order.id);
+    try {
+      const response = await fetch(`http://localhost:5000/api/invoices/${order.id}/pdf`);
+      if (!response.ok) {
+        throw new Error('PDF generator status ' + response.status);
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `AgriConnect-Invoice-${order.id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      showToast(t('invoiceDownloadedToast', `Invoice for order #${order.id} downloaded successfully.`), 'success', t('invoiceDownloaded', 'Invoice Downloaded'));
+    } catch {
+      // Fallback: open modal where browser print/download is available
+      setInvoiceOrder(order);
+    } finally {
+      setDownloadingOrderId(null);
+    }
   };
 
   const handleOpenReview = (order: Order) => {
@@ -70,9 +101,22 @@ export const MyOrders: React.FC = () => {
       comment,
     });
 
+    // Also sync as verified public farmer review
+    reviewService.addReview({
+      farmerId: reviewOrder.farmerId,
+      farmerName: reviewOrder.farmerName,
+      buyerId: user?.id || reviewOrder.buyerId,
+      buyerName: user?.name || reviewOrder.buyerName,
+      buyerAvatar: user?.avatar,
+      rating,
+      qualityTag,
+      comment,
+      cropName: reviewOrder.items[0]?.cropName || 'Farm Harvest',
+    });
+
     setReviewOrder(null);
     refreshOrders();
-    showToast(t('feedbackSubmittedToast', `Thank you! Your feedback for order #${reviewOrder.id} has been recorded.`), 'success', t('feedbackSubmitted', 'Feedback Submitted'));
+    showToast(t('feedbackSubmittedToast', `Thank you! Your feedback for order #${reviewOrder.id} and farmer ${reviewOrder.farmerName} has been recorded.`), 'success', t('feedbackSubmitted', 'Feedback Submitted'));
   };
 
   const filteredOrders = orders.filter((order) => {
@@ -197,34 +241,81 @@ export const MyOrders: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* REQ-4.4 Invoice Button */}
-                  <button
-                    onClick={() => setInvoiceOrder(order)}
-                    className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 border border-slate-200"
-                    title={t('downloadTaxInvoice', 'Download Tax Invoice')}
-                  >
-                    <FileText className="w-3.5 h-3.5 text-slate-500" /> {t('taxInvoiceBtn', 'Tax Invoice')}
-                  </button>
+                  {/* Invoice & Order Action Controls */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {/* View Details */}
+                    <Link
+                      to={`/buyer/track/${order.id}`}
+                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all flex items-center gap-1 border border-slate-200"
+                      title={t('viewOrderDetails', 'View Order Details')}
+                    >
+                      <Eye className="w-3.5 h-3.5 text-slate-500" />
+                      <span>{t('viewOrderDetails', 'View Details')}</span>
+                    </Link>
 
-                  {/* Feedback Button */}
-                  <button
-                    onClick={() => handleOpenReview(order)}
-                    className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 ${
-                      order.feedback
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
-                        : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
-                    }`}
-                  >
-                    <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                    {order.feedback ? `${t('ratedLabel', 'Rated')} ${order.feedback.rating}★` : t('giveFeedbackBtn', 'Give Feedback')}
-                  </button>
+                    {/* View Invoice */}
+                    <button
+                      type="button"
+                      onClick={() => setInvoiceOrder(order)}
+                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all flex items-center gap-1 border border-slate-200 cursor-pointer"
+                      title={t('viewInvoiceModal', 'View Invoice Modal')}
+                    >
+                      <FileText className="w-3.5 h-3.5 text-slate-500" />
+                      <span>{t('viewInvoiceBtn', 'View Invoice')}</span>
+                    </button>
 
-                  <Link
-                    to={`/buyer/track/${order.id}`}
-                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
-                  >
-                    <Truck className="w-4 h-4" /> {t('liveTrackingBtn', 'Live Tracking')}
-                  </Link>
+                    {/* Download PDF */}
+                    <button
+                      type="button"
+                      disabled={downloadingOrderId === order.id}
+                      onClick={() => handleDownloadPdf(order)}
+                      className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs rounded-xl transition-all flex items-center gap-1 border border-emerald-200 cursor-pointer"
+                      title={t('downloadInvoicePdf', 'Download Invoice PDF')}
+                    >
+                      {downloadingOrderId === order.id ? (
+                        <RefreshCw className="w-3.5 h-3.5 text-emerald-600 animate-spin" />
+                      ) : (
+                        <Download className="w-3.5 h-3.5 text-emerald-600" />
+                      )}
+                      <span>{t('downloadPdfBtn', 'Download PDF')}</span>
+                    </button>
+
+                    {/* Print Invoice */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInvoiceOrder(order);
+                        setTimeout(() => window.print(), 350);
+                      }}
+                      className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 rounded-xl border border-slate-200 transition-all cursor-pointer"
+                      title={t('printInvoice', 'Print Invoice')}
+                    >
+                      <Printer className="w-3.5 h-3.5" />
+                    </button>
+
+                    {/* Feedback Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleOpenReview(order)}
+                      className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1 cursor-pointer ${
+                        order.feedback
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                          : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
+                      }`}
+                    >
+                      <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                      <span>{order.feedback ? `${order.feedback.rating}★` : t('rateProduceBtn', 'Rate')}</span>
+                    </button>
+
+                    {/* Live Tracking link */}
+                    <Link
+                      to={`/buyer/track/${order.id}`}
+                      className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1"
+                    >
+                      <Truck className="w-3.5 h-3.5" />
+                      <span>{t('trackBtn', 'Track')}</span>
+                    </Link>
+                  </div>
                 </div>
               </div>
 

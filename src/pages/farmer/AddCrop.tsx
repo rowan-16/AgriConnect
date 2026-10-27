@@ -17,7 +17,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { cropService } from '../../services/cropService';
-import { authService } from '../../services/authService';
 import { CropCategory } from '../../types';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
 import { Badge } from '../../components/common/Badge';
@@ -39,11 +38,7 @@ export const AddCrop: React.FC = () => {
   const { showToast } = useToast();
   const navigate = useNavigate();
 
-  const isFarmerVerified = Boolean(user?.isVerified || user?.verificationDocuments?.status === 'approved');
-
-  React.useEffect(() => {
-    authService.fetchUsersFromMongoDB();
-  }, []);
+  const isFarmerVerified = Boolean(user.isVerified);
 
   const [name, setName] = useState('');
   const [category, setCategory] = useState<CropCategory>('Fresh Vegetables');
@@ -108,7 +103,7 @@ export const AddCrop: React.FC = () => {
           <div className="flex items-start gap-3">
             <ShieldCheck className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <span className="font-bold text-base block text-amber-950">🔒 {t('verificationRequiredTitle', 'Admin Verification Required to List Products')}</span>
+              <span className="font-bold text-base block text-amber-950">{t('verificationRequiredTitle', 'Admin Verification Required to List Products')}</span>
               <p className="leading-relaxed text-amber-800">
                 {t('verificationNoticeDesc', 'Your farmer account must be verified by an Administrator before you can publish crop listings on AgriConnect.')}
               </p>

@@ -1,0 +1,13 @@
+{
+  "unitPrice": "इकाई मूल्य",
+  "officialTaxInvoice": "एग्रीकनेक्ट आधिकारिक टैक्स चालान",
+  "printDownloadPdf": "प्रिंट / पीडीएफ डाउनलोड करें",
+  "subtotal": "subtotal",
+  "invoice": "invoice",
+  "sellerDetails": "sellerDetails",
+  "itemDescription": "itemDescription",
+  "hsnSac": "hsnSac",
+  "gstExempt": "gstExempt",
+  "totalPayable": "totalPayable",
+  "paymentConfirmed": "paymentConfirmed"
+}

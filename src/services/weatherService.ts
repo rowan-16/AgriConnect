@@ -32,15 +32,25 @@ export const POPULAR_INDIAN_HUBS: Record<string, { lat: number; lon: number; sta
   'Raipur, Chhattisgarh': { lat: 21.2514, lon: 81.6296, state: 'Chhattisgarh' },
 
   // Southern India
+  'Virudhunagar, Tamil Nadu': { lat: 9.5872, lon: 77.9514, state: 'Tamil Nadu' },
+  'Virudhunagar': { lat: 9.5872, lon: 77.9514, state: 'Tamil Nadu' },
+  'Madurai, Tamil Nadu': { lat: 9.9252, lon: 78.1198, state: 'Tamil Nadu' },
+  'Coimbatore, Tamil Nadu': { lat: 11.0168, lon: 76.9558, state: 'Tamil Nadu' },
+  'Thanjavur, Tamil Nadu': { lat: 10.7870, lon: 79.1378, state: 'Tamil Nadu' },
+  'Sivakasi, Tamil Nadu': { lat: 9.4533, lon: 77.7947, state: 'Tamil Nadu' },
+  'Rajapalayam, Tamil Nadu': { lat: 9.4533, lon: 77.5663, state: 'Tamil Nadu' },
+  'Dindigul, Tamil Nadu': { lat: 10.3673, lon: 77.9803, state: 'Tamil Nadu' },
+  'Tirunelveli, Tamil Nadu': { lat: 8.7139, lon: 77.7567, state: 'Tamil Nadu' },
+  'Salem, Tamil Nadu': { lat: 11.6643, lon: 78.1460, state: 'Tamil Nadu' },
+  'Erode, Tamil Nadu': { lat: 11.3410, lon: 77.7172, state: 'Tamil Nadu' },
+  'Trichy, Tamil Nadu': { lat: 10.7905, lon: 78.7047, state: 'Tamil Nadu' },
+  'Chennai, Tamil Nadu': { lat: 13.0827, lon: 80.2707, state: 'Tamil Nadu' },
   'Guntur, Andhra Pradesh': { lat: 16.3067, lon: 80.4365, state: 'Andhra Pradesh' },
   'Kurnool, Andhra Pradesh': { lat: 15.8281, lon: 78.0373, state: 'Andhra Pradesh' },
   'Warangal, Telangana': { lat: 17.9689, lon: 79.5941, state: 'Telangana' },
   'Hyderabad, Telangana': { lat: 17.3850, lon: 78.4867, state: 'Telangana' },
   'Mandya, Karnataka': { lat: 12.5218, lon: 76.8951, state: 'Karnataka' },
   'Belagavi, Karnataka': { lat: 15.8497, lon: 74.4977, state: 'Karnataka' },
-  'Coimbatore, Tamil Nadu': { lat: 11.0168, lon: 76.9558, state: 'Tamil Nadu' },
-  'Madurai, Tamil Nadu': { lat: 9.9252, lon: 78.1198, state: 'Tamil Nadu' },
-  'Thanjavur, Tamil Nadu': { lat: 10.7870, lon: 79.1378, state: 'Tamil Nadu' },
   'Wayanad, Kerala': { lat: 11.6854, lon: 76.1320, state: 'Kerala' },
 
   // Eastern & North-Eastern India
@@ -112,14 +122,78 @@ export const weatherService = {
   },
 
   getWeatherForLocation(location: string): WeatherData {
+    if (!location) return MOCK_WEATHER_DATA['Virudhunagar, Tamil Nadu'];
+
+    // 1. Exact match
     if (MOCK_WEATHER_DATA[location]) {
       return MOCK_WEATHER_DATA[location];
     }
-    return MOCK_WEATHER_DATA['Nashik, Maharashtra'];
+
+    // 2. Case-insensitive or partial match
+    const lower = location.toLowerCase().trim();
+    for (const [key, data] of Object.entries(MOCK_WEATHER_DATA)) {
+      const keyLower = key.toLowerCase();
+      if (keyLower === lower || keyLower.includes(lower) || lower.includes(keyLower.split(',')[0])) {
+        return {
+          ...data,
+          location,
+        };
+      }
+    }
+
+    // 3. Realistic dynamic agro-meteorology for ANY Indian district
+    const isSouth = lower.includes('tamil') || lower.includes('virudhunagar') || lower.includes('kerala') || lower.includes('karnataka') || lower.includes('andhra') || lower.includes('madurai') || lower.includes('coimbatore');
+    const temp = isSouth ? 32 : 28;
+    const humidity = isSouth ? 62 : 72;
+    const soilMoisture = isSouth ? 54 : 65;
+
+    return {
+      location,
+      current: {
+        temp,
+        condition: 'Clear Sky & Favorable Weather',
+        icon: 'Sun',
+        humidity,
+        rainfallMm: 0.0,
+        windSpeedKmh: 12,
+        uvIndex: 7,
+        soilMoisturePercent: soilMoisture,
+        feelsLike: temp + 2,
+      },
+      forecast: [
+        { day: 'Today', date: 'Oct 22', maxTemp: temp + 2, minTemp: temp - 7, condition: 'Partly Sunny', icon: 'CloudSun', rainProb: 15 },
+        { day: 'Tomorrow', date: 'Oct 23', maxTemp: temp + 3, minTemp: temp - 6, condition: 'Sunny & Dry', icon: 'Sun', rainProb: 10 },
+        { day: 'Thursday', date: 'Oct 24', maxTemp: temp + 1, minTemp: temp - 7, condition: 'Isolated Clouds', icon: 'Cloud', rainProb: 20 },
+        { day: 'Friday', date: 'Oct 25', maxTemp: temp + 2, minTemp: temp - 8, condition: 'Favorable Farming', icon: 'Sun', rainProb: 5 },
+        { day: 'Saturday', date: 'Oct 26', maxTemp: temp + 3, minTemp: temp - 7, condition: 'Clear Sky', icon: 'Sun', rainProb: 5 },
+      ],
+      alerts: [],
+      farmingAdvice: [
+        {
+          crop: 'Regional Field Crops',
+          recommendation: `Moderate relative humidity (${humidity}%) in ${location} provides an ideal window for balanced drip irrigation and nutrient foliar spraying.`,
+          urgency: 'medium',
+        },
+        {
+          crop: 'Crop Protection & Spray Window',
+          recommendation: 'Low wind velocity permits safe application of bio-fungicides and timely intercultural hoeing.',
+          urgency: 'low',
+        }
+      ]
+    };
   },
 
   async fetchLiveWeather(location: string, customCoords?: { lat: number; lon: number }): Promise<WeatherData> {
-    const coords = customCoords || POPULAR_INDIAN_HUBS[location] || POPULAR_INDIAN_HUBS['Nashik, Maharashtra'];
+    const lower = (location || '').toLowerCase().trim();
+    let coords = customCoords;
+    if (!coords) {
+      if (POPULAR_INDIAN_HUBS[location]) {
+        coords = POPULAR_INDIAN_HUBS[location];
+      } else {
+        const found = Object.entries(POPULAR_INDIAN_HUBS).find(([k]) => k.toLowerCase().includes(lower) || lower.includes(k.toLowerCase().split(',')[0]));
+        coords = found ? found[1] : (lower.includes('tamil') || lower.includes('virudhunagar') || lower.includes('madurai') ? POPULAR_INDIAN_HUBS['Virudhunagar, Tamil Nadu'] : POPULAR_INDIAN_HUBS['Nashik, Maharashtra']);
+      }
+    }
 
     try {
       const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto`;

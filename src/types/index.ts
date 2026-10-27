@@ -1,12 +1,37 @@
 export type UserRole = 'farmer' | 'buyer' | 'admin';
 
+export interface StructuredAddress {
+  houseNumber?: string;
+  street: string;
+  locality?: string;
+  villageOrCity: string;
+  taluk?: string;
+  district: string;
+  state: string;
+  stateCode?: string;
+  postalCode: string;
+  country: string;
+}
+
+export type FarmerEvidenceCategory =
+  | 'land_record' // 7-12 Extract, Patta/Chitta, Title Deed
+  | 'lease_agreement' // Tenant Cultivation Agreement, Authorized cultivator
+  | 'farmer_id' // PM-KISAN ID, State Farmer ID, Soil Health Card
+  | 'other_supporting';
+
 export interface FarmerVerificationDocuments {
+  documentType?: FarmerEvidenceCategory;
+  documentName?: string;
+  documentUrl?: string;
   landDocumentImage?: string;
-  cropApprovalDocumentImage?: string;
   landImage?: string;
+  applicationRef?: string;
   submittedAt?: string;
-  status: 'unsubmitted' | 'pending' | 'approved' | 'rejected';
+  status: 'unsubmitted' | 'pending' | 'approved' | 'rejected' | 'needs_evidence';
   rejectionReason?: string;
+  adminNotes?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
 }
 
 export interface User {
@@ -24,10 +49,22 @@ export interface User {
   cropsGrown?: string[];
   farmerRating?: number;
   isVerified?: boolean;
+  applicationRef?: string;
   verificationDocuments?: FarmerVerificationDocuments;
+  residentialAddress?: StructuredAddress;
+  farmAddress?: StructuredAddress;
   // Buyer specific
   businessName?: string;
-  buyerType?: 'Wholesale Distributor' | 'Retailer' | 'Consumer' | 'Restaurant / Food Service' | 'Exporter';
+  tradeName?: string;
+  buyerType?: 'retail' | 'commercial' | 'Wholesale Distributor' | 'Retailer' | 'Consumer' | 'Restaurant / Food Service' | 'Exporter' | string;
+  buyerCategory?: string;
+  businessType?: string;
+  buyerGstin?: string;
+  procurementCategories?: string[];
+  estimatedVolume?: string;
+  businessAddress?: StructuredAddress;
+  defaultDeliveryAddress?: StructuredAddress;
+  defaultBillingAddress?: StructuredAddress;
   savedAddresses?: {
     id: string;
     label: string;
@@ -36,8 +73,10 @@ export interface User {
     state: string;
     pincode: string;
     isDefault?: boolean;
+    structured?: StructuredAddress;
   }[];
   // Admin / General
+  preferredLanguage?: 'en' | 'ta' | 'hi' | 'te' | 'ml' | 'kn';
   status: 'active' | 'pending' | 'suspended';
   createdAt: string;
 }
@@ -73,12 +112,35 @@ export interface Crop {
   minOrder: number;
   shelfLifeDays: number;
   gradeQuality: 'Grade A Premium' | 'Grade B Standard' | 'Export Quality';
+  salesVolume?: number;
+  totalSold?: number;
+  demandTrend?: 'High' | 'Very High' | 'Moderate' | 'Surging';
+  isTopSelling?: boolean;
+  salesRevenue?: number;
+  orderCount?: number;
   createdAt: string;
 }
 
 export type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
 export type PaymentStatus = 'paid' | 'pending' | 'failed' | 'refunded';
-export type PaymentMethod = 'upi' | 'card' | 'netbanking' | 'cod';
+export type PaymentMethod = 'upi' | 'card' | 'netbanking' | 'cod' | 'razorpay';
+
+export interface TaxBreakdown {
+  produceSubtotal: number;
+  produceTaxableAmount: number;
+  produceCgst: number;
+  produceSgst: number;
+  produceIgst: number;
+  produceTotalTax: number;
+  platformFee: number;
+  platformGst: number;
+  deliveryFee: number;
+  deliveryGst: number;
+  totalGst: number;
+  grandTotal: number;
+  isInterState: boolean;
+  placeOfSupply: string;
+}
 
 export interface OrderItem {
   cropId: string;
@@ -89,6 +151,8 @@ export interface OrderItem {
   unitPrice: number;
   total: number;
   image: string;
+  hsnCode?: string;
+  gstRate?: number;
 }
 
 export interface OrderTimelineStep {
@@ -114,6 +178,7 @@ export interface Order {
   buyerPhone: string;
   farmerId: string;
   farmerName: string;
+  farmerGstin?: string;
   deliveryAddress: {
     street: string;
     city: string;
@@ -134,6 +199,10 @@ export interface Order {
   timeline: OrderTimelineStep[];
   notes?: string;
   feedback?: OrderFeedback;
+  paymentId?: string;
+  razorpayOrderId?: string;
+  invoiceNumber?: string;
+  taxBreakdown?: TaxBreakdown;
 }
 
 export interface CartItem {

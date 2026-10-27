@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Settings, Shield, Sliders, Database, Save, AlertTriangle, User as UserIcon, Camera, CheckCircle2 } from 'lucide-react';
+import { Settings, Shield, Sliders, Database, Save, AlertTriangle, User as UserIcon, Camera, CheckCircle2, Globe } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
@@ -14,7 +14,7 @@ const AVATAR_PRESETS = [
 ];
 
 export const AdminSettings: React.FC = () => {
-  const { t } = useLanguage();
+  const { language, supportedLanguages, setLanguage, t } = useLanguage();
   const { user, updateUser } = useAuth();
   const { showToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -225,6 +225,33 @@ export const AdminSettings: React.FC = () => {
                 className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500"
               />
             </label>
+          </div>
+        </div>
+
+        {/* Language & Regional Preferences */}
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-soft space-y-4">
+          <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+            <Globe className="w-5 h-5 text-purple-700" />
+            <h3 className="text-base font-bold text-slate-900">{t('languageSettings', 'Language & Regional Preferences')}</h3>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              {t('preferredLanguage', 'Preferred Platform Language')}
+            </label>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as any)}
+              className="w-full sm:w-1/2 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 font-bold focus:bg-white focus:ring-2 focus:ring-purple-500 outline-none cursor-pointer"
+            >
+              {supportedLanguages.map(l => (
+                <option key={l.code} value={l.code}>
+                  {l.nativeName} ({l.name})
+                </option>
+              ))}
+            </select>
+            <p className="text-[11px] text-slate-500 mt-1.5">
+              {t('languagePreferenceDesc', 'Your selected language applies across governance consoles, audits, farmer logs, and reports.')}
+            </p>
           </div>
         </div>
 

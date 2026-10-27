@@ -1,0 +1,13 @@
+{
+  "unitPrice": "Unit Price",
+  "officialTaxInvoice": "AgriConnect Official Tax Invoice",
+  "printDownloadPdf": "Print / Download PDF",
+  "subtotal": "subtotal",
+  "invoice": "invoice",
+  "sellerDetails": "sellerDetails",
+  "itemDescription": "itemDescription",
+  "hsnSac": "hsnSac",
+  "gstExempt": "gstExempt",
+  "totalPayable": "totalPayable",
+  "paymentConfirmed": "paymentConfirmed"
+}

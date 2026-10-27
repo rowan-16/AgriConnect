@@ -17,6 +17,12 @@ export const cropService = {
     return this.getAllCrops().find(c => c.id === id);
   },
 
+  getTopSellingCrops(): Crop[] {
+    const crops = this.getActiveCrops();
+    const top = crops.filter(c => c.isTopSelling);
+    return (top.length > 0 ? top : crops).sort((a, b) => (b.salesRevenue || 0) - (a.salesRevenue || 0));
+  },
+
   getCropsByFarmer(farmerId: string): Crop[] {
     return this.getAllCrops().filter(c => c.farmerId === farmerId);
   },

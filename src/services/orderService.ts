@@ -2,7 +2,6 @@ import { Order, OrderStatus, CartItem, User, PaymentMethod, OrderFeedback } from
 import { INITIAL_ORDERS } from './mockData';
 import { loadStorage, saveStorage } from './storageUtils';
 import { notificationService } from './notificationService';
-import { API_BASE_URL } from './apiConfig';
 
 const ORDERS_KEY = 'orders';
 
@@ -29,15 +28,21 @@ export const orderService = {
     deliveryAddress: { street: string; city: string; state: string; pincode: string };
     paymentMethod: PaymentMethod;
     notes?: string;
+    paymentId?: string;
+    razorpayOrderId?: string;
+    invoiceNumber?: string;
+    taxBreakdown?: any;
+    orderId?: string;
+    totalAmount?: number;
   }): Order {
     const orders = this.getAllOrders();
-    const orderId = `ORD-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const orderId = params.orderId || `ORD-2026-${Math.floor(1000 + Math.random() * 9000)}`;
 
     const firstCrop = params.items[0].crop;
     const subtotal = params.items.reduce((acc, item) => acc + (item.crop.pricePerUnit * item.quantity), 0);
     const platformFee = Math.round(subtotal * 0.02);
     const deliveryFee = 350;
-    const totalAmount = subtotal + platformFee + deliveryFee;
+    const totalAmount = params.totalAmount || (params.taxBreakdown ? params.taxBreakdown.grandTotal : (subtotal + platformFee + deliveryFee));
 
     const orderDate = new Date().toISOString();
     const estDate = new Date();
@@ -68,7 +73,11 @@ export const orderService = {
       totalAmount,
       paymentMethod: params.paymentMethod,
       paymentStatus: 'paid',
-      orderStatus: 'pending',
+      orderStatus: 'confirmed',
+      paymentId: params.paymentId,
+      razorpayOrderId: params.razorpayOrderId,
+      invoiceNumber: params.invoiceNumber,
+      taxBreakdown: params.taxBreakdown,
       orderDate,
       estimatedDelivery: estDate.toISOString().split('T')[0],
       trackingNumber: `AGC-LOG-${Math.floor(10000 + Math.random() * 90000)}`,
@@ -117,7 +126,7 @@ export const orderService = {
 
     // Persist order directly into MongoDB Atlas via Express Backend API
     try {
-      fetch(`${API_BASE_URL}/orders`, {
+      fetch('http://localhost:5000/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newOrder),
@@ -174,7 +183,7 @@ export const orderService = {
 
     // Sync status change directly to MongoDB Atlas via Express API
     try {
-      fetch(`${API_BASE_URL}/orders/${orderId}/status`, {
+      fetch(`http://localhost:5000/api/orders/${orderId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),

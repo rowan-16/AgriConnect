@@ -1,0 +1,11 @@
+{
+  "aiAssistant": "AgriBot AI Assistant",
+  "aiCropRecommendations": "AI Crop Recommendations",
+  "aiCropAdvisoryTitle": "AI/ML Crop Advisory",
+  "aiCropAdvisoryDesc": "Predictive algorithms analyze soil types, seasonal weather, rainfall, and market trends to recommend high-yielding, high-profit crop rotations.",
+  "chatbotTitle": "AgriBot AI Assistant",
+  "agriBotTitle": "agriBotTitle",
+  "agriBotSubtitle": "agriBotSubtitle",
+  "agriBotWelcome": "agriBotWelcome",
+  "agriBotPlaceholder": "agriBotPlaceholder"
+}

@@ -36,7 +36,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const { totalItems } = useCart();
   const { showToast } = useToast();
-  const { language, setLanguage, t } = useLanguage();
+  const { language, supportedLanguages, setLanguage, t } = useLanguage();
   const navigate = useNavigate();
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -113,11 +113,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
           </button>
 
           <Link to={`/${role}/dashboard`} className="flex items-center gap-2.5 group">
-            <img
-              src="/logo.png"
-              alt="AgriConnect"
-              className="h-9 w-auto object-contain group-hover:scale-105 transition-transform"
-            />
+            <img src="/logo.png" alt="AgriConnect Logo" className="w-8 h-8 object-contain rounded-md shrink-0 group-hover:scale-105 transition-transform" />
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="text-2xl font-black tracking-tight text-slate-900 group-hover:text-emerald-700 transition-colors">
@@ -151,23 +147,22 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
         {/* Right Action Icons, Language Switcher & User Menu */}
         <div className="flex items-center gap-2 sm:gap-3">
 
-          {/* Global Language Selector Dropdown (Hidden for Admin) */}
-          {role !== 'admin' && (
-            <div className="relative flex items-center bg-slate-100 hover:bg-slate-200/70 border border-slate-200 rounded-xl px-2.5 py-1.5 transition-all shadow-xs">
-              <Globe className="w-4 h-4 text-emerald-600 mr-1.5 shrink-0" />
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
-                aria-label="Select Global Webpage Language"
-                className="bg-transparent text-slate-900 text-xs font-bold outline-none cursor-pointer pr-1"
-              >
-                <option value="en">English (EN)</option>
-                <option value="hi">हिन्दी (HI)</option>
-                <option value="mr">मराठी (MR)</option>
-                <option value="ta">தமிழ் (TA)</option>
-              </select>
-            </div>
-          )}
+          {/* Global Language Selector Dropdown */}
+          <div className="relative flex items-center bg-slate-100 hover:bg-slate-200/70 border border-slate-200 rounded-xl px-2.5 py-1.5 transition-all shadow-xs">
+            <Globe className="w-4 h-4 text-emerald-600 mr-1.5 shrink-0" />
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
+              aria-label={t('selectLanguage', 'Select Global Webpage Language')}
+              className="bg-transparent text-slate-900 text-xs font-bold outline-none cursor-pointer pr-1"
+            >
+              {supportedLanguages.map((l) => (
+                <option key={l.code} value={l.code} className="text-slate-900 font-medium">
+                  {l.nativeName} ({l.name})
+                </option>
+              ))}
+            </select>
+          </div>
 
           {/* Cart Icon for Buyer */}
           {role === 'buyer' && (

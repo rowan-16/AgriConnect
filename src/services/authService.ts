@@ -4,80 +4,21 @@ import { loadStorage, saveStorage } from './storageUtils';
 
 const USERS_KEY = 'users';
 const CURRENT_USER_KEY = 'current_user';
-import { API_BASE_URL } from './apiConfig';
-
-const DEMO_IMAGE_PATTERNS = ['photo-1568605117036', 'photo-1589829545856', 'photo-1500382017468'];
-export const cleanDocUrl = (url?: string): string => {
-  if (!url) return '';
-  if (DEMO_IMAGE_PATTERNS.some(p => url.includes(p))) return '';
-  return url;
-};
+const API_BASE_URL = 'http://localhost:5000/api';
 
 export const authService = {
   getUsers(): User[] {
-    const rawUsers = loadStorage<User[]>(USERS_KEY, INITIAL_USERS);
-    return rawUsers.map(u => {
-      const isVerified = Boolean(u.isVerified || u.verificationDocuments?.status === 'approved');
-      if (u.role === 'farmer' && u.verificationDocuments) {
-        return {
-          ...u,
-          isVerified,
-          verificationDocuments: {
-            ...u.verificationDocuments,
-            landDocumentImage: cleanDocUrl(u.verificationDocuments.landDocumentImage),
-            cropApprovalDocumentImage: cleanDocUrl(u.verificationDocuments.cropApprovalDocumentImage),
-            landImage: cleanDocUrl(u.verificationDocuments.landImage),
-          }
-        };
-      }
-      return {
-        ...u,
-        isVerified,
-      };
-    });
+    return loadStorage<User[]>(USERS_KEY, INITIAL_USERS);
   },
 
   async fetchUsersFromMongoDB(): Promise<User[]> {
     try {
       const res = await fetch(`${API_BASE_URL}/users`);
       if (res.ok) {
-        const mongoUsers: User[] = await res.json();
+        const mongoUsers = await res.json();
         if (Array.isArray(mongoUsers) && mongoUsers.length > 0) {
-          const localUsers = loadStorage<User[]>(USERS_KEY, INITIAL_USERS);
-          const currentUser = this.getCurrentUser();
-          const mergedUsers = [...mongoUsers];
-
-          // Preserve any locally created/logged in users not yet in MongoDB Atlas and sync them up
-          for (const lu of localUsers) {
-            const exists = mergedUsers.some(
-              mu => mu.id === lu.id || mu.email.toLowerCase() === lu.email.toLowerCase()
-            );
-            if (!exists) {
-              mergedUsers.push(lu);
-              fetch(`${API_BASE_URL}/users/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(lu),
-              }).catch(() => {});
-            }
-          }
-
-          if (currentUser) {
-            const exists = mergedUsers.some(
-              mu => mu.id === currentUser.id || mu.email.toLowerCase() === currentUser.email.toLowerCase()
-            );
-            if (!exists) {
-              mergedUsers.push(currentUser);
-              fetch(`${API_BASE_URL}/users/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(currentUser),
-              }).catch(() => {});
-            }
-          }
-
-          saveStorage(USERS_KEY, mergedUsers);
-          return this.getUsers();
+          saveStorage(USERS_KEY, mongoUsers);
+          return mongoUsers;
         }
       }
     } catch {
@@ -87,55 +28,14 @@ export const authService = {
   },
 
   getCurrentUser(): User | null {
-    try {
-      let user: User | null = null;
-      const sessionData = sessionStorage.getItem(`agriconnect_${CURRENT_USER_KEY}`);
-      if (sessionData) {
-        user = JSON.parse(sessionData) as User;
-      } else {
-        const localData = localStorage.getItem(`agriconnect_${CURRENT_USER_KEY}`);
-        if (localData) {
-          user = JSON.parse(localData) as User;
-        }
-      }
-
-      if (user) {
-        const allUsers = this.getUsers();
-        const latest = allUsers.find(u => u.id === user!.id || u.email.toLowerCase() === user!.email.toLowerCase());
-        if (latest) {
-          const isVerified = Boolean(latest.isVerified || latest.verificationDocuments?.status === 'approved');
-          const resolvedLatest = { ...latest, isVerified };
-          const isRemembered = Boolean(localStorage.getItem(`agriconnect_${CURRENT_USER_KEY}`));
-          this.setCurrentUser(resolvedLatest, isRemembered);
-          return resolvedLatest;
-        }
-
-        const isVerified = Boolean(user.isVerified || user.verificationDocuments?.status === 'approved');
-        return { ...user, isVerified };
-      }
-      return user;
-    } catch (e) {
-      console.error('Failed to get current user', e);
-    }
-    return null;
+    return loadStorage<User | null>(CURRENT_USER_KEY, null);
   },
 
-  setCurrentUser(user: User | null, rememberMe = false): void {
-    if (!user) {
-      sessionStorage.removeItem(`agriconnect_${CURRENT_USER_KEY}`);
-      localStorage.removeItem(`agriconnect_${CURRENT_USER_KEY}`);
-      return;
-    }
-    if (rememberMe) {
-      localStorage.setItem(`agriconnect_${CURRENT_USER_KEY}`, JSON.stringify(user));
-      sessionStorage.setItem(`agriconnect_${CURRENT_USER_KEY}`, JSON.stringify(user));
-    } else {
-      sessionStorage.setItem(`agriconnect_${CURRENT_USER_KEY}`, JSON.stringify(user));
-      localStorage.removeItem(`agriconnect_${CURRENT_USER_KEY}`);
-    }
+  setCurrentUser(user: User): void {
+    saveStorage(CURRENT_USER_KEY, user);
   },
 
-  login(email: string, password = '', rememberMe = false): { success: boolean; user?: User; error?: string } {
+  login(email: string, password = ''): { success: boolean; user?: User; error?: string } {
     const users = this.getUsers();
     const found = users.find(u => u.email.toLowerCase() === email.toLowerCase());
     if (found) {
@@ -145,7 +45,10 @@ export const authService = {
       if (found.email.toLowerCase() === 'admin@agriconnect.com' && password && password !== 'admin@agri') {
         return { success: false, error: 'Invalid Admin password. Use password: admin@agri' };
       }
-      this.setCurrentUser(found, rememberMe);
+      if (found.preferredLanguage) {
+        localStorage.setItem('agriconnect_language', found.preferredLanguage);
+      }
+      this.setCurrentUser(found);
       return { success: true, user: found };
     }
     return { success: false, error: 'Invalid credentials. Please check email and password.' };
@@ -158,6 +61,12 @@ export const authService = {
       return { success: false, error: 'An account with this email already exists.' };
     }
 
+    const currentLang = (localStorage.getItem('agriconnect_language') || 'en') as any;
+    const currentYear = new Date().getFullYear();
+    const appRef = userData.role === 'farmer' 
+      ? (userData.applicationRef || `AGC-APP-${currentYear}-${Math.floor(10000 + Math.random() * 90000)}`)
+      : undefined;
+
     const newUser: User = {
       id: `usr_${userData.role}_${Date.now()}`,
       name: userData.name,
@@ -165,30 +74,54 @@ export const authService = {
       role: userData.role,
       phone: userData.phone,
       location: userData.location,
+      preferredLanguage: (userData.preferredLanguage || currentLang),
       avatar: userData.role === 'farmer'
         ? 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=300'
         : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300',
-      farmName: userData.farmName || (userData.role === 'farmer' ? `${userData.name}'s Agro Farm` : undefined),
+      farmName: userData.farmName,
       farmLocation: userData.farmLocation || userData.location,
-      farmSizeAcres: userData.farmSizeAcres || (userData.role === 'farmer' ? 5 : undefined),
-      cropsGrown: userData.cropsGrown || (userData.role === 'farmer' ? ['Wheat', 'Vegetables'] : undefined),
+      farmSizeAcres: userData.farmSizeAcres,
+      cropsGrown: userData.cropsGrown,
       businessName: userData.businessName,
+      tradeName: userData.tradeName,
       buyerType: userData.buyerType,
+      buyerCategory: userData.buyerCategory,
+      businessType: userData.businessType,
+      buyerGstin: userData.buyerGstin,
+      procurementCategories: userData.procurementCategories,
+      estimatedVolume: userData.estimatedVolume,
+      residentialAddress: userData.residentialAddress,
+      farmAddress: userData.farmAddress,
+      businessAddress: userData.businessAddress,
+      defaultDeliveryAddress: userData.defaultDeliveryAddress,
+      defaultBillingAddress: userData.defaultBillingAddress,
       farmerRating: userData.role === 'farmer' ? 5.0 : undefined,
       isVerified: false,
-      status: 'active',
+      applicationRef: appRef,
+      verificationDocuments: userData.role === 'farmer' ? {
+        documentType: userData.verificationDocuments?.documentType || 'land_record',
+        documentName: userData.verificationDocuments?.documentName || 'Proof of Cultivation',
+        documentUrl: userData.verificationDocuments?.documentUrl || userData.verificationDocuments?.landDocumentImage || '',
+        landDocumentImage: userData.verificationDocuments?.landDocumentImage || userData.verificationDocuments?.documentUrl || '',
+        landImage: userData.verificationDocuments?.landImage || '',
+        applicationRef: appRef,
+        submittedAt: new Date().toISOString(),
+        status: 'pending',
+      } : undefined,
+      status: userData.role === 'farmer' ? 'pending' : 'active',
       createdAt: new Date().toISOString().split('T')[0],
-      savedAddresses: userData.role === 'buyer' ? [
+      savedAddresses: userData.role === 'buyer' ? (userData.savedAddresses || [
         {
           id: `addr_${Date.now()}`,
-          label: 'Primary Address',
-          street: userData.location,
-          city: userData.location.split(',')[0] || userData.location,
-          state: userData.location.split(',')[1]?.trim() || 'State',
-          pincode: '400001',
-          isDefault: true
+          label: 'Default Delivery Address',
+          street: userData.defaultDeliveryAddress?.street || userData.location,
+          city: userData.defaultDeliveryAddress?.villageOrCity || userData.location.split(',')[0] || userData.location,
+          state: userData.defaultDeliveryAddress?.state || userData.location.split(',')[1]?.trim() || 'State',
+          pincode: userData.defaultDeliveryAddress?.postalCode || '400001',
+          isDefault: true,
+          structured: userData.defaultDeliveryAddress || userData.residentialAddress
         }
-      ] : undefined
+      ]) : undefined
     };
 
     // 1. Sync to MongoDB Atlas cloud database
@@ -211,7 +144,7 @@ export const authService = {
 
   updateProfile(userId: string, updates: Partial<User>): User | null {
     const users = this.getUsers();
-    const index = users.findIndex(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
+    const index = users.findIndex(u => u.id === userId);
     if (index === -1) return null;
 
     const updated = { ...users[index], ...updates };
@@ -219,27 +152,23 @@ export const authService = {
     saveStorage(USERS_KEY, users);
 
     // Sync to MongoDB Atlas
-    fetch(`${API_BASE_URL}/users/${encodeURIComponent(users[index].id)}`, {
+    fetch(`${API_BASE_URL}/users/${userId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
     }).catch(() => {});
 
     const currentUser = this.getCurrentUser();
-    if (currentUser?.id === userId || currentUser?.email?.toLowerCase() === userId.toLowerCase()) {
+    if (currentUser.id === userId) {
       this.setCurrentUser(updated);
     }
     return updated;
   },
 
-  loginWithGoogle(role: UserRole = 'farmer', googleProfile?: { name?: string; email?: string; picture?: string }, rememberMe = false): { success: boolean; user?: User; error?: string } {
-    if (!googleProfile || !googleProfile.email) {
-      return { success: false, error: 'No Google account selected. Please pick your Google account.' };
-    }
-
-    const targetEmail = googleProfile.email.toLowerCase().trim();
-    const targetName = googleProfile.name || targetEmail.split('@')[0];
-    const targetAvatar = googleProfile.picture || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300';
+  loginWithGoogle(role: UserRole = 'farmer', googleProfile?: { name?: string; email?: string; picture?: string }): { success: boolean; user?: User; error?: string } {
+    const targetEmail = googleProfile?.email || (role === 'farmer' ? 'ramesh.farmer@agriconnect.com' : 'priya.buyer@agriconnect.com');
+    const targetName = googleProfile?.name || (googleProfile?.email ? googleProfile.email.split('@')[0] : (role === 'farmer' ? 'Ramesh Patel (Google User)' : 'Priya Sharma (Google User)'));
+    const targetAvatar = googleProfile?.picture || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300';
 
     const users = this.getUsers();
     let found = users.find(u => u.email.toLowerCase() === targetEmail.toLowerCase());
@@ -281,27 +210,37 @@ export const authService = {
       body: JSON.stringify(found),
     }).catch(err => console.error('MongoDB sync error on Google login:', err));
 
-    this.setCurrentUser(found, rememberMe);
+    if (found.preferredLanguage) {
+      localStorage.setItem('agriconnect_language', found.preferredLanguage);
+    }
+    this.setCurrentUser(found);
     return { success: true, user: found };
   },
 
   submitVerificationDocuments(
     userId: string,
-    docs: { landDocumentImage?: string; cropApprovalDocumentImage?: string; landImage?: string }
+    docs: { 
+      documentType?: any; 
+      documentName?: string; 
+      documentUrl?: string; 
+      landDocumentImage?: string; 
+      landImage?: string 
+    }
   ): User | null {
     const users = this.getUsers();
-    const target = users.find(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
-    const existing = target?.verificationDocuments;
+    const user = users.find(u => u.id === userId);
+    const appRef = user?.applicationRef || user?.verificationDocuments?.applicationRef || `AGC-APP-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
 
     const verificationDocuments = {
-      landDocumentImage: docs.landDocumentImage !== undefined ? cleanDocUrl(docs.landDocumentImage) : (existing?.landDocumentImage || ''),
-      cropApprovalDocumentImage: docs.cropApprovalDocumentImage !== undefined ? cleanDocUrl(docs.cropApprovalDocumentImage) : (existing?.cropApprovalDocumentImage || ''),
-      landImage: docs.landImage !== undefined ? cleanDocUrl(docs.landImage) : (existing?.landImage || ''),
+      ...user?.verificationDocuments,
+      ...docs,
+      applicationRef: appRef,
       submittedAt: new Date().toISOString(),
       status: 'pending' as const,
     };
 
     return this.updateProfile(userId, {
+      applicationRef: appRef,
       verificationDocuments,
       status: 'pending',
     });
@@ -310,57 +249,52 @@ export const authService = {
   reviewFarmerVerification(
     farmerId: string,
     isApproved: boolean,
-    rejectionReason?: string
+    rejectionReason?: string,
+    options?: { status?: 'approved' | 'rejected' | 'needs_evidence'; adminNotes?: string; reviewerId?: string }
   ): User | null {
     const users = this.getUsers();
-    const target = users.find(u => u.id === farmerId || u.email.toLowerCase() === farmerId.toLowerCase());
+    const target = users.find(u => u.id === farmerId);
     if (!target) return null;
 
     const currentDocs = target.verificationDocuments || {
       status: 'unsubmitted' as const,
     };
 
+    const finalStatus: 'approved' | 'rejected' | 'needs_evidence' = 
+      options?.status || (isApproved ? 'approved' : 'rejected');
+
     const updatedDocs = {
       ...currentDocs,
-      status: isApproved ? ('approved' as const) : ('rejected' as const),
-      rejectionReason: isApproved ? undefined : rejectionReason || 'Documents rejected by Admin.',
+      status: finalStatus,
+      rejectionReason: finalStatus !== 'approved' ? (rejectionReason || 'Documents rejected by Admin.') : undefined,
+      adminNotes: options?.adminNotes || currentDocs.adminNotes,
+      reviewedAt: new Date().toISOString(),
+      reviewedBy: options?.reviewerId || 'AgriConnect Admin',
     };
 
-    return this.updateProfile(target.id, {
-      isVerified: isApproved,
-      status: isApproved ? 'active' : 'pending',
+    return this.updateProfile(farmerId, {
+      isVerified: finalStatus === 'approved',
+      status: finalStatus === 'approved' ? 'active' : 'pending',
       verificationDocuments: updatedDocs,
     });
   },
 
   deleteAccount(userId: string): boolean {
     const users = this.getUsers();
-    const targetUser = users.find(u => u.id === userId || u.email.toLowerCase() === userId.toLowerCase());
-    const targetEmail = targetUser?.email || userId;
-
-    const filtered = users.filter(u => u.id !== userId && u.email.toLowerCase() !== targetEmail.toLowerCase());
+    const filtered = users.filter(u => u.id !== userId);
     saveStorage(USERS_KEY, filtered);
 
-    // Sync deletion to MongoDB Atlas cloud database by ID and target email
-    fetch(`${API_BASE_URL}/users/${encodeURIComponent(userId)}`, {
+    // Sync deletion to MongoDB Atlas
+    fetch(`${API_BASE_URL}/users/${userId}`, {
       method: 'DELETE',
-    }).catch(err => console.error('MongoDB sync delete error:', err));
+    }).catch(() => {});
 
-    if (targetEmail && targetEmail !== userId) {
-      fetch(`${API_BASE_URL}/users/${encodeURIComponent(targetEmail)}`, {
-        method: 'DELETE',
-      }).catch(() => {});
-    }
-
-    const currentUser = this.getCurrentUser();
-    if (currentUser?.id === userId || currentUser?.email?.toLowerCase() === targetEmail.toLowerCase()) {
-      this.logout();
-    }
+    this.logout();
     return true;
   },
 
   logout(): void {
     // Clear session user
-    this.setCurrentUser(null);
+    saveStorage(CURRENT_USER_KEY, null);
   }
 };

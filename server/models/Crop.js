@@ -22,6 +22,15 @@ const cropSchema = new mongoose.Schema(
     minOrder: { type: Number, default: 1 },
     shelfLifeDays: { type: Number, default: 14 },
     gradeQuality: { type: String, default: 'Grade A Premium' },
+    hsnCode: { type: String, default: '0702' },
+    gstRate: { type: Number, default: 0 },
+    isExempt: { type: Boolean, default: true },
+    salesVolume: { type: Number, default: 0 },
+    totalSold: { type: Number, default: 0 },
+    demandTrend: { type: String, default: 'High' },
+    isTopSelling: { type: Boolean, default: false },
+    salesRevenue: { type: Number, default: 0 },
+    orderCount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

@@ -8,10 +8,11 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { aiChatbotService, ChatMessage, LanguageCode } from '../../services/aiChatbotService';
 import { SupportedLanguage } from '../../services/translations';
+import { FormattedChatMessage } from './FormattedChatMessage';
 
 export const AIChatbot: React.FC = () => {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { language, supportedLanguages, t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -19,11 +20,17 @@ export const AIChatbot: React.FC = () => {
   const [isListening, setIsListening] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Independent Chatbot Language State (Does NOT affect website language)
+  // Chatbot Language State (syncs with website language, can be switched independently)
   const [chatbotLanguage, setChatbotLanguage] = useState<LanguageCode>(() => {
     const saved = localStorage.getItem('agriconnect_chatbot_language');
-    return (saved as LanguageCode) || 'en';
+    return (saved as LanguageCode) || (language as LanguageCode) || 'en';
   });
+
+  useEffect(() => {
+    if (language) {
+      setChatbotLanguage(language as LanguageCode);
+    }
+  }, [language]);
 
   const handleLanguageChange = (l: LanguageCode) => {
     setChatbotLanguage(l);
@@ -96,6 +103,9 @@ export const AIChatbot: React.FC = () => {
       case 'trending_market':
         prompt = 'Which crops have the highest market demand trends?';
         break;
+      case 'top_selling':
+        prompt = 'Which are the top selling crops on AgriConnect for farmers?';
+        break;
       default:
         prompt = actionKey;
     }
@@ -120,7 +130,16 @@ export const AIChatbot: React.FC = () => {
     setIsListening(true);
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
-    recognition.lang = chatbotLanguage === 'hi' ? 'hi-IN' : chatbotLanguage === 'mr' ? 'mr-IN' : chatbotLanguage === 'ta' ? 'ta-IN' : 'en-US';
+    const speechLangMap: Record<string, string> = {
+      en: 'en-IN',
+      ta: 'ta-IN',
+      hi: 'hi-IN',
+      te: 'te-IN',
+      ml: 'ml-IN',
+      kn: 'kn-IN',
+      mr: 'mr-IN',
+    };
+    recognition.lang = speechLangMap[chatbotLanguage] || 'en-IN';
     
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
@@ -175,6 +194,12 @@ export const AIChatbot: React.FC = () => {
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-bold">
             <TrendingUp className="w-3 h-3" /> Market Demand Index
+          </span>
+        );
+      case 'top_selling_crops':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-200 text-[10px] font-bold">
+            <TrendingUp className="w-3 h-3 text-amber-600" /> Top Selling Crops (Verified)
           </span>
         );
       case 'order_tracking':
@@ -256,12 +281,14 @@ export const AIChatbot: React.FC = () => {
                 <select
                   value={chatbotLanguage}
                   onChange={(e) => handleLanguageChange(e.target.value as LanguageCode)}
+                  aria-label={t('selectLanguage', 'Select Language')}
                   className="bg-transparent text-white text-[11px] font-bold outline-none cursor-pointer"
                 >
-                  <option value="en" className="bg-slate-900 text-white">EN</option>
-                  <option value="hi" className="bg-slate-900 text-white">हिन्दी</option>
-                  <option value="mr" className="bg-slate-900 text-white">मराठी</option>
-                  <option value="ta" className="bg-slate-900 text-white">தமிழ்</option>
+                  {supportedLanguages.map((l) => (
+                    <option key={l.code} value={l.code} className="bg-slate-900 text-white">
+                      {l.nativeName} ({l.code.toUpperCase()})
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -323,7 +350,7 @@ export const AIChatbot: React.FC = () => {
                   )}
 
                   {/* Message Content */}
-                  <div className="whitespace-pre-line font-sans">{msg.text}</div>
+                  <FormattedChatMessage content={msg.text} isUser={msg.sender === 'user'} />
 
                   {/* Suggested Actions if any */}
                   {msg.suggestedActions && msg.suggestedActions.length > 0 && (
@@ -351,7 +378,7 @@ export const AIChatbot: React.FC = () => {
             {isTyping && (
               <div className="flex items-center gap-2 text-slate-400 text-xs bg-white p-3 rounded-2xl w-28 border border-slate-200">
                 <Bot className="w-4 h-4 text-emerald-600 animate-spin" />
-                <span>Thinking...</span>
+                <span>{t('thinking', 'Thinking...')}</span>
               </div>
             )}
 
@@ -369,7 +396,7 @@ export const AIChatbot: React.FC = () => {
             <button
               type="button"
               onClick={toggleVoiceInput}
-              title="Voice Query Input"
+              title={t('voiceInput', 'Voice Query Input')}
               className={`p-2.5 rounded-xl border transition-all ${
                 isListening
                   ? 'bg-rose-500 text-white border-rose-500 animate-pulse'
@@ -383,7 +410,7 @@ export const AIChatbot: React.FC = () => {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about crops, pests, NPK, weather, orders..."
+              placeholder={t('agriBotPlaceholder', 'Ask about crops, pests, NPK, weather, orders...')}
               className="flex-1 bg-slate-100 text-slate-800 text-xs sm:text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 border border-transparent transition-all"
             />
 

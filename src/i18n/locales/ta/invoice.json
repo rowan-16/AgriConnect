@@ -1,0 +1,13 @@
+{
+  "unitPrice": "அலகு விலை",
+  "officialTaxInvoice": "அக்ரிகனெக்ட் அதிகாரப்பூர்வ வரி சலான்",
+  "printDownloadPdf": "அச்சிடு / PDF பதிவிறக்கு",
+  "subtotal": "subtotal",
+  "invoice": "invoice",
+  "sellerDetails": "sellerDetails",
+  "itemDescription": "itemDescription",
+  "hsnSac": "hsnSac",
+  "gstExempt": "gstExempt",
+  "totalPayable": "totalPayable",
+  "paymentConfirmed": "paymentConfirmed"
+}

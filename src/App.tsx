@@ -101,6 +101,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/admin/orders" element={<ManageOrders />} />
           <Route path="/admin/payments" element={<PaymentsPage />} />
           <Route path="/admin/reports" element={<ReportsPage />} />
+          <Route path="/admin/chatbot" element={<AIChatbotPage />} />
           <Route path="/admin/profile" element={<AdminProfile />} />
           <Route path="/admin/notifications" element={<AdminNotifications />} />
           <Route path="/admin/settings" element={<AdminSettings />} />

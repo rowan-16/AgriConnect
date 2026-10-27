@@ -1,50 +1,17 @@
 import React, { useState } from 'react';
-import { Building2, Search, ShoppingBag, Eye, MapPin, Phone, Mail, Trash2, RefreshCw } from 'lucide-react';
+import { Building2, Search, ShoppingBag, Eye, MapPin, Phone, Mail } from 'lucide-react';
 import { authService } from '../../services/authService';
 import { orderService } from '../../services/orderService';
-import { useToast } from '../../context/ToastContext';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
 import { Badge } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
 import { useLanguage } from '../../context/LanguageContext';
-import { User } from '../../types';
 
 export const ManageBuyers: React.FC = () => {
   const { t } = useLanguage();
-  const { showToast } = useToast();
-  const [buyers, setBuyers] = useState<User[]>(() => authService.getUsers().filter(u => u.role === 'buyer'));
+  const [buyers] = useState(() => authService.getUsers().filter(u => u.role === 'buyer'));
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBuyer, setSelectedBuyer] = useState<any | null>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
-
-  const syncBuyers = async () => {
-    setIsSyncing(true);
-    try {
-      await authService.fetchUsersFromMongoDB();
-      setBuyers(authService.getUsers().filter(u => u.role === 'buyer'));
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  React.useEffect(() => {
-    syncBuyers();
-    const interval = setInterval(syncBuyers, 6000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const refreshBuyers = () => {
-    setBuyers(authService.getUsers().filter(u => u.role === 'buyer'));
-  };
-
-  const handleDeleteBuyer = (buyerId: string, buyerName: string) => {
-    if (window.confirm(`Are you sure you want to permanently delete the buyer account "${buyerName}"? This action cannot be undone.`)) {
-      authService.deleteAccount(buyerId);
-      refreshBuyers();
-      if (selectedBuyer?.id === buyerId) setSelectedBuyer(null);
-      showToast(`Buyer account "${buyerName}" has been permanently deleted.`, 'info', 'Buyer Deleted');
-    }
-  };
 
   const filtered = buyers.filter(b =>
     b.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -64,19 +31,8 @@ export const ManageBuyers: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={syncBuyers}
-            disabled={isSyncing}
-            className="flex items-center gap-1.5 text-xs font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 px-3.5 py-2 rounded-2xl border border-amber-200 transition-all cursor-pointer disabled:opacity-50"
-            title="Refresh buyers from MongoDB Atlas"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-            <span>{isSyncing ? 'Syncing...' : 'Sync Live'}</span>
-          </button>
-          <div className="text-xs font-bold text-slate-600 bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-soft">
-            {t('activeBuyersLabel', 'Active Buyers:')} <strong className="text-amber-700">{buyers.length}</strong>
-          </div>
+        <div className="text-xs font-bold text-slate-600 bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-soft">
+          {t('activeBuyersLabel', 'Active Buyers:')} <strong className="text-amber-700">{buyers.length}</strong>
         </div>
       </div>
 
@@ -137,21 +93,12 @@ export const ManageBuyers: React.FC = () => {
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
                 <span className="text-[11px] text-slate-400">{t('statusLabel', 'Status:')} <strong className="text-emerald-600">{t('statusActive', 'Active')}</strong></span>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setSelectedBuyer(buyer)}
-                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors flex items-center gap-1"
-                  >
-                    <Eye className="w-3.5 h-3.5" /> {t('viewOrdersBtn', 'View Orders')}
-                  </button>
-                  <button
-                    onClick={() => handleDeleteBuyer(buyer.id, buyer.name)}
-                    className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
-                    title="Delete Buyer Account"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+                <button
+                  onClick={() => setSelectedBuyer(buyer)}
+                  className="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors flex items-center gap-1"
+                >
+                  <Eye className="w-3.5 h-3.5" /> {t('viewOrdersBtn', 'View Orders')}
+                </button>
               </div>
             </div>
           );

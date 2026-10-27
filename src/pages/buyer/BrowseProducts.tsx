@@ -17,10 +17,12 @@ import {
   Eye,
   Info
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { cropService } from '../../services/cropService';
+import { reviewService, FarmerReview } from '../../services/reviewService';
 import { Crop, CropCategory } from '../../types';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
 import { Badge } from '../../components/common/Badge';
@@ -28,6 +30,7 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { Modal } from '../../components/common/Modal';
 
 export const BrowseProducts: React.FC = () => {
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const { addToCart } = useCart();
   const { showToast } = useToast();
@@ -46,6 +49,39 @@ export const BrowseProducts: React.FC = () => {
   // Selected crop for product details modal
   const [activeProduct, setActiveProduct] = useState<Crop | null>(null);
   const [orderQuantity, setOrderQuantity] = useState<number>(1);
+
+  // Review Farmer Modal state
+  const [isFarmerReviewModalOpen, setIsFarmerReviewModalOpen] = useState(false);
+  const [reviewRating, setReviewRating] = useState<number>(5);
+  const [reviewQualityTag, setReviewQualityTag] = useState<string>('Exceptional Freshness & Aroma');
+  const [reviewComment, setReviewComment] = useState<string>('');
+  const [reviewsVersion, setReviewsVersion] = useState(0);
+
+  const handleSubmitFarmerReview = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeProduct) return;
+
+    reviewService.addReview({
+      farmerId: activeProduct.farmerId,
+      farmerName: activeProduct.farmerName,
+      buyerId: user?.id || 'usr_buyer_1',
+      buyerName: user?.name || 'Verified Buyer',
+      buyerAvatar: user?.avatar,
+      rating: reviewRating,
+      qualityTag: reviewQualityTag,
+      comment: reviewComment,
+      cropName: activeProduct.name,
+    });
+
+    setReviewsVersion((v) => v + 1);
+    setIsFarmerReviewModalOpen(false);
+    setReviewComment('');
+    showToast(
+      `Thank you! Your verified review for ${activeProduct.farmerName} has been recorded.`,
+      'success',
+      'Farmer Review Submitted'
+    );
+  };
 
   useEffect(() => {
     const list = cropService.filterCrops({
@@ -349,41 +385,74 @@ export const BrowseProducts: React.FC = () => {
               </p>
 
               {/* Verified Buyer Ratings & Feedback */}
-              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 text-xs space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                    <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                    Verified Buyer Reviews
-                  </span>
-                  <span className="text-[11px] font-bold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-md">
-                    {activeProduct.farmerRating} / 5.0 (98% Satisfaction)
-                  </span>
-                </div>
-                <div className="space-y-1.5 pt-1">
-                  <div className="p-2 bg-white rounded-xl border border-slate-100 text-[11px] space-y-0.5">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-900">Priya S. (Verified Procurement)</span>
-                      <div className="flex items-center gap-0.5 text-amber-400">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />
-                        ))}
+              {(() => {
+                const farmerReviews = activeProduct ? reviewService.getReviewsForFarmer(activeProduct.farmerId) : [];
+                const farmerStats = activeProduct
+                  ? reviewService.getFarmerStats(activeProduct.farmerId, activeProduct.farmerRating)
+                  : { averageRating: 4.9, totalReviews: 0 };
+
+                return (
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 text-xs space-y-3">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div>
+                        <span className="font-bold text-slate-900 flex items-center gap-1.5 text-xs sm:text-sm">
+                          <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                          Reviews for {activeProduct.farmerName}
+                        </span>
+                        <p className="text-[11px] text-slate-500">
+                          {farmerStats.averageRating} / 5.0 Rating • {farmerStats.totalReviews} Verified Buyer Reviews
+                        </p>
                       </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setReviewRating(5);
+                          setReviewComment('');
+                          setIsFarmerReviewModalOpen(true);
+                        }}
+                        className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 hover:scale-[1.02]"
+                      >
+                        <Star className="w-3.5 h-3.5 fill-white" />
+                        Rate Farmer
+                      </button>
                     </div>
-                    <p className="text-slate-600 italic">"Premium harvest quality with certified moisture grading. Fast cold-chain logistics dispatch!"</p>
-                  </div>
-                  <div className="p-2 bg-white rounded-xl border border-slate-100 text-[11px] space-y-0.5">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-900">Green Grocers Co.</span>
-                      <div className="flex items-center gap-0.5 text-amber-400">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />
-                        ))}
-                      </div>
+
+                    <div className="space-y-2 pt-1 max-h-48 overflow-y-auto">
+                      {farmerReviews.length > 0 ? (
+                        farmerReviews.map((rev) => (
+                          <div key={rev.id} className="p-2.5 bg-white rounded-xl border border-slate-100 text-[11px] space-y-1 shadow-2xs">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-slate-900 flex items-center gap-1">
+                                {rev.buyerName}
+                                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded font-medium border border-emerald-200">
+                                  Verified
+                                </span>
+                              </span>
+                              <div className="flex items-center gap-0.5 text-amber-400">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`w-3 h-3 ${i < rev.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                            <span className="inline-block text-[10px] font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md">
+                              {rev.qualityTag}
+                            </span>
+                            <p className="text-slate-600 italic">"{rev.comment}"</p>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-3 text-slate-500 text-xs bg-white rounded-xl border border-dashed border-slate-200">
+                          No reviews yet for this grower. Be the first to rate!
+                        </div>
+                      )}
                     </div>
-                    <p className="text-slate-600 italic">"Consistently meets export grade standards. Escrow protection gives total peace of mind."</p>
                   </div>
-                </div>
-              </div>
+                );
+              })()}
 
               {/* Farmer Info Box */}
               <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 text-xs space-y-1">
@@ -465,6 +534,107 @@ export const BrowseProducts: React.FC = () => {
               </div>
             </div>
           </div>
+        </Modal>
+      )}
+
+      {/* Dedicated Rate & Review Farmer Modal */}
+      {isFarmerReviewModalOpen && activeProduct && (
+        <Modal
+          isOpen={isFarmerReviewModalOpen}
+          onClose={() => setIsFarmerReviewModalOpen(false)}
+          title={`Review Farmer: ${activeProduct.farmerName}`}
+          subtitle={`Farm: ${activeProduct.farmLocation} • Produce: ${activeProduct.name}`}
+        >
+          <form onSubmit={handleSubmitFarmerReview} className="space-y-4 text-xs">
+            {/* Star selector */}
+            <div>
+              <label className="block font-bold text-slate-700 uppercase tracking-wider mb-2">
+                Your Rating for {activeProduct.farmerName}
+              </label>
+              <div className="flex items-center gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setReviewRating(star)}
+                    className="p-1 transition-transform hover:scale-125 focus:outline-none cursor-pointer"
+                  >
+                    <Star
+                      className={`w-8 h-8 ${
+                        star <= reviewRating
+                          ? 'fill-amber-500 text-amber-500'
+                          : 'text-slate-300'
+                      }`}
+                    />
+                  </button>
+                ))}
+                <span className="text-sm font-bold text-amber-800 ml-2">
+                  {reviewRating} of 5 Stars
+                </span>
+              </div>
+            </div>
+
+            {/* Quality Tag Selector */}
+            <div>
+              <label className="block font-bold text-slate-700 uppercase tracking-wider mb-2">
+                Highlight Experience Tag
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  'Exceptional Freshness & Aroma',
+                  'Authentic Organic Certification',
+                  'Grade-A Sorting & Moisture',
+                  'Punctual Consignment Dispatch',
+                  'Honest Weight & Grading',
+                  'Direct Farmer Communication',
+                ].map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => setReviewQualityTag(tag)}
+                    className={`p-2 rounded-xl text-left font-semibold border transition-all cursor-pointer ${
+                      reviewQualityTag === tag
+                        ? 'bg-amber-50 text-amber-900 border-amber-400 font-bold shadow-xs'
+                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Comment */}
+            <div>
+              <label className="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Review Comments for Farmer
+              </label>
+              <textarea
+                rows={3}
+                required
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                placeholder={`Share your experience with ${activeProduct.farmerName}'s crop quality, packing, and response time...`}
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 outline-none"
+              />
+            </div>
+
+            <div className="pt-2 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsFarmerReviewModalOpen(false)}
+                className="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-md shadow-amber-600/20 cursor-pointer transition-all hover:scale-105"
+              >
+                Submit Farmer Review
+              </button>
+            </div>
+          </form>
         </Modal>
       )}
 

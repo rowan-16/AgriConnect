@@ -4,10 +4,8 @@ import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { Footer } from './Footer';
 import { AIChatbot } from '../common/AIChatbot';
-import { useAuth } from '../../context/AuthContext';
 
 export const AppLayout: React.FC = () => {
-  const { role } = useAuth();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const location = useLocation();
@@ -78,8 +76,8 @@ export const AppLayout: React.FC = () => {
         </div>
       </div>
 
-      {/* Floating AI Chatbot Assistant (Hidden for Admin) */}
-      {role !== 'admin' && !location.pathname.startsWith('/admin') && <AIChatbot />}
+      {/* Floating AI Chatbot Assistant */}
+      <AIChatbot />
     </div>
   );
 };

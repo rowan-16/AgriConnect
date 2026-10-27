@@ -1,0 +1,15 @@
+{
+  "weatherInfo": "मौसम की जानकारी",
+  "microClimate": "सूक्ष्म-जलवायु",
+  "humidity": "గాలిలో తేమ శాతం",
+  "soilMoisture": "నేల తేమ స్థాయి",
+  "weatherInfoTitle": "सूक्ष्म-जलवायु मौसम और सलाह",
+  "rainfall24h": "24 घंटे की बारिश",
+  "windVelocity": "हवा की गति",
+  "feelsLike": "महसूस होता है",
+  "forecast5Day": "5-दिवसीय मौसम पूर्वानुमान",
+  "agronomicGuidance": "व्यावहारिक कृषि सलाह",
+  "weatherForecast": "ప్రత్యక్ష వాతావరణ అంచనా",
+  "rainChance": "వర్షపాత సంభావ్యత",
+  "weatherAdvisory": "వ్యవసాయ వాతావరణ హెచ్చరిక"
+}

@@ -1,179 +1,131 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Sprout, Lock, Mail, ArrowRight, Sparkles, CheckCircle2, AlertCircle, ShoppingBag } from 'lucide-react';
+import { Sprout, Lock, Mail, ArrowRight, Sparkles, CheckCircle2, AlertCircle, ShoppingBag, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { INITIAL_USERS } from '../../services/mockData';
 
 export const LoginPage: React.FC = () => {
-  const { user, isAuthenticated, login, loginWithGoogle, logout } = useAuth();
+  const { user, isAuthenticated, login, loginWithGoogle } = useAuth();
   const { showToast } = useToast();
   const { t } = useLanguage();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      navigate(`/${user.role}/dashboard`, { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
+
   const [email, setEmail] = useState('ramesh.farmer@agriconnect.com');
   const [password, setPassword] = useState('password123');
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [googleRole, setGoogleRole] = useState<'farmer' | 'buyer'>('farmer');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1083891046091-1ccc01k2vjl76hl46p5of1bnnu0rjog9.apps.googleusercontent.com';
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    const google = (window as any).google;
 
-    const renderGoogleBtn = () => {
-      const google = (window as any).google;
-      if (google?.accounts?.id && clientId) {
-        try {
-          google.accounts.id.initialize({
-            client_id: clientId,
-            callback: (response: any) => {
-              if (response.credential) {
-                try {
-                  const base64Url = response.credential.split('.')[1];
-                  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                  const jsonPayload = decodeURIComponent(
-                    atob(base64)
-                      .split('')
-                      .map((c: string) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-                      .join('')
-                  );
-                  const googleUser = JSON.parse(jsonPayload);
-                  const authRes = loginWithGoogle(googleRole, {
-                    name: googleUser.name || googleUser.given_name || 'Google User',
-                    email: googleUser.email,
-                    picture: googleUser.picture,
-                  }, rememberMe);
-                  if (authRes.success && authRes.user) {
-                    showToast(`Welcome ${authRes.user.name}! Signed in via Google.`, 'success', 'Google Authentication');
-                    navigate(`/${authRes.user.role}/dashboard`);
-                  }
-                } catch (parseErr) {
-                  console.error('Failed to parse Google credential token:', parseErr);
-                }
+    if (google?.accounts?.id && clientId) {
+      try {
+        google.accounts.id.initialize({
+          client_id: clientId,
+          callback: (response: any) => {
+            if (response.credential) {
+              const base64Url = response.credential.split('.')[1];
+              const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+              const jsonPayload = decodeURIComponent(
+                atob(base64)
+                  .split('')
+                  .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                  .join('')
+              );
+              const googleUser = JSON.parse(jsonPayload);
+              const authRes = loginWithGoogle(googleRole, {
+                name: googleUser.name,
+                email: googleUser.email,
+                picture: googleUser.picture,
+              });
+              if (authRes.success && authRes.user) {
+                showToast(`Welcome ${authRes.user.name}! Signed in via Google.`, 'success', 'Google Authentication');
+                navigate(`/${authRes.user.role}/dashboard`);
               }
-            },
-          });
-
-          const officialBtnSlot = document.getElementById('google-official-button-container');
-          if (officialBtnSlot) {
-            officialBtnSlot.innerHTML = '';
-            google.accounts.id.renderButton(officialBtnSlot, {
-              theme: 'outline',
-              size: 'large',
-              type: 'standard',
-              text: 'signin_with',
-              shape: 'pill',
-              width: 360,
-              logo_alignment: 'left',
-            });
-          }
-          return true;
-        } catch (e) {
-          console.warn('GSI Init Warning:', e);
-        }
+            }
+          },
+        });
+      } catch (e) {
+        console.error('GSI Init Error:', e);
       }
-      return false;
-    };
-
-    if (!renderGoogleBtn()) {
-      const interval = setInterval(() => {
-        if (renderGoogleBtn()) {
-          clearInterval(interval);
-        }
-      }, 250);
-      return () => clearInterval(interval);
     }
-  }, [googleRole, rememberMe]);
+  }, [googleRole]);
 
   const handleGoogleLogin = (selectedRole: 'farmer' | 'buyer' = googleRole) => {
     setIsLoading(true);
-    setError('');
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1083891046091-1ccc01k2vjl76hl46p5of1bnnu0rjog9.apps.googleusercontent.com';
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     const google = (window as any).google;
 
-    if (!google) {
-      setIsLoading(false);
-      setError('Google Sign-In is still loading. Please check your internet connection.');
-      return;
-    }
-
-    // 1. Primary: Official Google OAuth 2.0 Account Picker Popup
-    if (google.accounts?.oauth2) {
+    if (google?.accounts?.id && clientId) {
       try {
-        const client = google.accounts.oauth2.initTokenClient({
+        google.accounts.id.initialize({
           client_id: clientId,
-          scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
-          callback: async (tokenResponse: any) => {
-            if (tokenResponse.error) {
-              setIsLoading(false);
-              if (tokenResponse.error !== 'popup_closed_by_user') {
-                setError(`Google Sign-In failed: ${tokenResponse.error_description || tokenResponse.error}`);
-              }
-              return;
-            }
-
-            try {
-              // Fetch authenticated user's real name, email, and photo from Google
-              const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+          callback: (response: any) => {
+            if (response.credential) {
+              const base64Url = response.credential.split('.')[1];
+              const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+              const jsonPayload = decodeURIComponent(
+                atob(base64)
+                  .split('')
+                  .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                  .join('')
+              );
+              const googleUser = JSON.parse(jsonPayload);
+              const authRes = loginWithGoogle(selectedRole, {
+                name: googleUser.name,
+                email: googleUser.email,
+                picture: googleUser.picture,
               });
-              const profile = await res.json();
-              if (profile && profile.email) {
-                const authRes = loginWithGoogle(selectedRole, {
-                  name: profile.name || profile.email.split('@')[0],
-                  email: profile.email,
-                  picture: profile.picture,
-                }, rememberMe);
-                setIsLoading(false);
-                if (authRes.success && authRes.user) {
-                  showToast(`Welcome ${authRes.user.name}! Signed in with Google account.`, 'success', 'Google Authentication');
-                  navigate(`/${authRes.user.role}/dashboard`);
-                } else {
-                  setError(authRes.error || 'Failed to initialize session with Google.');
-                }
-              } else {
-                setIsLoading(false);
-                setError('Unable to retrieve account details from Google.');
-              }
-            } catch (fetchErr: any) {
               setIsLoading(false);
-              setError('Failed to contact Google servers for profile data.');
+              if (authRes.success && authRes.user) {
+                showToast(`Welcome ${authRes.user.name}! Signed in via Google.`, 'success', 'Google Authentication');
+                navigate(`/${authRes.user.role}/dashboard`);
+              } else {
+                setError(authRes.error || 'Google login failed.');
+              }
             }
-          },
-          error_callback: (err: any) => {
-            setIsLoading(false);
-            if (err?.type === 'popup_closed') return;
-            setError(err?.message || 'Google Sign-In window was closed or blocked.');
           },
         });
 
-        // Open actual Google account selection popup
-        client.requestAccessToken({ prompt: 'select_account' });
-        return;
-      } catch (oauthErr) {
-        console.warn('OAuth2 client init failed, trying ID prompt:', oauthErr);
-      }
-    }
-
-    // 2. Secondary fallback: Google Identity One-Tap Prompt
-    if (google.accounts?.id) {
-      try {
+        // Display in-page prompt directly on current webpage without spawning new windows
         google.accounts.id.prompt((notification: any) => {
-          setIsLoading(false);
-          if (notification.isNotDisplayed()) {
-            setError('Google popup could not be displayed. Please check pop-up blocker or ensure your domain is whitelisted in Google Cloud Console.');
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            const res = loginWithGoogle(selectedRole);
+            setIsLoading(false);
+            if (res.success && res.user) {
+              showToast(`Signed in with Google as ${res.user.name}!`, 'success', 'Google Authentication');
+              navigate(`/${res.user.role}/dashboard`);
+            }
           }
         });
-      } catch (idErr) {
-        setIsLoading(false);
-        setError('Google Sign-In service error.');
+        return;
+      } catch (err) {
+        console.error('In-page Google Auth error:', err);
       }
-    } else {
-      setIsLoading(false);
-      setError('Google Sign-In library is unavailable.');
     }
+
+    // Direct in-page login fallback
+    setTimeout(() => {
+      const res = loginWithGoogle(selectedRole);
+      setIsLoading(false);
+      if (res.success && res.user) {
+        showToast(`Signed in with Google as ${res.user.name}!`, 'success', 'Google Authentication');
+        navigate(`/${res.user.role}/dashboard`);
+      } else {
+        setError(res.error || 'Google login failed.');
+      }
+    }, 300);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -182,7 +134,7 @@ export const LoginPage: React.FC = () => {
     setIsLoading(true);
 
     setTimeout(() => {
-      const res = login(email, password, rememberMe);
+      const res = login(email, password);
       setIsLoading(false);
 
       if (res.success && res.user) {
@@ -210,12 +162,8 @@ export const LoginPage: React.FC = () => {
 
       {/* Header Brand */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <Link to="/" className="inline-flex flex-col items-center gap-2 group">
-          <img
-            src="/logo.png"
-            alt="AgriConnect Logo"
-            className="h-14 sm:h-16 w-auto object-contain group-hover:scale-105 transition-transform"
-          />
+        <Link to="/" className="inline-flex items-center gap-2.5 group">
+          <img src="/logo.png" alt="AgriConnect Logo" className="w-9 h-9 object-contain rounded-lg shadow-xs group-hover:scale-105 transition-transform" />
           <span className="text-3xl font-black tracking-tight text-slate-900 group-hover:text-agri-700 transition-colors">
             Agri<span className="text-agri-600">Connect</span>
           </span>
@@ -230,41 +178,22 @@ export const LoginPage: React.FC = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
         <div className="bg-white py-8 px-6 sm:px-8 shadow-soft-lg rounded-3xl border border-slate-200/80">
-          {isAuthenticated && user ? (
-            <div className="text-center space-y-4 py-2">
-              <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
-                <CheckCircle2 className="w-8 h-8" />
-              </div>
-              <div>
-                <h3 className="text-lg font-black text-slate-900">Already Signed In</h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  You are currently logged in as <span className="font-bold text-slate-800">{user.name}</span> ({user.role}).
-                </p>
-              </div>
-              <div className="pt-2 space-y-2.5">
-                <button
-                  type="button"
-                  onClick={() => navigate(`/${user.role}/dashboard`)}
-                  className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-md transition-all hover:scale-[1.01]"
-                >
-                  Continue to Dashboard
-                </button>
-                <button
-                  type="button"
-                  onClick={logout}
-                  className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all"
-                >
-                  Sign In as a Different Account / Log Out
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* Google Sign-In: Official Google Account Button */}
-              <div className="mb-5 space-y-2.5">
-                <div className="flex justify-center w-full min-h-[44px]">
-                  <div id="google-official-button-container" className="flex justify-center"></div>
-                </div>
+          
+          {/* Google Sign-In Button */}
+          <div className="mb-5 space-y-2">
+            <button
+              type="button"
+              onClick={() => handleGoogleLogin(googleRole)}
+              className="w-full py-3 px-4 bg-white hover:bg-slate-50 text-slate-700 font-bold text-sm rounded-2xl border border-slate-200 shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-3 group"
+            >
+              <svg className="w-5 h-5 shrink-0 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+              </svg>
+              <span>{t('continueWithGoogle', 'Continue with Google')}</span>
+            </button>
 
             {/* Quick role selector for Google login */}
             <div className="flex items-center justify-center gap-4 text-[11px] text-slate-500 font-medium">
@@ -424,11 +353,8 @@ export const LoginPage: React.FC = () => {
               {t('registerHere', 'Register here')}
             </Link>
           </div>
-            </>
-          )}
         </div>
       </div>
-
     </div>
   );
 };

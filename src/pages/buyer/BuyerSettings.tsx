@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Settings, Bell, Shield, CreditCard, Save } from 'lucide-react';
+import { Settings, Bell, Shield, CreditCard, Save, Globe } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
 import { useLanguage } from '../../context/LanguageContext';
 
 export const BuyerSettings: React.FC = () => {
-  const { t } = useLanguage();
+  const { language, supportedLanguages, setLanguage, t } = useLanguage();
   const { showToast } = useToast();
   const [emailInvoices, setEmailInvoices] = useState(true);
   const [smsDeliveryAlerts, setSmsDeliveryAlerts] = useState(true);
@@ -83,6 +83,33 @@ export const BuyerSettings: React.FC = () => {
                 className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500"
               />
             </label>
+          </div>
+        </div>
+
+        {/* Language & Regional Preferences */}
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-soft space-y-4">
+          <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+            <Globe className="w-5 h-5 text-amber-600" />
+            <h3 className="text-base font-bold text-slate-900">{t('languageSettings', 'Language & Regional Preferences')}</h3>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              {t('preferredLanguage', 'Preferred Platform Language')}
+            </label>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as any)}
+              className="w-full sm:w-1/2 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 font-bold focus:bg-white focus:ring-2 focus:ring-amber-500 outline-none cursor-pointer"
+            >
+              {supportedLanguages.map(l => (
+                <option key={l.code} value={l.code}>
+                  {l.nativeName} ({l.name})
+                </option>
+              ))}
+            </select>
+            <p className="text-[11px] text-slate-500 mt-1.5">
+              {t('languagePreferenceDesc', 'Your selected language applies across all dashboards, marketplace catalogs, alerts, and invoices.')}
+            </p>
           </div>
         </div>
 

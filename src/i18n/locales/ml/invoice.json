@@ -1,0 +1,13 @@
+{
+  "unitPrice": "அலகு விலை",
+  "officialTaxInvoice": "അഗ്രി-കണക്ട് ഔദ്യോഗിക നികുതി ഇൻവോയ്സ്",
+  "printDownloadPdf": "പ്രിന്റ് / PDF ഡൗൺലോഡ്",
+  "subtotal": "ഉപതുക",
+  "invoice": "ഇൻവോയ്സ് / രസീത്",
+  "sellerDetails": "വിൽപ്പനക്കാരൻ (രജിസ്റ്റർ ചെയ്ത കർഷകൻ)",
+  "itemDescription": "ഇനത്തിന്റെ വിവരണം",
+  "hsnSac": "HSN/SAC കോഡ്",
+  "gstExempt": "പുതിയ പച്ചക്കറികൾക്കും കാർഷിക വിളകൾക്കും ജിഎസ്ടി ഇളവുണ്ട്",
+  "totalPayable": "ആകെ അടയ്‌ക്കേണ്ട തുക",
+  "paymentConfirmed": "പേയ്‌മെന്റ് സ്ഥിരീകരിച്ചു"
+}
