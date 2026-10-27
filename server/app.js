@@ -15,7 +15,7 @@ import {
   verifyGstinWithProvider,
   DEFAULT_HSN_DIRECTORY,
 } from './services/taxService.js';
-import { generateInvoicePdf } from './services/pdfService.js';
+// pdfService is dynamically loaded in route to keep serverless bundles lightweight
 import {
   createPaymentOrder,
   verifyPaymentSignature,
@@ -782,6 +782,7 @@ app.get('/api/invoices/:orderId/pdf', async (req, res) => {
       }
     }
 
+    const { generateInvoicePdf } = await import('./services/pdfService.js');
     const pdfBuffer = await generateInvoicePdf(invoice);
 
     res.setHeader('Content-Type', 'application/pdf');

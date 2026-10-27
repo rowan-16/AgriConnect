@@ -4,7 +4,7 @@ import { loadStorage, saveStorage } from './storageUtils';
 
 const USERS_KEY = 'users';
 const CURRENT_USER_KEY = 'current_user';
-const API_BASE_URL = 'http://localhost:5000/api';
+import { API_BASE_URL } from './apiConfig';
 
 export const authService = {
   getUsers(): User[] {

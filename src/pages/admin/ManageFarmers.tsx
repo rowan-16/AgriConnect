@@ -23,6 +23,7 @@ import { cropService } from '../../services/cropService';
 import { notificationService } from '../../services/notificationService';
 import { useToast } from '../../context/ToastContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { API_BASE_URL } from '../../services/apiConfig';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
 import { Badge } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
@@ -60,7 +61,7 @@ export const ManageFarmers: React.FC = () => {
 
     // Also sync to backend
     try {
-      await fetch(`http://localhost:5000/api/admin/farmers/${farmerId}/verify`, {
+      await fetch(`${API_BASE_URL}/admin/farmers/${farmerId}/verify`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -100,7 +101,7 @@ export const ManageFarmers: React.FC = () => {
     });
 
     try {
-      await fetch(`http://localhost:5000/api/admin/farmers/${farmerId}/verify`, {
+      await fetch(`${API_BASE_URL}/admin/farmers/${farmerId}/verify`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -142,7 +143,7 @@ export const ManageFarmers: React.FC = () => {
     });
 
     try {
-      await fetch(`http://localhost:5000/api/admin/farmers/${farmerId}/verify`, {
+      await fetch(`${API_BASE_URL}/admin/farmers/${farmerId}/verify`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

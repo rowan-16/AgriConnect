@@ -39,7 +39,8 @@ export interface PaymentVerificationResponse {
   message?: string;
 }
 
-const API_BASE = 'http://localhost:5000/api';
+import { API_BASE_URL } from './apiConfig';
+const API_BASE = API_BASE_URL;
 
 /**
  * Loads Razorpay Standard Checkout SDK script dynamically and safely

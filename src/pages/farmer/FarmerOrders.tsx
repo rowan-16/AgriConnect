@@ -22,6 +22,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { orderService } from '../../services/orderService';
 import { Order, OrderStatus } from '../../types';
+import { API_BASE_URL } from '../../services/apiConfig';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
 import { Badge } from '../../components/common/Badge';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -48,7 +49,7 @@ export const FarmerOrders: React.FC = () => {
   const handleDownloadPdf = async (order: Order) => {
     setDownloadingOrderId(order.id);
     try {
-      const response = await fetch(`http://localhost:5000/api/invoices/${order.id}/pdf`);
+      const response = await fetch(`${API_BASE_URL}/invoices/${order.id}/pdf`);
       if (!response.ok) {
         throw new Error('PDF generator status ' + response.status);
       }

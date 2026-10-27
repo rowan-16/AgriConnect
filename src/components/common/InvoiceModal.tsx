@@ -13,6 +13,7 @@ import {
 import { useLanguage } from '../../context/LanguageContext';
 import { Order } from '../../types';
 import { formatCurrency, formatDate } from '../../utils/formatters';
+import { API_BASE_URL } from '../../services/apiConfig';
 
 interface InvoiceModalProps {
   order: Order;
@@ -33,7 +34,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClo
   const handleDownloadPdf = async () => {
     setIsDownloading(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/invoices/${order.id}/pdf`);
+      const response = await fetch(`${API_BASE_URL}/invoices/${order.id}/pdf`);
       if (!response.ok) {
         throw new Error('PDF generator returned status ' + response.status);
       }
