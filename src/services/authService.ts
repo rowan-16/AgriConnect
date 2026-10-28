@@ -45,6 +45,9 @@ export const authService = {
       if (found.email.toLowerCase() === 'admin@agriconnect.com' && password && password !== 'admin@agri') {
         return { success: false, error: 'Invalid Admin password. Use password: admin@agri' };
       }
+      if ((found as any).password && password && (found as any).password !== password && found.email.toLowerCase() !== 'admin@agriconnect.com') {
+        return { success: false, error: 'Incorrect password. Please check your credentials or use "Forgot Password".' };
+      }
       if (found.preferredLanguage) {
         localStorage.setItem('agriconnect_language', found.preferredLanguage);
       }
@@ -52,6 +55,42 @@ export const authService = {
       return { success: true, user: found };
     }
     return { success: false, error: 'Invalid credentials. Please check email and password.' };
+  },
+
+  async forgotPassword(email: string): Promise<{ success: boolean; message: string; tempPassword?: string }> {
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (data.tempPassword) {
+        const users = this.getUsers();
+        const updated = users.map(u => {
+          if (u.email.toLowerCase() === email.toLowerCase()) {
+            return { ...u, password: data.tempPassword };
+          }
+          return u;
+        });
+        saveStorage(USERS_KEY, updated);
+      }
+      return data;
+    } catch {
+      const users = this.getUsers();
+      const found = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      if (!found) {
+        return { success: false, message: `No user found with email "${email}".` };
+      }
+      const tempPassword = 'Agri-' + Math.floor(100000 + Math.random() * 900000);
+      const updated = users.map(u => u.id === found.id ? { ...u, password: tempPassword } : u);
+      saveStorage(USERS_KEY, updated);
+      return {
+        success: true,
+        tempPassword,
+        message: `Temporary password generated: ${tempPassword}. You can now sign in with this password.`,
+      };
+    }
   },
 
   async register(userData: Partial<User> & { name: string; email: string; role: UserRole; phone: string; location: string }): Promise<{ success: boolean; user?: User; error?: string }> {

@@ -22,6 +22,7 @@ import {
   processRazorpayWebhook,
   getRazorpayClient,
 } from './services/paymentService.js';
+import { sendPasswordResetEmail } from './services/emailService.js';
 
 dotenv.config();
 
@@ -330,6 +331,72 @@ app.post('/api/users/register', async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
+
+// Forgot Password - Send Temporary Password via Gmail
+app.post('/api/auth/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ success: false, message: 'Please provide a valid registered email address.' });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    let user = null;
+
+    if (mongoose.connection.readyState === 1) {
+      user = await User.findOne({ email: normalizedEmail });
+    }
+
+    // Fallback to in-memory seeds if MongoDB user is not yet created
+    if (!user) {
+      const seedMatch = SEED_USERS.find(u => u.email.toLowerCase() === normalizedEmail);
+      if (seedMatch) {
+        user = seedMatch;
+      }
+    }
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: `No AgriConnect account found with email "${email}". Please verify the address or register.`,
+      });
+    }
+
+    // Generate a secure temporary password (e.g. Agri-749214)
+    const tempPassword = 'Agri-' + Math.floor(100000 + Math.random() * 900000);
+
+    // Save to database if connected
+    if (mongoose.connection.readyState === 1 && typeof user.save === 'function') {
+      user.password = tempPassword;
+      user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour
+      await user.save();
+    }
+
+    // Send through Gmail SMTP
+    try {
+      await sendPasswordResetEmail(user.email, user.name, tempPassword);
+      console.log(`📧 Password reset email sent successfully to ${user.email}`);
+      return res.json({
+        success: true,
+        tempPassword,
+        message: `Temporary password has been sent to ${user.email}. Please check your Gmail inbox (or spam folder).`,
+      });
+    } catch (emailErr) {
+      console.warn('⚠️ Gmail delivery notice:', emailErr.message);
+      // If Gmail SMTP is missing credentials or network issue, notify with fallback
+      return res.json({
+        success: true,
+        sentToEmail: false,
+        tempPassword,
+        message: `Password reset generated! Note: Gmail SMTP warning (${emailErr.message}). For demo testing, your temporary password is: ${tempPassword}`,
+      });
+    }
+  } catch (err) {
+    console.error('❌ Forgot password server error:', err);
+    res.status(500).json({ success: false, message: 'Internal server error processing password reset.' });
+  }
+});
+
 
 // Admin Review & Verification Endpoint
 app.patch('/api/admin/farmers/:id/verify', async (req, res) => {

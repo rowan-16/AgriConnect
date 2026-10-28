@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Sprout, Lock, Mail, ArrowRight, Sparkles, AlertCircle, ShoppingBag, X } from 'lucide-react';
+import { Sprout, Lock, Mail, ArrowRight, Sparkles, AlertCircle, ShoppingBag, X, CheckCircle2, KeyRound, Send } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { INITIAL_USERS } from '../../services/mockData';
+import { authService } from '../../services/authService';
 
 export const LoginPage: React.FC = () => {
   const { user, isAuthenticated, login, loginWithGoogle } = useAuth();
@@ -30,6 +31,40 @@ export const LoginPage: React.FC = () => {
   const [showGoogleDialog, setShowGoogleDialog] = useState(false);
   const [customGoogleEmail, setCustomGoogleEmail] = useState('');
   const [customGoogleName, setCustomGoogleName] = useState('');
+
+  // Forgot Password Modal State
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [isSendingReset, setIsSendingReset] = useState(false);
+  const [resetSuccessMessage, setResetSuccessMessage] = useState('');
+  const [generatedTempPass, setGeneratedTempPass] = useState('');
+
+  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail) return;
+    setIsSendingReset(true);
+    setResetSuccessMessage('');
+    setGeneratedTempPass('');
+
+    try {
+      const res = await authService.forgotPassword(forgotEmail.trim());
+      if (res.success) {
+        setResetSuccessMessage(res.message);
+        if (res.tempPassword) {
+          setGeneratedTempPass(res.tempPassword);
+          setEmail(forgotEmail.trim());
+          setPassword(res.tempPassword);
+        }
+        showToast(res.message, 'success', 'Password Sent to Gmail');
+      } else {
+        showToast(res.message || 'Unable to reset password.', 'error', 'Reset Failed');
+      }
+    } catch {
+      showToast('Error communicating with server.', 'error');
+    } finally {
+      setIsSendingReset(false);
+    }
+  };
 
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1083891046091-1ccc01k2vjl76hl46p5of1bnnu0rjog9.apps.googleusercontent.com';
 
@@ -381,9 +416,18 @@ export const LoginPage: React.FC = () => {
                 {t('rememberMe', 'Remember me')}
               </label>
 
-              <a href="#forgot" onClick={(e) => { e.preventDefault(); showToast('Password reset link sent to demo email.', 'info'); }} className="text-agri-600 hover:text-agri-700 font-bold">
+              <button
+                type="button"
+                onClick={() => {
+                  setForgotEmail(email);
+                  setResetSuccessMessage('');
+                  setGeneratedTempPass('');
+                  setShowForgotModal(true);
+                }}
+                className="text-agri-600 hover:text-agri-700 font-bold hover:underline cursor-pointer transition-all"
+              >
                 {t('forgotPassword', 'Forgot password?')}
-              </a>
+              </button>
             </div>
 
             <button
@@ -489,6 +533,132 @@ export const LoginPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Forgot Password Recovery Modal */}
+      {showForgotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl shadow-soft-2xl max-w-md w-full p-6 sm:p-7 border border-slate-100 relative">
+            <button
+              onClick={() => {
+                setShowForgotModal(false);
+                setResetSuccessMessage('');
+              }}
+              className="absolute top-5 right-5 p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-agri-50 border border-agri-200 flex items-center justify-center text-agri-600">
+                <KeyRound className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-800">
+                  {t('resetPasswordTitle', 'Forgot Password?')}
+                </h3>
+                <p className="text-xs text-slate-500 font-medium">
+                  {t('resetPasswordSubtitle', 'Recover access via your registered Gmail')}
+                </p>
+              </div>
+            </div>
+
+            {resetSuccessMessage ? (
+              <div className="space-y-4">
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 space-y-2">
+                  <div className="flex items-center gap-2 font-bold text-sm">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Password Reset Initiated</span>
+                  </div>
+                  <p className="text-xs text-emerald-700 leading-relaxed">
+                    {resetSuccessMessage}
+                  </p>
+                </div>
+
+                {generatedTempPass && (
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-center space-y-1">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      Generated Temporary Password
+                    </div>
+                    <div className="text-xl font-black font-mono tracking-widest text-agri-700">
+                      {generatedTempPass}
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      (Auto-filled into your sign-in form)
+                    </div>
+                  </div>
+                )}
+
+                <div className="pt-2 flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowForgotModal(false);
+                    }}
+                    className="w-full py-3 bg-agri-600 hover:bg-agri-700 text-white font-bold text-sm rounded-xl shadow-md shadow-agri-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span>Back to Sign In</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                  <p className="text-[11px] text-center text-slate-400">
+                    Be sure to check your Gmail spam/promotions folder if it does not appear in your inbox within 1 minute.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleForgotPasswordSubmit} className="space-y-4">
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Enter the email address registered with your AgriConnect account. We will send a secure temporary password directly to your Gmail.
+                </p>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    {t('registeredEmail', 'Your Registered Email')}
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="email"
+                      required
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      placeholder="e.g. ramesh.farmer@agriconnect.com"
+                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-agri-500 focus:ring-2 focus:ring-agri-500/20 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotModal(false)}
+                    className="w-1/3 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={isSendingReset}
+                    className="flex-1 py-2.5 px-4 bg-agri-600 hover:bg-agri-700 disabled:bg-slate-300 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-agri-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    {isSendingReset ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Sending to Gmail...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        <span>Send to Gmail</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

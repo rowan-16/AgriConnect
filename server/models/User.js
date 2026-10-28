@@ -98,6 +98,11 @@ const userSchema = new mongoose.Schema(
       }
     ],
 
+    // Password and Reset Authentication
+    password: { type: String, default: 'agri@123' },
+    resetPasswordToken: { type: String, default: null },
+    resetPasswordExpires: { type: Date, default: null },
+
     // Account Status
     status: { type: String, enum: ['active', 'pending', 'suspended'], default: 'active' },
   },
