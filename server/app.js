@@ -365,17 +365,18 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     // Generate a secure temporary password (e.g. Agri-749214)
     const tempPassword = 'Agri-' + Math.floor(100000 + Math.random() * 900000);
 
-    // Save to database if connected
-    if (mongoose.connection.readyState === 1 && typeof user.save === 'function') {
-      user.password = tempPassword;
-      user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour
-      await user.save();
-    }
-
-    // Send through Gmail SMTP
+    // Attempt sending through Gmail SMTP first
     try {
       await sendPasswordResetEmail(user.email, user.name, tempPassword);
       console.log(`📧 Password reset email sent successfully to ${user.email}`);
+
+      // Only save temporary password to database once email is confirmed sent!
+      if (mongoose.connection.readyState === 1 && typeof user.save === 'function') {
+        user.password = tempPassword;
+        user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour
+        await user.save();
+      }
+
       return res.json({
         success: true,
         message: `Your temporary password has been successfully sent to ${user.email}. Please check your Gmail inbox and spam folder.`,
@@ -384,7 +385,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
       console.error('❌ Gmail delivery failure:', emailErr.message);
       return res.status(500).json({
         success: false,
-        message: `Failed to deliver email to Gmail: ${emailErr.message}. Please ensure EMAIL_USER and EMAIL_PASS (App Password) are configured in .env.`,
+        message: `Failed to deliver email to Gmail: ${emailErr.message}. Please ensure EMAIL_USER and EMAIL_PASS (App Password) are configured in .env. Your existing password remains unchanged.`,
       });
     }
   } catch (err) {

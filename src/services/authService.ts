@@ -45,7 +45,20 @@ export const authService = {
       if (found.email.toLowerCase() === 'admin@agriconnect.com' && password && password !== 'admin@agri') {
         return { success: false, error: 'Invalid Admin password. Use password: admin@agri' };
       }
-      if ((found as any).password && password && (found as any).password !== password && found.email.toLowerCase() !== 'admin@agriconnect.com') {
+
+      const isDemoPresetAccount =
+        found.email.toLowerCase() === 'ramesh.farmer@agriconnect.com' ||
+        found.email.toLowerCase() === 'priya.buyer@agriconnect.com' ||
+        found.email.toLowerCase() === 'sukhwinder.farmer@agriconnect.com' ||
+        found.email.toLowerCase() === 'sukhwinder@agriconnect.com';
+
+      const userPassword = (found as any).password;
+      const isPasswordValid =
+        !password ||
+        (isDemoPresetAccount && (password === 'password123' || !userPassword || userPassword === password)) ||
+        (!userPassword || userPassword === password || userPassword === 'password123');
+
+      if (!isPasswordValid && found.email.toLowerCase() !== 'admin@agriconnect.com') {
         return { success: false, error: 'Incorrect password. Please check your credentials or use "Forgot Password".' };
       }
       if (found.preferredLanguage) {
