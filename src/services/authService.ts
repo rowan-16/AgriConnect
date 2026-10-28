@@ -57,7 +57,7 @@ export const authService = {
     return { success: false, error: 'Invalid credentials. Please check email and password.' };
   },
 
-  async forgotPassword(email: string): Promise<{ success: boolean; message: string; tempPassword?: string }> {
+  async forgotPassword(email: string): Promise<{ success: boolean; message: string }> {
     try {
       const res = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
         method: 'POST',
@@ -65,30 +65,11 @@ export const authService = {
         body: JSON.stringify({ email }),
       });
       const data = await res.json();
-      if (data.tempPassword) {
-        const users = this.getUsers();
-        const updated = users.map(u => {
-          if (u.email.toLowerCase() === email.toLowerCase()) {
-            return { ...u, password: data.tempPassword };
-          }
-          return u;
-        });
-        saveStorage(USERS_KEY, updated);
-      }
       return data;
-    } catch {
-      const users = this.getUsers();
-      const found = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-      if (!found) {
-        return { success: false, message: `No user found with email "${email}".` };
-      }
-      const tempPassword = 'Agri-' + Math.floor(100000 + Math.random() * 900000);
-      const updated = users.map(u => u.id === found.id ? { ...u, password: tempPassword } : u);
-      saveStorage(USERS_KEY, updated);
+    } catch (err: any) {
       return {
-        success: true,
-        tempPassword,
-        message: `Temporary password generated: ${tempPassword}. You can now sign in with this password.`,
+        success: false,
+        message: 'Could not reach AgriConnect server to send Gmail. Please verify the server is running.',
       };
     }
   },

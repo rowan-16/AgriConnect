@@ -378,17 +378,13 @@ app.post('/api/auth/forgot-password', async (req, res) => {
       console.log(`📧 Password reset email sent successfully to ${user.email}`);
       return res.json({
         success: true,
-        tempPassword,
-        message: `Temporary password has been sent to ${user.email}. Please check your Gmail inbox (or spam folder).`,
+        message: `Your temporary password has been successfully sent to ${user.email}. Please check your Gmail inbox and spam folder.`,
       });
     } catch (emailErr) {
-      console.warn('⚠️ Gmail delivery notice:', emailErr.message);
-      // If Gmail SMTP is missing credentials or network issue, notify with fallback
-      return res.json({
-        success: true,
-        sentToEmail: false,
-        tempPassword,
-        message: `Password reset generated! Note: Gmail SMTP warning (${emailErr.message}). For demo testing, your temporary password is: ${tempPassword}`,
+      console.error('❌ Gmail delivery failure:', emailErr.message);
+      return res.status(500).json({
+        success: false,
+        message: `Failed to deliver email to Gmail: ${emailErr.message}. Please ensure EMAIL_USER and EMAIL_PASS (App Password) are configured in .env.`,
       });
     }
   } catch (err) {

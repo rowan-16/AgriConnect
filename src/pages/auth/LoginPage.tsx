@@ -37,24 +37,19 @@ export const LoginPage: React.FC = () => {
   const [forgotEmail, setForgotEmail] = useState('');
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [resetSuccessMessage, setResetSuccessMessage] = useState('');
-  const [generatedTempPass, setGeneratedTempPass] = useState('');
 
   const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!forgotEmail) return;
     setIsSendingReset(true);
     setResetSuccessMessage('');
-    setGeneratedTempPass('');
 
     try {
       const res = await authService.forgotPassword(forgotEmail.trim());
       if (res.success) {
         setResetSuccessMessage(res.message);
-        if (res.tempPassword) {
-          setGeneratedTempPass(res.tempPassword);
-          setEmail(forgotEmail.trim());
-          setPassword(res.tempPassword);
-        }
+        setEmail(forgotEmail.trim());
+        setPassword('');
         showToast(res.message, 'success', 'Password Sent to Gmail');
       } else {
         showToast(res.message || 'Unable to reset password.', 'error', 'Reset Failed');
@@ -567,35 +562,38 @@ export const LoginPage: React.FC = () => {
 
             {resetSuccessMessage ? (
               <div className="space-y-4">
-                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 space-y-2">
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 space-y-2.5">
                   <div className="flex items-center gap-2 font-bold text-sm">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>Password Reset Initiated</span>
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                    <span>Dispatched to Your Gmail</span>
                   </div>
                   <p className="text-xs text-emerald-700 leading-relaxed">
                     {resetSuccessMessage}
                   </p>
+                  <div className="pt-1 text-[11px] text-emerald-800 font-semibold flex items-center gap-1.5">
+                    <span>📬 Target Inbox:</span>
+                    <span className="font-mono bg-emerald-100/70 px-2 py-0.5 rounded-md">{forgotEmail}</span>
+                  </div>
                 </div>
 
-                {generatedTempPass && (
-                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-center space-y-1">
-                    <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                      Generated Temporary Password
-                    </div>
-                    <div className="text-xl font-black font-mono tracking-widest text-agri-700">
-                      {generatedTempPass}
-                    </div>
-                    <div className="text-[10px] text-slate-400">
-                      (Auto-filled into your sign-in form)
-                    </div>
-                  </div>
-                )}
+                <div className="pt-2 flex flex-col gap-2.5">
+                  <a
+                    href="https://mail.google.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2.5 px-4 bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                      <path fill="#EA4335" d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                    </svg>
+                    <span>Open Gmail Inbox</span>
+                  </a>
 
-                <div className="pt-2 flex flex-col gap-2">
                   <button
                     type="button"
                     onClick={() => {
                       setShowForgotModal(false);
+                      setResetSuccessMessage('');
                     }}
                     className="w-full py-3 bg-agri-600 hover:bg-agri-700 text-white font-bold text-sm rounded-xl shadow-md shadow-agri-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
@@ -603,7 +601,7 @@ export const LoginPage: React.FC = () => {
                     <ArrowRight className="w-4 h-4" />
                   </button>
                   <p className="text-[11px] text-center text-slate-400">
-                    Be sure to check your Gmail spam/promotions folder if it does not appear in your inbox within 1 minute.
+                    Be sure to check your Gmail spam/promotions folder if it does not appear in your Primary inbox within 1 minute.
                   </p>
                 </div>
               </div>
