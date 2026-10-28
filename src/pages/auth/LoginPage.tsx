@@ -34,70 +34,43 @@ export const LoginPage: React.FC = () => {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1083891046091-1ccc01k2vjl76hl46p5of1bnnu0rjog9.apps.googleusercontent.com';
 
   useEffect(() => {
-    const renderGoogleBtn = () => {
-      const google = (window as any).google;
-      if (google?.accounts?.id && clientId) {
-        try {
-          google.accounts.id.initialize({
-            client_id: clientId,
-            callback: (response: any) => {
-              if (response.credential) {
-                try {
-                  const base64Url = response.credential.split('.')[1];
-                  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                  const jsonPayload = decodeURIComponent(
-                    atob(base64)
-                      .split('')
-                      .map((c: string) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-                      .join('')
-                  );
-                  const googleUser = JSON.parse(jsonPayload);
-                  const authRes = loginWithGoogle(googleRole, {
-                    name: googleUser.name || googleUser.given_name || 'Google User',
-                    email: googleUser.email,
-                    picture: googleUser.picture,
-                  });
-                  if (authRes.success && authRes.user) {
-                    showToast(`Welcome ${authRes.user.name}! Signed in via Google.`, 'success', 'Google Authentication');
-                    navigate(`/${authRes.user.role}/dashboard`);
-                  }
-                } catch (parseErr) {
-                  console.error('Failed to parse Google credential token:', parseErr);
+    const google = (window as any).google;
+    if (google?.accounts?.id && clientId) {
+      try {
+        google.accounts.id.initialize({
+          client_id: clientId,
+          callback: (response: any) => {
+            if (response.credential) {
+              try {
+                const base64Url = response.credential.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(
+                  atob(base64)
+                    .split('')
+                    .map((c: string) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                    .join('')
+                );
+                const googleUser = JSON.parse(jsonPayload);
+                const authRes = loginWithGoogle(googleRole, {
+                  name: googleUser.name || googleUser.given_name || 'Google User',
+                  email: googleUser.email,
+                  picture: googleUser.picture,
+                });
+                if (authRes.success && authRes.user) {
+                  showToast(`Welcome ${authRes.user.name}! Signed in via Google.`, 'success', 'Google Authentication');
+                  navigate(`/${authRes.user.role}/dashboard`);
                 }
+              } catch (parseErr) {
+                console.error('Failed to parse Google credential token:', parseErr);
               }
-            },
-          });
-
-          const officialBtnSlot = document.getElementById('google-official-button-container');
-          if (officialBtnSlot) {
-            officialBtnSlot.innerHTML = '';
-            google.accounts.id.renderButton(officialBtnSlot, {
-              theme: 'outline',
-              size: 'large',
-              type: 'standard',
-              text: 'signin_with',
-              shape: 'pill',
-              width: 360,
-              logo_alignment: 'left',
-            });
-          }
-          return true;
-        } catch (e) {
-          console.warn('GSI Init Warning:', e);
-        }
+            }
+          },
+        });
+      } catch (e) {
+        console.warn('GSI Init Warning:', e);
       }
-      return false;
-    };
-
-    if (!renderGoogleBtn()) {
-      const interval = setInterval(() => {
-        if (renderGoogleBtn()) {
-          clearInterval(interval);
-        }
-      }, 300);
-      return () => clearInterval(interval);
     }
-  }, [googleRole]);
+  }, [googleRole, clientId]);
 
   const handleGoogleLogin = (selectedRole: 'farmer' | 'buyer' = googleRole) => {
     setIsGoogleLoading(true);
@@ -258,10 +231,8 @@ export const LoginPage: React.FC = () => {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
         <div className="bg-white py-8 px-6 sm:px-8 shadow-soft-lg rounded-3xl border border-slate-200/80">
           
-          {/* Google Sign-In Button */}
-          <div className="mb-5 space-y-2.5">
-            {/* Google Official Button slot (rendered by Google Identity Services) */}
-            <div id="google-official-button-container" className="flex justify-center w-full min-h-[44px]"></div>
+          {/* Google Sign-In Button (Single unified button) */}
+          <div className="mb-5 space-y-2">
 
             <button
               type="button"
