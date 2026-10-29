@@ -39,8 +39,16 @@ app.use(
   })
 );
 
-// Connect to MongoDB Atlas
+// Connect to MongoDB Atlas (warm up connection and middleware for serverless requests)
 connectDB();
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+  } catch (err) {
+    console.warn('DB connect middleware error:', err.message);
+  }
+  next();
+});
 
 // Root Server Landing Page
 app.get('/', (req, res) => {
