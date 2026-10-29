@@ -26,7 +26,7 @@ export const connectDB = async () => {
   isConnecting = true;
   const mongoURI = process.env.MONGODB_URI || ATLAS_URI;
   try {
-    const conn = await mongoose.connect(mongoURI, { serverSelectionTimeoutMS: 5000 });
+    const conn = await mongoose.connect(mongoURI, { family: 4, serverSelectionTimeoutMS: 5000 });
     console.log(`🍃 MongoDB Connected: ${conn.connection.host} (DB: ${conn.connection.name})`);
   } catch (err) {
     console.warn(`⚠️ MongoDB Atlas Connection Note: ${err.message}`);

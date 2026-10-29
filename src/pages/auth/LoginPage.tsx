@@ -378,51 +378,23 @@ export const LoginPage: React.FC = () => {
               <span className="text-[10px] text-slate-400 font-semibold uppercase">{t('evaluatorPresets', 'Evaluator Presets')}</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2.5 pt-1">
-              <button
-                type="button"
-                onClick={() => handleDemoSelect('pushpithamullai@gmail.com')}
-                className="px-3 py-2 bg-white hover:bg-amber-50 border border-amber-300 text-amber-800 text-[11px] font-bold rounded-xl shadow-xs transition-all text-center truncate hover:scale-[1.02] flex items-center justify-center gap-1.5 cursor-pointer"
-                title="Log in as Pushpitha .K (Buyer)"
-              >
-                <ShoppingBag className="w-3.5 h-3.5 text-amber-600" />
-                <span>Pushpitha (Buyer)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleDemoSelect('rocklandrowanm@gmail.com')}
-                className="px-3 py-2 bg-white hover:bg-emerald-50 border border-emerald-300 text-emerald-800 text-[11px] font-bold rounded-xl shadow-xs transition-all text-center truncate hover:scale-[1.02] flex items-center justify-center gap-1.5 cursor-pointer"
-                title="Log in as Rockland Rowan M (Farmer)"
-              >
-                <Sprout className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Rowan (Farmer)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleDemoSelect('jowanm1234@gmail.com')}
-                className="col-span-2 px-3 py-2 bg-white hover:bg-teal-50 border border-teal-300 text-teal-900 text-[11px] font-bold rounded-xl shadow-xs transition-all text-center truncate hover:scale-[1.02] flex items-center justify-center gap-1.5 cursor-pointer"
-                title="Log in as Jowan (jowanm1234@gmail.com)"
-              >
-                <Sprout className="w-3.5 h-3.5 text-teal-600" />
-                <span>Jowan (jowanm1234@gmail.com)</span>
-              </button>
-
+            <div className="grid grid-cols-2 gap-3 pt-1">
               <button
                 type="button"
                 onClick={() => handleDemoSelect('ramesh.farmer@agriconnect.com')}
-                className="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-[10px] font-semibold rounded-lg transition-all text-center truncate flex items-center justify-center gap-1 cursor-pointer"
+                className="px-3 py-2 bg-white hover:bg-emerald-50 border border-emerald-300 text-emerald-800 text-[11px] font-bold rounded-xl shadow-xs transition-all text-center truncate hover:scale-[1.02] flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <span>Demo Farmer</span>
+                <Sprout className="w-3.5 h-3.5 text-emerald-600" />
+                <span>{t('autoFillFarmer', 'Auto-fill Farmer')}</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => handleDemoSelect('admin@agriconnect.com')}
-                className="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-[10px] font-semibold rounded-lg transition-all text-center truncate flex items-center justify-center gap-1 cursor-pointer"
+                onClick={() => handleDemoSelect('priya.buyer@agriconnect.com')}
+                className="px-3 py-2 bg-white hover:bg-amber-50 border border-amber-300 text-amber-800 text-[11px] font-bold rounded-xl shadow-xs transition-all text-center truncate hover:scale-[1.02] flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <span>Admin Console</span>
+                <ShoppingBag className="w-3.5 h-3.5 text-amber-600" />
+                <span>{t('autoFillBuyer', 'Auto-fill Buyer')}</span>
               </button>
             </div>
           </div>

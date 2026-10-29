@@ -1,16 +1,47 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import dns from 'dns';
 
 dotenv.config();
+
+// Configure Node DNS to prefer IPv4 results to prevent IPv6 socket blackholing in cloud environments
+try {
+  if (typeof dns.setDefaultResultOrder === 'function') {
+    dns.setDefaultResultOrder('ipv4first');
+  }
+} catch {}
 
 const DEFAULT_EMAIL_USER = 'rocklandrowanm@gmail.com';
 const DEFAULT_EMAIL_PASS = 'vtmfmaxlzluzgzus';
 
+// Standard Google SMTP IPv4 fallback addresses
+const GOOGLE_SMTP_IPV4_FALLBACKS = [
+  '142.250.152.108',
+  '172.253.115.108',
+  '173.194.202.108',
+  '192.179.20.108',
+];
+
 /**
- * Sends email using a resilient 3-tier transport strategy:
- * 1. service: 'gmail' (native nodemailer optimized connection)
- * 2. port 465 direct SSL
- * 3. port 587 STARTTLS
+ * Resolves active IPv4 addresses for smtp.gmail.com to avoid IPv6 timeouts on Vercel/serverless
+ */
+async function getGmailSmtpIpv4Addresses() {
+  try {
+    const addresses = await dns.promises.resolve4('smtp.gmail.com');
+    if (Array.isArray(addresses) && addresses.length > 0) {
+      return addresses;
+    }
+  } catch (err) {
+    console.warn('⚠️ dns.resolve4 notice:', err.message);
+  }
+  return GOOGLE_SMTP_IPV4_FALLBACKS;
+}
+
+/**
+ * Sends email using a resilient IPv4 transport strategy:
+ * 1. Direct SSL Port 465 to resolved IPv4 addresses with SNI
+ * 2. STARTTLS Port 587 to resolved IPv4 addresses with SNI
+ * 3. service: 'gmail' (standard Nodemailer fallback)
  */
 async function sendMailWithFallback(mailOptions) {
   const emailUser = process.env.EMAIL_USER || DEFAULT_EMAIL_USER;
@@ -20,60 +51,76 @@ async function sendMailWithFallback(mailOptions) {
     throw new Error('Gmail SMTP credentials are not configured (EMAIL_USER / EMAIL_PASS missing)');
   }
 
+  const ipv4List = await getGmailSmtpIpv4Addresses();
   let lastErr = null;
 
-  // Tier 1: Direct SSL Port 465 forced to IPv4 (fastest & rock-solid on Vercel/cloud/ISPs)
-  try {
-    const transporter465 = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      family: 4,
-      auth: { user: emailUser, pass: emailPass },
-      tls: { rejectUnauthorized: false },
-      connectionTimeout: 12000,
-      greetingTimeout: 12000,
-      socketTimeout: 15000,
-    });
-    return await transporter465.sendMail(mailOptions);
-  } catch (err1) {
-    lastErr = err1;
-    console.warn('⚠️ Tier 1 (port 465 IPv4) delivery notice:', err1.message);
+  // Tier 1: Direct SSL Port 465 to IPv4 endpoints (bypasses IPv6 timeouts completely)
+  for (const ip of ipv4List.slice(0, 2)) {
+    try {
+      const transporter = nodemailer.createTransport({
+        host: ip,
+        port: 465,
+        secure: true,
+        auth: { user: emailUser, pass: emailPass },
+        tls: {
+          servername: 'smtp.gmail.com',
+          rejectUnauthorized: false,
+        },
+        connectionTimeout: 8000,
+        greetingTimeout: 8000,
+        socketTimeout: 10000,
+      });
+
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`✅ Mail dispatched via IPv4 ${ip}:465 (ID: ${info.messageId})`);
+      return info;
+    } catch (err) {
+      lastErr = err;
+      console.warn(`⚠️ Port 465 (${ip}) delivery notice:`, err.message);
+    }
   }
 
-  // Tier 2: STARTTLS Port 587 forced to IPv4
-  try {
-    const transporter587 = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      family: 4,
-      auth: { user: emailUser, pass: emailPass },
-      tls: { rejectUnauthorized: false },
-      connectionTimeout: 12000,
-      greetingTimeout: 12000,
-      socketTimeout: 15000,
-    });
-    return await transporter587.sendMail(mailOptions);
-  } catch (err2) {
-    lastErr = err2;
-    console.warn('⚠️ Tier 2 (port 587 IPv4) delivery notice:', err2.message);
+  // Tier 2: STARTTLS Port 587 to IPv4 endpoints
+  for (const ip of ipv4List.slice(0, 2)) {
+    try {
+      const transporter = nodemailer.createTransport({
+        host: ip,
+        port: 587,
+        secure: false,
+        auth: { user: emailUser, pass: emailPass },
+        tls: {
+          servername: 'smtp.gmail.com',
+          rejectUnauthorized: false,
+        },
+        connectionTimeout: 8000,
+        greetingTimeout: 8000,
+        socketTimeout: 10000,
+      });
+
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`✅ Mail dispatched via IPv4 ${ip}:587 (ID: ${info.messageId})`);
+      return info;
+    } catch (err) {
+      lastErr = err;
+      console.warn(`⚠️ Port 587 (${ip}) delivery notice:`, err.message);
+    }
   }
 
   // Tier 3: service: 'gmail'
   try {
     const transporterGmail = nodemailer.createTransport({
       service: 'gmail',
-      family: 4,
       auth: { user: emailUser, pass: emailPass },
-      connectionTimeout: 12000,
-      greetingTimeout: 12000,
-      socketTimeout: 15000,
+      connectionTimeout: 8000,
+      greetingTimeout: 8000,
+      socketTimeout: 10000,
     });
-    return await transporterGmail.sendMail(mailOptions);
+    const info = await transporterGmail.sendMail(mailOptions);
+    console.log(`✅ Mail dispatched via service:gmail (ID: ${info.messageId})`);
+    return info;
   } catch (err3) {
     lastErr = err3;
-    console.warn('⚠️ Tier 3 (service: gmail) delivery notice:', err3.message);
+    console.warn('⚠️ Tier 3 (service: gmail) notice:', err3.message);
   }
 
   throw lastErr || new Error('All SMTP email delivery tiers failed.');
@@ -82,7 +129,7 @@ async function sendMailWithFallback(mailOptions) {
 /**
  * Resolves the actual real-world recipient email address for a login event
  */
-function resolveRecipientEmail(toEmail) {
+export function resolveRecipientEmail(toEmail) {
   if (!toEmail || typeof toEmail !== 'string') {
     return DEFAULT_EMAIL_USER;
   }
@@ -119,15 +166,25 @@ export async function sendPasswordResetEmail(toEmail, userName, tempPassword) {
   const emailUser = process.env.EMAIL_USER || DEFAULT_EMAIL_USER;
   const targetRecipient = resolveRecipientEmail(toEmail);
 
+  const plainText = `AgriConnect Password Recovery
+
+Hello ${userName || 'Farmer / Buyer'},
+
+We received a request to recover the password for your AgriConnect account (${toEmail}).
+
+Your Temporary Password: ${tempPassword}
+
+Log in at: https://agri-connect-delta-five.vercel.app/login
+Please update your password in Account Settings once logged in.
+
+- AgriConnect Team`;
+
   const mailOptions = {
-    from: `"AgriConnect Support" <${emailUser}>`,
+    from: `"Rockland Rowan (AgriConnect)" <${emailUser}>`,
+    replyTo: emailUser,
     to: targetRecipient,
     subject: `AgriConnect Password Reset: ${userName || toEmail}`,
-    headers: {
-      'X-Priority': '1',
-      'X-MSMail-Priority': 'High',
-      'Importance': 'high',
-    },
+    text: plainText,
     html: `
       <!DOCTYPE html>
       <html>
@@ -155,7 +212,7 @@ export async function sendPasswordResetEmail(toEmail, userName, tempPassword) {
           <div class="container">
             <div class="header">
               <h1>🌾 AgriConnect</h1>
-              <p>Next-Gen Digital Agricultural Marketplace</p>
+              <p>Direct Agricultural Digital Marketplace</p>
             </div>
             <div class="content">
               <div class="greeting">Hello ${userName || 'Farmer / Buyer'},</div>
@@ -163,18 +220,18 @@ export async function sendPasswordResetEmail(toEmail, userName, tempPassword) {
                 We received a request to recover the password for your AgriConnect account associated with <strong>${toEmail}</strong>.
               </div>
               <div class="password-card">
-                <div class="password-label">Your New Temporary Password</div>
+                <div class="password-label">Your Temporary Password</div>
                 <div class="password-val">${tempPassword}</div>
               </div>
               <div class="action-box">
                 <a href="https://agri-connect-delta-five.vercel.app/login" class="action-btn">Log In to AgriConnect</a>
               </div>
               <div class="security-note">
-                <strong>Security Tip:</strong> Use this password to log in, and remember to update your password in your Account Settings right away. If you did not request this, please disregard this email.
+                Use this password to sign in, then update your password in Account Settings. If you did not request this, please disregard this email.
               </div>
             </div>
             <div class="footer">
-              © ${new Date().getFullYear()} AgriConnect Digital Agriculture Platform. All rights reserved.
+              © ${new Date().getFullYear()} AgriConnect Platform. All rights reserved.
             </div>
           </div>
         </body>
@@ -212,25 +269,26 @@ export async function sendLoginNotificationEmail(toEmail, userName, role, detail
   const loginMethod = details.method || 'Password Authentication';
   const ipAddress = details.ip || 'Client Network';
 
-  const plainText = `AgriConnect Login Notification
+  const plainText = `AgriConnect Login Confirmation
 
 Hello ${userName || 'User'},
 
-A login to your AgriConnect account was just detected.
+A login to your AgriConnect account was just confirmed.
 - Account: ${toEmail}
-- Target: ${targetRecipient}
+- Delivered to: ${targetRecipient}
 - Role: ${roleLabel}
 - Time: ${formattedTime}
-- Method: ${loginMethod}
+- Sign-In Method: ${loginMethod}
 - Device: ${device}
 
-If this was you, no action is needed. If you did not log in, please reset your password.
+If this was you, you are all set. If you did not log in, please reset your password.
 AgriConnect Platform: https://agri-connect-delta-five.vercel.app`;
 
   const mailOptions = {
-    from: `"AgriConnect Platform" <${emailUser}>`,
+    from: `"Rockland Rowan (AgriConnect)" <${emailUser}>`,
+    replyTo: emailUser,
     to: targetRecipient,
-    subject: `AgriConnect Login: ${userName || targetRecipient} (${roleLabel})`,
+    subject: `AgriConnect Login Confirmation: ${userName || targetRecipient}`,
     text: plainText,
     html: `
       <!DOCTYPE html>
@@ -254,7 +312,6 @@ AgriConnect Platform: https://agri-connect-delta-five.vercel.app`;
             .detail-value { color: #0f172a; font-weight: 700; text-align: right; }
             .action-box { text-align: center; margin-bottom: 24px; }
             .action-btn { display: inline-block; background-color: #166534; color: #ffffff !important; font-size: 13px; font-weight: 700; text-decoration: none; padding: 12px 26px; border-radius: 12px; box-shadow: 0 2px 8px rgba(22, 101, 52, 0.25); }
-            .security-card { background: #fffbeb; border: 1px solid #fde68a; border-radius: 14px; padding: 14px 18px; font-size: 12px; line-height: 1.5; color: #92400e; margin-bottom: 20px; }
             .footer { background: #f8fafc; padding: 16px 24px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; }
           </style>
         </head>
@@ -265,10 +322,10 @@ AgriConnect Platform: https://agri-connect-delta-five.vercel.app`;
               <p>Direct Agricultural Digital Marketplace</p>
             </div>
             <div class="content">
-              <span class="alert-badge">✓ Security Notification</span>
+              <span class="alert-badge">✓ Login Confirmation</span>
               <div class="greeting">Hello ${userName || 'Valued User'},</div>
               <div class="message">
-                A successful login to your AgriConnect account was just detected. Here are the details of this session:
+                A successful login to your AgriConnect account was confirmed:
               </div>
               <div class="details-card">
                 <div class="detail-row">
@@ -280,11 +337,11 @@ AgriConnect Platform: https://agri-connect-delta-five.vercel.app`;
                   <span class="detail-value">${toEmail}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Delivered To</span>
+                  <span class="detail-label">Recipient Gmail</span>
                   <span class="detail-value" style="color: #166534;">${targetRecipient}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Account Role</span>
+                  <span class="detail-label">Role</span>
                   <span class="detail-value">${roleLabel}</span>
                 </div>
                 <div class="detail-row">
@@ -292,25 +349,21 @@ AgriConnect Platform: https://agri-connect-delta-five.vercel.app`;
                   <span class="detail-value">${formattedTime}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Sign-In Method</span>
+                  <span class="detail-label">Method</span>
                   <span class="detail-value">${loginMethod}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Device / Client</span>
+                  <span class="detail-label">Client Device</span>
                   <span class="detail-value">${device}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Network / IP</span>
+                  <span class="detail-label">Network IP</span>
                   <span class="detail-value">${ipAddress}</span>
                 </div>
               </div>
 
-              <div class="security-card">
-                <strong>🔒 Was this you?</strong> If you recently logged into AgriConnect, you can safely disregard this notification. If you did NOT log in or suspect unauthorized activity, please immediately change your password or contact our security team.
-              </div>
-
               <div class="action-box">
-                <a href="https://agri-connect-delta-five.vercel.app/login" class="action-btn">Go to AgriConnect</a>
+                <a href="https://agri-connect-delta-five.vercel.app/login" class="action-btn">Open AgriConnect</a>
               </div>
             </div>
             <div class="footer">
