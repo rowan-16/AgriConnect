@@ -1,12 +1,34 @@
 import { Crop, CropCategory } from '../types';
 import { INITIAL_CROPS } from './mockData';
 import { loadStorage, saveStorage } from './storageUtils';
+import { API_BASE_URL } from './apiConfig';
 
 const CROPS_KEY = 'crops';
 
 export const cropService = {
   getAllCrops(): Crop[] {
     return loadStorage<Crop[]>(CROPS_KEY, INITIAL_CROPS);
+  },
+
+  async fetchCropsFromMongoDB(): Promise<Crop[]> {
+    try {
+      const res = await fetch(`${API_BASE_URL}/crops`);
+      if (res.ok) {
+        const mongoCrops = await res.json();
+        if (Array.isArray(mongoCrops) && mongoCrops.length > 0) {
+          const local = this.getAllCrops();
+          const map = new Map<string, Crop>();
+          local.forEach(c => map.set(c.id, c));
+          mongoCrops.forEach((c: Crop) => map.set(c.id, c));
+          const merged = Array.from(map.values());
+          saveStorage(CROPS_KEY, merged);
+          return merged;
+        }
+      }
+    } catch {
+      // Graceful offline fallback
+    }
+    return this.getAllCrops();
   },
 
   getActiveCrops(): Crop[] {
@@ -37,6 +59,14 @@ export const cropService = {
 
     const updated = [newCrop, ...crops];
     saveStorage(CROPS_KEY, updated);
+
+    // Sync directly to MongoDB Atlas
+    fetch(`${API_BASE_URL}/crops`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newCrop),
+    }).catch(err => console.warn('MongoDB crop add sync note:', err));
+
     return newCrop;
   },
 
@@ -48,6 +78,14 @@ export const cropService = {
     const updatedCrop = { ...crops[index], ...updates };
     crops[index] = updatedCrop;
     saveStorage(CROPS_KEY, crops);
+
+    // Sync updates to MongoDB Atlas
+    fetch(`${API_BASE_URL}/crops/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    }).catch(err => console.warn('MongoDB crop update sync note:', err));
+
     return updatedCrop;
   },
 
@@ -56,6 +94,12 @@ export const cropService = {
     const filtered = crops.filter(c => c.id !== id);
     if (filtered.length === crops.length) return false;
     saveStorage(CROPS_KEY, filtered);
+
+    // Sync deletion to MongoDB Atlas
+    fetch(`${API_BASE_URL}/crops/${id}`, {
+      method: 'DELETE',
+    }).catch(err => console.warn('MongoDB crop delete sync note:', err));
+
     return true;
   },
 

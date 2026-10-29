@@ -11,6 +11,27 @@ export const orderService = {
     return loadStorage<Order[]>(ORDERS_KEY, INITIAL_ORDERS);
   },
 
+  async fetchOrdersFromMongoDB(): Promise<Order[]> {
+    try {
+      const res = await fetch(`${API_BASE_URL}/orders`);
+      if (res.ok) {
+        const mongoOrders = await res.json();
+        if (Array.isArray(mongoOrders) && mongoOrders.length > 0) {
+          const local = this.getAllOrders();
+          const map = new Map<string, Order>();
+          local.forEach(o => map.set(o.id, o));
+          mongoOrders.forEach((o: Order) => map.set(o.id, o));
+          const merged = Array.from(map.values());
+          saveStorage(ORDERS_KEY, merged);
+          return merged;
+        }
+      }
+    } catch {
+      // Graceful offline fallback
+    }
+    return this.getAllOrders();
+  },
+
   getOrderById(id: string): Order | undefined {
     return this.getAllOrders().find(o => o.id === id);
   },

@@ -127,10 +127,26 @@ export const authService = {
     }
   },
 
-  login(email: string, password = '', rememberMe = true): { success: boolean; user?: User; error?: string } {
+  async login(email: string, password = '', rememberMe = true): Promise<{ success: boolean; user?: User; error?: string }> {
     const users = this.getUsers();
     const cleanEmail = email.trim().toLowerCase();
-    const found = users.find(u => u.email.toLowerCase() === cleanEmail);
+    let found = users.find(u => u.email.toLowerCase() === cleanEmail);
+
+    // If not found in local cache, attempt fetching directly from MongoDB Atlas
+    if (!found && cleanEmail.includes('@')) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/users/by-email/${encodeURIComponent(cleanEmail)}`);
+        if (res.ok) {
+          const dbUser = await res.json();
+          if (dbUser && dbUser.email) {
+            found = dbUser;
+            saveStorage(USERS_KEY, [dbUser, ...users]);
+          }
+        }
+      } catch {
+        // Fallback
+      }
+    }
 
     if (found) {
       if (found.status === 'suspended') {
@@ -393,6 +409,22 @@ export const authService = {
         found.name = googleProfile.name;
         changed = true;
       }
+      // Guarantee role switches to the selected role (e.g. farmer -> buyer or buyer -> farmer)
+      if (role && found.role !== role) {
+        found.role = role;
+        if (role === 'buyer') {
+          found.businessName = found.businessName || 'FreshnessMart Superstores';
+          found.buyerType = found.buyerType || 'Commercial Buyer';
+          delete (found as any).farmName;
+          delete (found as any).cropsGrown;
+        } else if (role === 'farmer') {
+          found.farmName = found.farmName || `${found.name}'s Agro Farm`;
+          delete (found as any).businessName;
+          delete (found as any).buyerType;
+          found.isVerified = true;
+        }
+        changed = true;
+      }
       if (changed) {
         saveStorage(USERS_KEY, users.map(u => u.id === found!.id ? found! : u));
       }
@@ -475,17 +507,45 @@ export const authService = {
     });
   },
 
-  deleteAccount(userId: string): boolean {
+  async deleteAccount(userIdOrEmail: string): Promise<boolean> {
     const users = this.getUsers();
-    const filtered = users.filter(u => u.id !== userId);
+    const currentUser = this.getCurrentUser();
+    const currentEmail = (currentUser?.email || '').toLowerCase().trim();
+    const target = (userIdOrEmail || '').toLowerCase().trim();
+
+    // 1. Remove from local storage by matching target OR currentEmail against id, _id, or email
+    const filtered = users.filter(u => {
+      const uId = String(u.id || '').toLowerCase().trim();
+      const uMongoId = String((u as any)._id || '').toLowerCase().trim();
+      const uEmail = String(u.email || '').toLowerCase().trim();
+      if (target && (uId === target || uMongoId === target || uEmail === target)) return false;
+      if (currentEmail && (uId === currentEmail || uMongoId === currentEmail || uEmail === currentEmail)) return false;
+      return true;
+    });
     saveStorage(USERS_KEY, filtered);
 
-    // Sync deletion to MongoDB Atlas
-    fetch(`${API_BASE_URL}/users/${userId}`, {
-      method: 'DELETE',
-    }).catch(() => {});
-
+    // 2. Clear current session and remembered credentials completely
     this.logout();
+    const remEmail = (localStorage.getItem('agriconnect_remembered_email') || '').toLowerCase().trim();
+    if (remEmail && (remEmail === target || remEmail === currentEmail)) {
+      localStorage.removeItem('agriconnect_remembered_email');
+      localStorage.removeItem('agriconnect_remembered_password');
+    }
+    localStorage.removeItem('agriconnect_session_user');
+    sessionStorage.removeItem('agriconnect_session_user');
+
+    // 3. Await deletion from MongoDB Atlas so Atlas is completely clean
+    try {
+      if (target) {
+        await fetch(`${API_BASE_URL}/users/${encodeURIComponent(target)}`, { method: 'DELETE' });
+      }
+      if (currentEmail && currentEmail !== target) {
+        await fetch(`${API_BASE_URL}/users/${encodeURIComponent(currentEmail)}`, { method: 'DELETE' });
+      }
+    } catch (err) {
+      console.warn('MongoDB deleteAccount sync notice:', err);
+    }
+
     return true;
   },
 

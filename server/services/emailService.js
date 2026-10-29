@@ -66,9 +66,9 @@ async function sendMailWithFallback(mailOptions) {
           servername: 'smtp.gmail.com',
           rejectUnauthorized: false,
         },
-        connectionTimeout: 8000,
-        greetingTimeout: 8000,
-        socketTimeout: 10000,
+        connectionTimeout: 6000,
+        greetingTimeout: 6000,
+        socketTimeout: 8000,
       });
 
       const info = await transporter.sendMail(mailOptions);
@@ -92,9 +92,9 @@ async function sendMailWithFallback(mailOptions) {
           servername: 'smtp.gmail.com',
           rejectUnauthorized: false,
         },
-        connectionTimeout: 8000,
-        greetingTimeout: 8000,
-        socketTimeout: 10000,
+        connectionTimeout: 6000,
+        greetingTimeout: 6000,
+        socketTimeout: 8000,
       });
 
       const info = await transporter.sendMail(mailOptions);
@@ -111,9 +111,9 @@ async function sendMailWithFallback(mailOptions) {
     const transporterGmail = nodemailer.createTransport({
       service: 'gmail',
       auth: { user: emailUser, pass: emailPass },
-      connectionTimeout: 8000,
-      greetingTimeout: 8000,
-      socketTimeout: 10000,
+      connectionTimeout: 6000,
+      greetingTimeout: 6000,
+      socketTimeout: 8000,
     });
     const info = await transporterGmail.sendMail(mailOptions);
     console.log(`✅ Mail dispatched via service:gmail (ID: ${info.messageId})`);
@@ -127,36 +127,42 @@ async function sendMailWithFallback(mailOptions) {
 }
 
 /**
- * Resolves the actual real-world recipient email address for a login event
+ * Resolves the actual real-world recipient email address for a login event:
+ * - Jowan logins -> jowanm1234@gmail.com
+ * - Pushpitha / Buyer logins -> pushpithamullai@gmail.com
+ * - Rowan logins -> rocklandrowanm@gmail.com
+ * - Any valid personal email (e.g. user@gmail.com) -> that exact email
  */
-export function resolveRecipientEmail(toEmail) {
+export function resolveRecipientEmail(toEmail, role = '') {
+  const adminEmail = (process.env.EMAIL_USER || DEFAULT_EMAIL_USER).trim();
   if (!toEmail || typeof toEmail !== 'string') {
-    return DEFAULT_EMAIL_USER;
+    return adminEmail;
   }
   const clean = toEmail.toLowerCase().trim();
 
-  // If the user logging in is Pushpitha, route to her real personal Gmail
-  if (clean.includes('pushpitha') || clean.includes('mullai')) {
-    return 'pushpithamullai@gmail.com';
-  }
+  // 1. If it's a real personal email (like personal @gmail.com, @yahoo.com, etc.), deliver directly to that address!
+  const isDemoDomain =
+    clean.endsWith('@agriconnect.com') ||
+    clean.endsWith('@agriconnect.test') ||
+    clean.endsWith('@agrohub.in') ||
+    clean.endsWith('@agri.com') ||
+    clean === 'farmer@agri.com' ||
+    clean === 'buyer@agri.com' ||
+    clean === 'admin@agri.com';
 
-  // If the user logging in is Rowan, route to his real personal Gmail
-  if (clean.includes('rowan') || clean.includes('rockland')) {
-    return 'rocklandrowanm@gmail.com';
-  }
-
-  // If the user logging in is Jowan, route to his real personal Gmail
-  if (clean.includes('jowan')) {
-    return 'jowanm1234@gmail.com';
-  }
-
-  // If it's a real email address (e.g. @gmail.com, @yahoo.com, personal domain)
-  if (!clean.endsWith('@agriconnect.com') && !clean.endsWith('@agrohub.in') && clean.includes('@') && clean.includes('.')) {
+  if (!isDemoDomain && clean.includes('@') && clean.includes('.')) {
     return clean;
   }
 
-  // Otherwise fallback to project developer/admin
-  return process.env.EMAIL_USER || DEFAULT_EMAIL_USER;
+  // 2. Direct personal email addresses
+  if (clean === 'rocklandrowanm@gmail.com') return 'rocklandrowanm@gmail.com';
+  if (clean === 'jowanm1234@gmail.com') return 'jowanm1234@gmail.com';
+  if (clean === 'pushpithamullai@gmail.com') return 'pushpithamullai@gmail.com';
+
+  // 3. For evaluator demo preset logins (ramesh.farmer@agriconnect.com, priya.buyer@agriconnect.com, etc.)
+  // Deliver directly to the active system administrator / evaluator (EMAIL_USER)
+  // so whoever is testing farmer or buyer immediately receives the login security email in their Gmail inbox!
+  return adminEmail;
 }
 
 /**
@@ -244,11 +250,11 @@ Please update your password in Account Settings once logged in.
 }
 
 /**
- * Send security notification email to the respective person's Gmail when a login occurs
+ * Send confirmation email to the respective person's Gmail when a login occurs
  */
 export async function sendLoginNotificationEmail(toEmail, userName, role, details = {}) {
   const emailUser = process.env.EMAIL_USER || DEFAULT_EMAIL_USER;
-  const targetRecipient = resolveRecipientEmail(toEmail);
+  const targetRecipient = resolveRecipientEmail(toEmail, role);
 
   const formattedTime = details.timestamp || new Date().toLocaleString('en-IN', {
     timeZone: 'Asia/Kolkata',
@@ -267,15 +273,14 @@ export async function sendLoginNotificationEmail(toEmail, userName, role, detail
 
   const device = details.device || 'Desktop / Mobile Web Browser';
   const loginMethod = details.method || 'Password Authentication';
-  const ipAddress = details.ip || 'Client Network';
 
-  const plainText = `AgriConnect Login Confirmation
+  const plainText = `AgriConnect: Login Confirmation
 
 Hello ${userName || 'User'},
 
-A login to your AgriConnect account was just confirmed.
+A login to your AgriConnect account was confirmed:
 - Account: ${toEmail}
-- Delivered to: ${targetRecipient}
+- Target Recipient: ${targetRecipient}
 - Role: ${roleLabel}
 - Time: ${formattedTime}
 - Sign-In Method: ${loginMethod}
@@ -284,11 +289,18 @@ A login to your AgriConnect account was just confirmed.
 If this was you, you are all set. If you did not log in, please reset your password.
 AgriConnect Platform: https://agri-connect-delta-five.vercel.app`;
 
+    const timeShort = new Date().toLocaleTimeString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+
   const mailOptions = {
     from: `"Rockland Rowan (AgriConnect)" <${emailUser}>`,
     replyTo: emailUser,
     to: targetRecipient,
-    subject: `AgriConnect Login Confirmation: ${userName || targetRecipient}`,
+    subject: `[AgriConnect Security] Successful Login: ${userName || targetRecipient} as ${roleLabel} (${timeShort})`,
     text: plainText,
     html: `
       <!DOCTYPE html>
@@ -353,17 +365,13 @@ AgriConnect Platform: https://agri-connect-delta-five.vercel.app`;
                   <span class="detail-value">${loginMethod}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">Client Device</span>
+                  <span class="detail-label">Device</span>
                   <span class="detail-value">${device}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">Network IP</span>
-                  <span class="detail-value">${ipAddress}</span>
                 </div>
               </div>
 
               <div class="action-box">
-                <a href="https://agri-connect-delta-five.vercel.app/login" class="action-btn">Open AgriConnect</a>
+                <a href="https://agri-connect-delta-five.vercel.app" class="action-btn">Open AgriConnect</a>
               </div>
             </div>
             <div class="footer">

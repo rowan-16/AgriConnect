@@ -43,13 +43,28 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleDeleteProfile = () => {
-    if (user?.id) {
-      deleteAccount(user.id);
+  const handleDeleteProfile = async () => {
+    setIsDeleting(true);
+    try {
+      const target = user?.id || (user as any)?._id || user?.email;
+      if (target) {
+        await deleteAccount(String(target));
+      } else {
+        const current = authService.getCurrentUser();
+        if (current?.email) {
+          await deleteAccount(current.email);
+        }
+      }
       showToast('Your profile account has been permanently deleted.', 'info', 'Profile Deleted');
       setShowDeleteModal(false);
       navigate('/login');
+    } catch (err: any) {
+      console.error('Delete profile error:', err);
+      showToast(err?.message || 'Failed to delete account.', 'error', 'Error');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -396,10 +411,18 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
 
               <button
                 type="button"
+                disabled={isDeleting}
                 onClick={handleDeleteProfile}
-                className="py-2.5 px-4 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-md shadow-rose-600/25 transition-all hover:scale-[1.01]"
+                className="py-2.5 px-4 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md shadow-rose-600/25 transition-all hover:scale-[1.01] flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                Permanently Delete
+                {isDeleting ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <span>Permanently Delete</span>
+                )}
               </button>
             </div>
           </div>

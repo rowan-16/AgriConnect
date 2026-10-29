@@ -300,6 +300,21 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
+app.get('/api/users/by-email/:email', async (req, res) => {
+  try {
+    const rawEmail = decodeURIComponent(req.params.email).toLowerCase().trim();
+    if (mongoose.connection.readyState === 1) {
+      const user = await User.findOne({ email: new RegExp(`^${rawEmail}$`, 'i') });
+      if (user) return res.json(user);
+    }
+    const seed = SEED_USERS.find(u => u.email.toLowerCase() === rawEmail);
+    if (seed) return res.json(seed);
+    return res.status(404).json({ error: 'User not found' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/users/register', async (req, res) => {
   try {
     const userData = { ...req.body };
@@ -449,14 +464,19 @@ app.post(['/api/auth/notify-login', '/auth/notify-login'], async (req, res) => {
           status: 'active',
           password: 'password123',
         });
-        console.log(`👤 New user saved to MongoDB: ${dbUser.email}`);
+        console.log(`👤 New user saved to MongoDB: ${dbUser.email} (${dbUser.role})`);
       } else {
-        console.log(`👤 User retrieved from MongoDB: ${dbUser.email} (${dbUser.name})`);
+        console.log(`👤 User retrieved from MongoDB: ${dbUser.email} (${dbUser.name}) [Role: ${dbUser.role}]`);
+        if (role && dbUser.role !== role) {
+          dbUser.role = role;
+          await dbUser.save();
+          console.log(`🔄 Updated user role in MongoDB to ${role} for ${dbUser.email}`);
+        }
       }
       if (dbUser && dbUser.email) {
         fetchedGmail = dbUser.email;
         fetchedName = dbUser.name || fetchedName;
-        fetchedRole = dbUser.role || fetchedRole;
+        fetchedRole = role || dbUser.role || fetchedRole;
       }
     } catch (dbErr) {
       console.warn('MongoDB user lookup notice:', dbErr.message);
@@ -623,6 +643,36 @@ app.post('/api/crops', async (req, res) => {
     res.status(201).json({ ...req.body, id: `crp_${Date.now()}` });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+app.patch('/api/crops/:id', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState === 1) {
+      const updated = await Crop.findOneAndUpdate(
+        { $or: [{ id: req.params.id }, { _id: mongoose.isValidObjectId(req.params.id) ? req.params.id : undefined }].filter(Boolean) },
+        { $set: req.body },
+        { returnDocument: 'after' }
+      );
+      if (updated) return res.json(updated);
+    }
+    res.json({ id: req.params.id, ...req.body });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete('/api/crops/:id', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState === 1) {
+      await Crop.findOneAndDelete({
+        $or: [{ id: req.params.id }, { _id: mongoose.isValidObjectId(req.params.id) ? req.params.id : undefined }].filter(Boolean)
+      });
+      return res.json({ success: true, message: 'Crop deleted' });
+    }
+    res.json({ success: true, message: 'Crop deleted (offline)' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -1008,12 +1058,21 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const distPath = path.join(__dirname, '../dist');
 
-// DELETE user route for admin manage users
+// DELETE user route for account deletion & admin management
 app.delete('/api/users/:id', async (req, res) => {
   try {
-    const targetId = req.params.id;
+    const rawTarget = decodeURIComponent(req.params.id).trim();
     if (mongoose.connection.readyState === 1) {
-      await User.deleteMany({ $or: [{ id: targetId }, { email: targetId.toLowerCase() }] });
+      const orConditions = [
+        { id: rawTarget },
+        { email: rawTarget.toLowerCase() },
+        { email: new RegExp(`^${rawTarget}$`, 'i') },
+      ];
+      if (mongoose.Types.ObjectId.isValid(rawTarget)) {
+        orConditions.push({ _id: rawTarget });
+      }
+      const result = await User.deleteMany({ $or: orConditions });
+      console.log(`🗑️ User deleted from MongoDB Atlas: "${rawTarget}" (${result.deletedCount} removed)`);
     }
     return res.json({ success: true, message: 'User deleted successfully' });
   } catch (err) {

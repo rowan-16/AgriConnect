@@ -251,7 +251,7 @@ export const LoginPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const res = login(email, password, rememberMe);
+      const res = await login(email, password, rememberMe);
       if (res.success && res.user) {
         showToast(`Welcome back, ${res.user.name}!`, 'success', 'Login Successful');
         await notifyUserLogin(res.user, 'Password Authentication');
@@ -304,14 +304,52 @@ export const LoginPage: React.FC = () => {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
         <div className="bg-white py-8 px-6 sm:px-8 shadow-soft-lg rounded-3xl border border-slate-200/80">
           
-          {/* Google Sign-In Button (Single unified button) */}
-          <div className="mb-5 space-y-2">
+          {/* Google Sign-In Role Selector & Button */}
+          <div className="mb-5 space-y-3">
+            <div>
+              <label className="block text-[11px] font-black text-slate-600 uppercase tracking-wider text-center mb-1.5">
+                {t('selectGoogleRole', 'Select Account Role for Google Login:')}
+              </label>
+              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-2xl border border-slate-200/80">
+                <button
+                  type="button"
+                  id="google-role-farmer-btn"
+                  onClick={() => setGoogleRole('farmer')}
+                  className={`py-2.5 px-3 text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    googleRole === 'farmer'
+                      ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-600/20'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                  }`}
+                >
+                  <Sprout className="w-4 h-4" />
+                  <span>{t('farmerOrProducer', 'Farmer / Producer')}</span>
+                </button>
+                <button
+                  type="button"
+                  id="google-role-buyer-btn"
+                  onClick={() => setGoogleRole('buyer')}
+                  className={`py-2.5 px-3 text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    googleRole === 'buyer'
+                      ? 'bg-amber-600 text-white shadow-sm ring-2 ring-amber-600/20'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                  }`}
+                >
+                  <ShoppingBag className="w-4 h-4" />
+                  <span>{t('commercialBuyer', 'Commercial Buyer')}</span>
+                </button>
+              </div>
+            </div>
 
             <button
               type="button"
+              id="google-login-btn"
               onClick={() => handleGoogleLogin(googleRole)}
               disabled={isGoogleLoading}
-              className="w-full py-3 px-4 bg-white hover:bg-slate-50 text-slate-700 font-bold text-sm rounded-2xl border border-slate-200 shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-3 group cursor-pointer disabled:opacity-60"
+              className={`w-full py-3.5 px-4 font-bold text-sm rounded-2xl border shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-3 group cursor-pointer disabled:opacity-60 ${
+                googleRole === 'buyer'
+                  ? 'bg-amber-50/60 hover:bg-amber-100/70 text-slate-800 border-amber-300'
+                  : 'bg-white hover:bg-emerald-50/60 text-slate-800 border-slate-200'
+              }`}
             >
               {isGoogleLoading ? (
                 <div className="flex items-center gap-2">
@@ -326,35 +364,14 @@ export const LoginPage: React.FC = () => {
                     <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                   </svg>
-                  <span>{t('continueWithGoogle', 'Continue with Google')}</span>
+                  <span>
+                    {googleRole === 'buyer'
+                      ? 'Continue with Google as Buyer'
+                      : 'Continue with Google as Farmer'}
+                  </span>
                 </>
               )}
             </button>
-
-            {/* Quick role selector for Google login */}
-            <div className="flex items-center justify-center gap-4 text-[11px] text-slate-500 font-medium pt-1">
-              <span>{t('loginAs', 'Login as:')}</span>
-              <label className="flex items-center gap-1 cursor-pointer hover:text-emerald-700">
-                <input
-                  type="radio"
-                  name="googleRole"
-                  checked={googleRole === 'farmer'}
-                  onChange={() => setGoogleRole('farmer')}
-                  className="w-3 h-3 text-emerald-600 focus:ring-emerald-500"
-                />
-                {t('farmerOrProducer', 'Farmer / Producer')}
-              </label>
-              <label className="flex items-center gap-1 cursor-pointer hover:text-amber-700">
-                <input
-                  type="radio"
-                  name="googleRole"
-                  checked={googleRole === 'buyer'}
-                  onChange={() => setGoogleRole('buyer')}
-                  className="w-3 h-3 text-amber-600 focus:ring-amber-500"
-                />
-                {t('commercialBuyer', 'Commercial Buyer')}
-              </label>
-            </div>
           </div>
 
           <div className="relative my-5">
@@ -548,6 +565,34 @@ export const LoginPage: React.FC = () => {
               <p className="text-xs text-slate-500">
                 Enter your Google account email to sign in directly:
               </p>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Sign in as Role <span className="text-rose-500">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl mb-3">
+                  <button
+                    type="button"
+                    onClick={() => setGoogleRole('farmer')}
+                    className={`py-2 px-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      googleRole === 'farmer' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <Sprout className="w-3.5 h-3.5" />
+                    <span>Farmer / Producer</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGoogleRole('buyer')}
+                    className={`py-2 px-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      googleRole === 'buyer' ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <ShoppingBag className="w-3.5 h-3.5" />
+                    <span>Commercial Buyer</span>
+                  </button>
+                </div>
+              </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
