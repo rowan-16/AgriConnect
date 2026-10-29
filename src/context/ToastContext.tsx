@@ -1,15 +1,15 @@
 import React, { createContext, useContext, useState } from 'react';
-import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
+import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
 
 interface Toast {
   id: string;
-  type: 'success' | 'error' | 'info';
+  type: 'success' | 'error' | 'warning' | 'info';
   message: string;
   title?: string;
 }
 
 interface ToastContextType {
-  showToast: (message: string, type?: 'success' | 'error' | 'info', title?: string) => void;
+  showToast: (message: string, type?: 'success' | 'error' | 'warning' | 'info', title?: string) => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -17,14 +17,14 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success', title?: string) => {
+  const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success', title?: string) => {
     const id = `toast_${Date.now()}_${Math.random()}`;
     const newToast: Toast = { id, type, message, title };
     setToasts(prev => [...prev, newToast]);
 
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
-    }, 4000);
+    }, 4500);
   };
 
   const removeToast = (id: string) => {
@@ -44,11 +44,14 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 ? 'bg-emerald-900/95 text-emerald-50 border-emerald-700/60 shadow-emerald-950/20 backdrop-blur-md'
                 : toast.type === 'error'
                 ? 'bg-red-900/95 text-red-50 border-red-700/60 shadow-red-950/20 backdrop-blur-md'
+                : toast.type === 'warning'
+                ? 'bg-amber-900/95 text-amber-50 border-amber-700/60 shadow-amber-950/20 backdrop-blur-md'
                 : 'bg-slate-900/95 text-slate-50 border-slate-700/60 shadow-slate-950/20 backdrop-blur-md'
             }`}
           >
             {toast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />}
             {toast.type === 'error' && <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />}
+            {toast.type === 'warning' && <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />}
             {toast.type === 'info' && <Info className="w-5 h-5 text-sky-400 shrink-0 mt-0.5" />}
             
             <div className="flex-1 text-sm">

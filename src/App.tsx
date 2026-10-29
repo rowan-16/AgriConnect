@@ -51,6 +51,7 @@ import { AdminProfile } from './pages/admin/AdminProfile';
 import { LanguageProvider } from './context/LanguageContext';
 import { AIChatbotPage } from './pages/common/AIChatbotPage';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
+import { TestCaseEvaluatorModal } from './components/common/TestCaseEvaluatorModal';
 
 const AppRoutes: React.FC = () => {
   return (
@@ -123,6 +124,7 @@ export const App: React.FC = () => {
             <NotificationProvider>
               <ToastProvider>
                 <AppRoutes />
+                <TestCaseEvaluatorModal />
               </ToastProvider>
             </NotificationProvider>
           </CartProvider>

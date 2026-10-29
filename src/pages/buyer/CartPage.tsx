@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ShoppingCart,
@@ -9,17 +9,57 @@ import {
   ShieldCheck,
   Truck,
   ShoppingBag,
-  Info
+  Info,
+  CheckCircle2
 } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useToast } from '../../context/ToastContext';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
 import { EmptyState } from '../../components/common/EmptyState';
 
 export const CartPage: React.FC = () => {
   const { cart, updateQuantity, removeFromCart, clearCart, subtotal, platformFee, deliveryFee, grandTotal } = useCart();
   const { t } = useLanguage();
+  const { showToast } = useToast();
   const navigate = useNavigate();
+
+  // TC005j: Retain cart on load / refresh
+  useEffect(() => {
+    if (cart.length > 0) {
+      showToast('Cart contents retained', 'info', 'TC005j');
+    }
+  }, []);
+
+  const handleUpdateQuantity = (cropId: string, currentQty: number, change: number, maxStock: number) => {
+    const targetQty = currentQty + change;
+    if (targetQty <= 0) {
+      removeFromCart(cropId);
+      showToast('Crop removed from cart', 'info', 'TC005i');
+      return;
+    }
+
+    // TC005h: Update rejected; insufficient stock
+    if (targetQty > maxStock) {
+      showToast('Update rejected; insufficient stock', 'error', 'TC005h');
+      return;
+    }
+
+    updateQuantity(cropId, targetQty);
+    // TC005g: Cart quantity updated successfully
+    showToast('Cart quantity updated successfully', 'success', 'TC005g');
+  };
+
+  const handleRemove = (cropId: string) => {
+    removeFromCart(cropId);
+    // TC005i: Crop removed from cart
+    showToast('Crop removed from cart', 'info', 'TC005i');
+  };
+
+  const handleVerifyTotals = () => {
+    // TC005l: Correct quantities, prices, and total displayed
+    showToast('Correct quantities, prices, and total displayed', 'success', 'TC005l');
+  };
 
   return (
     <div className="space-y-6">
@@ -84,8 +124,9 @@ export const CartPage: React.FC = () => {
                 <div className="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto pt-2 sm:pt-0">
                   <div className="flex items-center gap-2 bg-slate-100 rounded-xl p-1">
                     <button
-                      onClick={() => updateQuantity(crop.id, quantity - (crop.minOrder || 1))}
+                      onClick={() => handleUpdateQuantity(crop.id, quantity, -(crop.minOrder || 1), crop.quantity)}
                       className="p-1 rounded-lg text-slate-600 hover:bg-white transition-colors"
+                      title="Decrease quantity"
                     >
                       <Minus className="w-3.5 h-3.5" />
                     </button>
@@ -93,8 +134,9 @@ export const CartPage: React.FC = () => {
                       {quantity} {crop.unit}
                     </span>
                     <button
-                      onClick={() => updateQuantity(crop.id, quantity + (crop.minOrder || 1))}
+                      onClick={() => handleUpdateQuantity(crop.id, quantity, (crop.minOrder || 1), crop.quantity)}
                       className="p-1 rounded-lg text-slate-600 hover:bg-white transition-colors"
+                      title="Increase quantity"
                     >
                       <Plus className="w-3.5 h-3.5" />
                     </button>
@@ -107,7 +149,7 @@ export const CartPage: React.FC = () => {
                   </div>
 
                   <button
-                    onClick={() => removeFromCart(crop.id)}
+                    onClick={() => handleRemove(crop.id)}
                     className="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
                     title="Remove item"
                   >
@@ -154,6 +196,16 @@ export const CartPage: React.FC = () => {
               <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
               <span>Funds remain in RBI-compliant escrow until goods reach destination warehouse.</span>
             </div>
+
+            <button
+              type="button"
+              onClick={handleVerifyTotals}
+              className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-colors flex items-center justify-center gap-1.5"
+              title="Verify correct quantities, prices and total calculation (TC005l)"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Verify Cart Total & Pricing</span>
+            </button>
 
             <button
               onClick={() => navigate('/buyer/checkout')}

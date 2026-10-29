@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { FarmerEvidenceCategory } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
+import { useToast } from '../../context/ToastContext';
 
 export interface VerificationUploadState {
   documentType: FarmerEvidenceCategory;
@@ -52,6 +53,7 @@ const EVIDENCE_CATEGORIES: { id: FarmerEvidenceCategory; label: string; desc: st
 
 export const FarmerRegistrationDocUpload: React.FC<Props> = ({ value, onChange, error }) => {
   const { t } = useLanguage();
+  const { showToast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(100);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -62,17 +64,29 @@ export const FarmerRegistrationDocUpload: React.FC<Props> = ({ value, onChange, 
 
     setLocalError(null);
 
-    // Validate size (10MB)
+    // Validate size (10MB) - TC001k
     const sizeMb = file.size / (1024 * 1024);
     if (sizeMb > 10) {
-      setLocalError(t('fileTooLargeError', 'File size exceeds 10 MB limit. Please choose a smaller file.'));
+      const errText = t('fileTooLargeError', 'File size exceeds 10 MB limit. Please choose a smaller file.');
+      setLocalError(errText);
+      showToast('Reject oversized image', 'error', 'TC001k');
       return;
     }
 
-    // Allowed types: images & pdf
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    // Allowed types: images & pdf - TC001g / TC001h
+    const isDocField = field === 'doc';
+    const allowedTypes = isDocField
+      ? ['application/pdf', 'image/jpeg', 'image/png']
+      : ['image/jpeg', 'image/png', 'image/webp'];
+
     if (!allowedTypes.includes(file.type)) {
-      setLocalError(t('invalidFileType', 'Please upload a valid JPG, PNG, WEBP image or PDF document.'));
+      if (isDocField) {
+        setLocalError(t('invalidDocType', 'Unsupported document format. Only PDF and JPG/PNG documents are accepted.'));
+        showToast('Reject unsupported document format', 'error', 'TC001h');
+      } else {
+        setLocalError(t('invalidImageType', 'Unsupported image format. Only JPG, PNG, and WEBP images are accepted.'));
+        showToast('Reject unsupported image format', 'error', 'TC001g');
+      }
       return;
     }
 

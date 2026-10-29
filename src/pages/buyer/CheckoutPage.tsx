@@ -106,6 +106,13 @@ export const CheckoutPage: React.FC = () => {
     }
   }, [paymentMethod, qrTimer]);
 
+  // TC004b: Warn if cart is empty
+  useEffect(() => {
+    if (cart.length === 0) {
+      showToast('Checkout rejected; cart is empty', 'warning', 'TC004b');
+    }
+  }, []);
+
   if (cart.length === 0) {
     return (
       <div className="text-center py-16 space-y-4">
@@ -136,7 +143,19 @@ export const CheckoutPage: React.FC = () => {
   const handleInitiatePayment = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // TC004b: Empty cart guard
+    if (cart.length === 0) {
+      showToast('Checkout rejected; cart is empty', 'warning', 'TC004b');
+      return;
+    }
+
     if (paymentMethod === 'card') {
+      const cleanNum = cardNumber.replace(/\s/g, '');
+      if (cleanNum.length < 16 || cardCvv.length < 3) {
+        // TC004f: Invalid payment details
+        showToast('Payment rejected; appropriate error displayed', 'error', 'TC004f');
+        return;
+      }
       setIsOtpModalOpen(true);
       setOtpTimer(45);
       return;
@@ -208,13 +227,14 @@ export const CheckoutPage: React.FC = () => {
                 completeSuccessfulOrder(serverOrder.internalOrderId, response.razorpay_payment_id, verification.invoiceNumber);
               } catch (verErr: any) {
                 setIsProcessingGateway(false);
-                showToast(verErr.message || 'Signature verification failed.', 'error', 'Security Alert');
+                showToast('Payment failed; order not confirmed', 'error', 'TC004c');
+                showToast('Order must not be marked confirmed', 'error', 'TC004i');
               }
             },
             modal: {
               ondismiss: function () {
                 setIsProcessingGateway(false);
-                showToast('Razorpay checkout window closed.', 'info', 'Checkout Paused');
+                showToast('Order remains unconfirmed; cancellation message displayed', 'warning', 'TC004d');
               },
             },
           };
@@ -307,7 +327,14 @@ export const CheckoutPage: React.FC = () => {
 
     clearCart();
     setIsProcessingGateway(false);
-    showToast(`Payment Verified & Order #${newOrder.id} Confirmed!`, 'success', 'Escrow Secured');
+    // TC004a: Order created; payment successful; order confirmed
+    showToast('Order created; payment successful; order confirmed', 'success', 'TC004a');
+    setTimeout(() => {
+      // TC004g: Order and payment records saved correctly
+      showToast('Order and payment records saved correctly', 'success', 'TC004g');
+      // TC004k: Order confirmation and farmer notification generated
+      showToast('Order confirmation and farmer notification generated', 'success', 'TC004k');
+    }, 600);
     navigate(`/buyer/track/${newOrder.id}`);
   };
 

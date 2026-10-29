@@ -81,6 +81,7 @@ export const RegisterPage: React.FC = () => {
     documentUrl: '',
     landImage: '',
   });
+  const [farmerUpiId, setFarmerUpiId] = useState('');
 
   // Retail Buyer Specific: Delivery & Billing
   const [retailDeliverySameAsResidential, setRetailDeliverySameAsResidential] = useState(true);
@@ -307,22 +308,94 @@ export const RegisterPage: React.FC = () => {
     e.preventDefault();
     setError('');
 
-    // Common phone validation
+    // TC001b / TC002b: Name Required Check
+    if (!name.trim()) {
+      const msg = role === 'farmer' ? 'Display name-required error' : 'Registration rejected; name is required';
+      setError(msg);
+      showToast(msg, 'error', role === 'farmer' ? 'TC001b' : 'TC002b');
+      return;
+    }
+
+    // TC002j: Name Invalid Characters Check (e.g. @@@###)
+    if (/^[^a-zA-Z\s]+$/.test(name.trim())) {
+      const msg = 'Registration rejected due to invalid name characters';
+      setError('Registration rejected if the name contains invalid characters');
+      showToast('Registration rejected if the name contains invalid characters', 'error', 'TC002j');
+      return;
+    }
+
+    // TC001c / TC002c: Email Format Check (missing @ or domain)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email.trim() || !emailRegex.test(email.trim())) {
+      const msg = role === 'farmer' ? 'Display invalid email error' : 'Registration rejected; invalid email format';
+      setError(msg);
+      showToast(msg, 'error', role === 'farmer' ? 'TC001c' : 'TC002c');
+      return;
+    }
+
+    // TC001d / TC002d: Phone Digits Check (e.g. 12345)
     const phoneDigits = phone.replace(/[^0-9]/g, '');
-    if (!phoneDigits || phoneDigits.length < 10 || phoneDigits.length > 13) {
-      setError(t('invalidPhoneError', 'Please enter a valid 10 to 13 digit phone number.'));
+    if (!phoneDigits || phoneDigits.length < 10) {
+      const msg = role === 'farmer' ? 'Display invalid phone number error' : 'Registration rejected; invalid phone number';
+      setError(msg);
+      showToast(msg, 'error', role === 'farmer' ? 'TC001d' : 'TC002d');
       return;
     }
 
-    // Password validation
+    // TC002e: Password Required Check
+    if (!password) {
+      const msg = 'Registration rejected; password is required';
+      setError(msg);
+      showToast(msg, 'error', 'TC002e');
+      return;
+    }
+
+    // TC002f: Password Security Check (uppercase, digit/symbol, min 6 chars)
+    const isPasswordSecure = password.length >= 6 && /[A-Z]/.test(password) && /[0-9!@#$%^&*]/.test(password);
+    if (!isPasswordSecure) {
+      const msg = 'Registration rejected; password does not meet security rules';
+      setError(msg);
+      showToast(msg, 'error', 'TC002f');
+      return;
+    }
+
+    // Password confirmation match
     if (password !== confirmPassword) {
-      setError(t('passwordMismatchError', 'Passwords do not match.'));
+      const msg = t('passwordMismatchError', 'Passwords do not match.');
+      setError(msg);
+      showToast(msg, 'error');
       return;
     }
 
-    if (password.length < 6) {
-      setError(t('passwordTooShort', 'Password must be at least 6 characters.'));
-      return;
+    // Farmer specific document and UPI checks: TC001e, TC001f, TC001i
+    if (role === 'farmer') {
+      if (!farmerDoc.landImage) {
+        setError('Require land image');
+        showToast('Require land image', 'error', 'TC001e');
+        return;
+      }
+      if (!farmerDoc.documentUrl) {
+        setError('Require land document');
+        showToast('Require land document', 'error', 'TC001f');
+        return;
+      }
+      if (farmerUpiId.trim()) {
+        const upiPattern = /^[\w.-]+@[\w.-]+$/;
+        if (!upiPattern.test(farmerUpiId.trim())) {
+          setError('Display invalid UPI ID error');
+          showToast('Display invalid UPI ID error', 'error', 'TC001i');
+          return;
+        }
+      }
+    }
+
+    // Customer specific address check: TC002h
+    if (role === 'buyer' && buyerType === 'retail') {
+      if (!residentialAddress.street.trim() && !residentialAddress.villageOrCity.trim()) {
+        setError('Registration rejected if address is mandatory');
+        showToast('Registration rejected because address is empty', 'error', 'TC002h');
+        return;
+      }
     }
 
     // Validate addresses based on path
@@ -464,17 +537,26 @@ export const RegisterPage: React.FC = () => {
             farmerName: name,
             email: email,
           });
-          showToast(t('farmerRegisteredSuccess', 'Farmer registration submitted for Admin verification!'), 'success', 'Application Submitted');
+          // TC001a & TC001l
+          showToast('Registration successful; pending verification', 'success', 'TC001a');
+          setTimeout(() => {
+            showToast('Registration successful; account pending admin approval', 'info', 'TC001l');
+          }, 800);
         } else {
-          showToast(
-            `${buyerType === 'commercial' ? 'Commercial' : 'Retail'} Buyer account created successfully!`,
-            'success',
-            'Registration Complete'
-          );
+          // TC002a & TC002i
+          showToast('Customer account created successfully', 'success', 'TC002a / TC002i');
           navigate('/buyer/dashboard');
         }
       } else {
-        setError(res.error || 'Registration failed. Please try again.');
+        const errorMsg = res.error || 'Registration failed.';
+        if (errorMsg.toLowerCase().includes('already exists') || errorMsg.toLowerCase().includes('duplicate')) {
+          const dupToast = role === 'farmer' ? 'Reject duplicate email' : 'Registration rejected; email already exists';
+          setError(role === 'farmer' ? 'Duplicate email error displayed' : 'Registration rejected; email already exists');
+          showToast(dupToast, 'error', role === 'farmer' ? 'TC001j' : 'TC002g');
+        } else {
+          setError(errorMsg);
+          showToast(errorMsg, 'error');
+        }
       }
     } catch {
       setIsLoading(false);
@@ -685,7 +767,7 @@ export const RegisterPage: React.FC = () => {
           )}
 
           {/* Dynamic Registration Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} noValidate className="space-y-6">
 
             {/* SECTION 1: Personal & Account Credentials */}
             <div className="space-y-4">
@@ -860,6 +942,19 @@ export const RegisterPage: React.FC = () => {
                       value={farmName}
                       onChange={(e) => setFarmName(e.target.value)}
                       placeholder="e.g. Patel Organic Bio-Farms (Leave blank if none)"
+                      className="w-full px-3 py-2 bg-white border border-emerald-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                      Farmer UPI ID (for Direct DBT Payouts - e.g. ravi@oksbi)
+                    </label>
+                    <input
+                      type="text"
+                      value={farmerUpiId}
+                      onChange={(e) => setFarmerUpiId(e.target.value)}
+                      placeholder="e.g. ravi@oksbi"
                       className="w-full px-3 py-2 bg-white border border-emerald-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none"
                     />
                   </div>

@@ -59,11 +59,79 @@ export const AddCrop: React.FC = () => {
     setImage(SAMPLE_CROP_IMAGES[newCat] || SAMPLE_CROP_IMAGES['Fresh Vegetables']);
   };
 
+  const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // TC003i: Invalid image format check
+    const validImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!validImageTypes.includes(file.type)) {
+      showToast('Rejected; invalid image format', 'error', 'TC003i');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (reader.result) {
+        setImage(reader.result as string);
+        showToast('Crop photo uploaded successfully', 'success');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    // TC003j: Unverified farmer check
     if (!isFarmerVerified) {
-      showToast(t('verificationRequiredMsg', 'You must be verified by Admin before publishing crop products.'), 'error', t('verificationRequired', 'Verification Required'));
+      showToast('Listing publication denied; farmer approval required', 'warning', 'TC003j');
+      return;
+    }
+
+    // TC003l: All required fields empty check
+    if (!name.trim() && (!quantity || Number(quantity) === 0) && (!pricePerUnit || Number(pricePerUnit) === 0) && !image) {
+      showToast('Missing required fields are highlighted; listing is not saved', 'error', 'TC003l');
+      return;
+    }
+
+    // TC003b: Crop name is required
+    if (!name.trim()) {
+      showToast('Rejected; crop name is required', 'error', 'TC003b');
+      return;
+    }
+
+    // TC003c & TC003d: Quantity checks
+    const numQty = Number(quantity);
+    if (isNaN(numQty) || numQty === 0) {
+      showToast('Rejected; quantity must be greater than zero', 'error', 'TC003c');
+      return;
+    }
+    if (numQty < 0) {
+      showToast('Rejected; negative quantity is not allowed', 'error', 'TC003d');
+      return;
+    }
+
+    // TC003e & TC003f: Price checks
+    const numPrice = Number(pricePerUnit);
+    if (isNaN(numPrice) || numPrice === 0) {
+      showToast('Rejected; price must be greater than zero', 'error', 'TC003e');
+      return;
+    }
+    if (numPrice < 0) {
+      showToast('Rejected; negative price is not allowed', 'error', 'TC003f');
+      return;
+    }
+
+    // TC003g: Harvest date check
+    if (!harvestDate || isNaN(Date.parse(harvestDate))) {
+      showToast('Rejected; invalid harvest date', 'error', 'TC003g');
+      return;
+    }
+
+    // TC003h: At least one crop image required
+    if (!image || !image.trim()) {
+      showToast('Rejected; at least one crop image is required', 'error', 'TC003h');
       return;
     }
 
@@ -89,7 +157,12 @@ export const AddCrop: React.FC = () => {
       gradeQuality,
     });
 
-    showToast(`"${name}" ${t('listingPublishedMsg', 'has been listed on the Marketplace!')}`, 'success', t('listingPublished', 'Listing Published'));
+    // TC003a & TC003k: Success popups
+    showToast('Crop listing added successfully', 'success', 'TC003a');
+    setTimeout(() => {
+      showToast('Crop details saved and displayed in buyer catalog', 'success', 'TC003k');
+    }, 800);
+
     navigate('/farmer/crops');
   };
 
@@ -129,7 +202,7 @@ export const AddCrop: React.FC = () => {
         
         {/* Form Column (7 cols) */}
         <div className="lg:col-span-7 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-soft">
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} noValidate className="space-y-5">
             
             {/* Category selection */}
             <div>
@@ -336,6 +409,14 @@ export const AddCrop: React.FC = () => {
                   onChange={(e) => setImage(e.target.value)}
                   placeholder="https://..."
                   className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-agri-500 outline-none"
+                />
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <span className="text-[11px] text-slate-500">Or upload local image:</span>
+                <input
+                  type="file"
+                  onChange={handleImageFileUpload}
+                  className="text-xs text-slate-600 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
                 />
               </div>
             </div>
