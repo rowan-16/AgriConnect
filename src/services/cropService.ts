@@ -5,9 +5,39 @@ import { API_BASE_URL } from './apiConfig';
 
 const CROPS_KEY = 'crops';
 
+type CropListener = (crops: Crop[]) => void;
+const cropListeners = new Set<CropListener>();
+
 export const cropService = {
+  subscribe(fn: CropListener) {
+    cropListeners.add(fn);
+    return () => cropListeners.delete(fn);
+  },
+
+  notifySubscribers(crops: Crop[]) {
+    cropListeners.forEach(fn => {
+      try { fn(crops); } catch {}
+    });
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('agriconnect_crops_updated', { detail: crops }));
+    }
+  },
+
   getAllCrops(): Crop[] {
-    return loadStorage<Crop[]>(CROPS_KEY, INITIAL_CROPS);
+    const cached = loadStorage<Crop[]>(CROPS_KEY, INITIAL_CROPS);
+    // Ensure all crops from INITIAL_CROPS (including Rowan's organic crops) are present
+    const map = new Map<string, Crop>();
+    cached.forEach(c => map.set(c.id, c));
+    INITIAL_CROPS.forEach(c => {
+      if (!map.has(c.id)) {
+        map.set(c.id, c);
+      }
+    });
+    const merged = Array.from(map.values());
+    if (merged.length !== cached.length) {
+      saveStorage(CROPS_KEY, merged);
+    }
+    return merged;
   },
 
   async fetchCropsFromMongoDB(): Promise<Crop[]> {
@@ -18,10 +48,12 @@ export const cropService = {
         if (Array.isArray(mongoCrops) && mongoCrops.length > 0) {
           const local = this.getAllCrops();
           const map = new Map<string, Crop>();
+          INITIAL_CROPS.forEach(c => map.set(c.id, c));
           local.forEach(c => map.set(c.id, c));
           mongoCrops.forEach((c: Crop) => map.set(c.id, c));
           const merged = Array.from(map.values());
           saveStorage(CROPS_KEY, merged);
+          this.notifySubscribers(merged);
           return merged;
         }
       }
@@ -59,6 +91,7 @@ export const cropService = {
 
     const updated = [newCrop, ...crops];
     saveStorage(CROPS_KEY, updated);
+    this.notifySubscribers(updated);
 
     // Sync directly to MongoDB Atlas
     fetch(`${API_BASE_URL}/crops`, {

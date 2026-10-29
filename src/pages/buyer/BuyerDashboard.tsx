@@ -36,8 +36,19 @@ export const BuyerDashboard: React.FC = () => {
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const allCrops = cropService.getActiveCrops();
+  const [allCrops, setAllCrops] = useState(() => cropService.getActiveCrops());
   const featuredCrops = allCrops.slice(0, 4);
+
+  useEffect(() => {
+    cropService.fetchCropsFromMongoDB().then((crops) => {
+      setAllCrops(crops.filter(c => c.status === 'active'));
+    });
+    const unsubscribe = cropService.subscribe((crops) => {
+      setAllCrops(crops.filter(c => c.status === 'active'));
+    });
+    return () => unsubscribe();
+  }, []);
+
   const myOrders = orderService.getOrdersByBuyer(user.id);
   const latestOrder = myOrders[0];
 

@@ -83,7 +83,7 @@ export const BrowseProducts: React.FC = () => {
     );
   };
 
-  useEffect(() => {
+  const refreshCropList = () => {
     const list = cropService.filterCrops({
       category: selectedCategory as any,
       search: searchTerm,
@@ -92,6 +92,30 @@ export const BrowseProducts: React.FC = () => {
       sortBy,
     });
     setCrops(list);
+  };
+
+  useEffect(() => {
+    // 1. Fetch live crops from MongoDB Atlas on mount
+    cropService.fetchCropsFromMongoDB().then(() => {
+      refreshCropList();
+    });
+
+    // 2. Subscribe to real-time additions (e.g. Rowan adding crops)
+    const unsubscribe = cropService.subscribe(() => {
+      refreshCropList();
+    });
+
+    const handleWindowUpdate = () => refreshCropList();
+    window.addEventListener('agriconnect_crops_updated', handleWindowUpdate);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('agriconnect_crops_updated', handleWindowUpdate);
+    };
+  }, []);
+
+  useEffect(() => {
+    refreshCropList();
   }, [selectedCategory, searchTerm, sortBy, organicOnly, maxPrice]);
 
   const categories: ('All' | CropCategory)[] = [

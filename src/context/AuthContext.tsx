@@ -8,11 +8,11 @@ interface AuthContextType {
   user: User | null;
   role: UserRole;
   isAuthenticated: boolean;
-  login: (email: string, password?: string, rememberMe?: boolean) => Promise<{ success: boolean; user?: User; error?: string }>;
+  login: (email: string, password?: string, rememberMe?: boolean, requestedRole?: UserRole) => Promise<{ success: boolean; user?: User; error?: string }>;
   loginWithGoogle: (role?: UserRole, googleProfile?: { name?: string; email?: string; picture?: string }, rememberMe?: boolean) => { success: boolean; user?: User; error?: string };
   register: (userData: any) => Promise<{ success: boolean; user?: User; error?: string }>;
   logout: () => void;
-  deleteAccount: (userId?: string) => Promise<void>;
+  deleteAccount: (userId?: string, optionalEmail?: string) => Promise<void>;
   updateUser: (updates: Partial<User>) => void;
 }
 
@@ -55,8 +55,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user]);
 
-  const login = async (email: string, password = '', rememberMe = true) => {
-    const res = await authService.login(email, password, rememberMe);
+  const login = async (email: string, password = '', rememberMe = true, requestedRole?: UserRole) => {
+    const res = await authService.login(email, password, rememberMe, requestedRole);
     if (res.success && res.user) {
       setUser(res.user);
     }
@@ -84,10 +84,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
-  const deleteAccount = async (userId?: string): Promise<void> => {
+  const deleteAccount = async (userId?: string, optionalEmail?: string): Promise<void> => {
     const idToDelete = userId || user?.id || (user as any)?._id || user?.email || authService.getCurrentUser()?.email;
+    const emailToDelete = optionalEmail || user?.email || authService.getCurrentUser()?.email;
     if (idToDelete) {
-      await authService.deleteAccount(String(idToDelete));
+      await authService.deleteAccount(String(idToDelete), emailToDelete ? String(emailToDelete) : undefined);
     }
     setUser(null);
   };

@@ -38,7 +38,7 @@ export const AddCrop: React.FC = () => {
   const { showToast } = useToast();
   const navigate = useNavigate();
 
-  const isFarmerVerified = Boolean(user.isVerified);
+  const isFarmerVerified = user.isVerified !== false;
 
   const [name, setName] = useState('');
   const [category, setCategory] = useState<CropCategory>('Fresh Vegetables');

@@ -25,7 +25,7 @@ export const FarmerSettings: React.FC = () => {
     try {
       const target = user?.id || (user as any)?._id || user?.email;
       if (target) {
-        await deleteAccount(String(target));
+        await deleteAccount(String(target), user?.email);
       }
       showToast('Your farmer profile account has been permanently deleted.', 'info', 'Profile Deleted');
       setShowDeleteModal(false);

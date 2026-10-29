@@ -4,6 +4,7 @@ import { loadStorage, saveStorage } from './storageUtils';
 
 const USERS_KEY = 'users';
 const CURRENT_USER_KEY = 'current_user';
+const DELETED_USERS_KEY = 'deleted_users';
 import { API_BASE_URL } from './apiConfig';
 
 let lastNotifiedEmail = '';
@@ -11,12 +12,13 @@ let lastNotifiedTime = 0;
 
 export const authService = {
   getUsers(): User[] {
-    const cached = loadStorage<User[]>(USERS_KEY, INITIAL_USERS);
-    // Ensure all critical users from INITIAL_USERS (Pushpitha, Rowan, etc.) are present even if localStorage had an older snapshot
+    const deletedList = loadStorage<string[]>(DELETED_USERS_KEY, []).map(e => e.toLowerCase());
+    const cached = loadStorage<User[]>(USERS_KEY, INITIAL_USERS).filter(u => !deletedList.includes(u.email.toLowerCase()));
+    // Ensure demo accounts are present while never resurrecting explicitly deleted users
     const map = new Map<string, User>();
     cached.forEach(u => map.set(u.email.toLowerCase(), u));
     INITIAL_USERS.forEach(u => {
-      if (!map.has(u.email.toLowerCase())) {
+      if (!map.has(u.email.toLowerCase()) && !deletedList.includes(u.email.toLowerCase())) {
         map.set(u.email.toLowerCase(), u);
       }
     });
@@ -33,10 +35,19 @@ export const authService = {
       if (res.ok) {
         const mongoUsers = await res.json();
         if (Array.isArray(mongoUsers) && mongoUsers.length > 0) {
+          const deletedList = loadStorage<string[]>(DELETED_USERS_KEY, []).map(e => e.toLowerCase());
           const current = this.getUsers();
           const map = new Map<string, User>();
-          current.forEach(u => map.set(u.email.toLowerCase(), u));
-          mongoUsers.forEach((u: User) => map.set(u.email.toLowerCase(), u));
+          current.forEach(u => {
+            if (!deletedList.includes(u.email.toLowerCase())) {
+              map.set(u.email.toLowerCase(), u);
+            }
+          });
+          mongoUsers.forEach((u: User) => {
+            if (!deletedList.includes(u.email.toLowerCase())) {
+              map.set(u.email.toLowerCase(), u);
+            }
+          });
           const allMerged = Array.from(map.values());
           saveStorage(USERS_KEY, allMerged);
           return allMerged;
@@ -127,7 +138,7 @@ export const authService = {
     }
   },
 
-  async login(email: string, password = '', rememberMe = true): Promise<{ success: boolean; user?: User; error?: string }> {
+  async login(email: string, password = '', rememberMe = true, requestedRole?: UserRole): Promise<{ success: boolean; user?: User; error?: string }> {
     const users = this.getUsers();
     const cleanEmail = email.trim().toLowerCase();
     let found = users.find(u => u.email.toLowerCase() === cleanEmail);
@@ -179,6 +190,36 @@ export const authService = {
       if (!isPasswordValid && found.email.toLowerCase() !== 'admin@agriconnect.com') {
         return { success: false, error: 'Incorrect password. Please check your credentials or use "Forgot Password".' };
       }
+
+      // If user selected a specific role (e.g. buyer) and existing record is different, switch role seamlessly
+      if (requestedRole && found.role !== requestedRole) {
+        found.role = requestedRole;
+        if (requestedRole === 'buyer') {
+          found.businessName = found.businessName || `${found.name}'s Procurement Hub`;
+          found.buyerType = 'Retailer';
+          delete (found as any).farmName;
+          delete (found as any).cropsGrown;
+        } else if (requestedRole === 'farmer') {
+          found.farmName = found.farmName || `${found.name}'s Agro Farm`;
+          delete (found as any).businessName;
+          delete (found as any).buyerType;
+          found.isVerified = true;
+        }
+        const updatedUsers = users.map(u => (u.id === found!.id || u.email.toLowerCase() === found!.email.toLowerCase() ? found! : u));
+        saveStorage(USERS_KEY, updatedUsers);
+
+        // Sync role switch to MongoDB Atlas in background
+        fetch(`${API_BASE_URL}/users/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(found),
+        }).catch(() => {});
+      }
+
+      // If user was previously in deleted list, remove them so they start fresh
+      const deletedList = loadStorage<string[]>(DELETED_USERS_KEY, []).filter(e => e.toLowerCase() !== cleanEmail);
+      saveStorage(DELETED_USERS_KEY, deletedList);
+
       if (found.preferredLanguage) {
         localStorage.setItem('agriconnect_language', found.preferredLanguage);
       }
@@ -190,20 +231,31 @@ export const authService = {
     // Auto-provision user if they type their personal Gmail/email so any person can log in and receive email
     if (cleanEmail.includes('@') && cleanEmail.includes('.')) {
       const displayName = cleanEmail.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const assignedRole = requestedRole || (cleanEmail.includes('farmer') ? 'farmer' : 'buyer');
       const newUser: User = {
         id: `usr_${Date.now()}`,
         name: displayName,
         email: cleanEmail,
-        role: cleanEmail.includes('farmer') ? 'farmer' : 'buyer',
+        role: assignedRole,
         phone: '+91 98765 43210',
         location: 'Tamil Nadu, India',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300',
+        avatar: assignedRole === 'farmer' 
+          ? 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=300'
+          : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300',
+        farmName: assignedRole === 'farmer' ? `${displayName}'s Agro Farm` : undefined,
+        businessName: assignedRole === 'buyer' ? `${displayName}'s Procurement Hub` : undefined,
+        buyerType: assignedRole === 'buyer' ? 'Retailer' : undefined,
+        isVerified: true,
         password: password || 'password123',
         status: 'active',
         createdAt: new Date().toISOString().split('T')[0],
       };
       const allUsers = [newUser, ...users];
       saveStorage(USERS_KEY, allUsers);
+
+      // Remove from deleted list
+      const deletedList = loadStorage<string[]>(DELETED_USERS_KEY, []).filter(e => e.toLowerCase() !== cleanEmail);
+      saveStorage(DELETED_USERS_KEY, deletedList);
 
       // Sync to MongoDB Atlas in background
       fetch(`${API_BASE_URL}/users/register`, {
@@ -381,6 +433,10 @@ export const authService = {
     const targetName = googleProfile?.name || (googleProfile?.email ? googleProfile.email.split('@')[0] : (role === 'farmer' ? 'Ramesh Patel (Google User)' : 'Priya Sharma (Google User)'));
     const targetAvatar = googleProfile?.picture || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300';
 
+    // Remove from deleted users blacklist so fresh login under chosen role is completely clean
+    const deletedList = loadStorage<string[]>(DELETED_USERS_KEY, []).filter(e => e.toLowerCase() !== targetEmail.toLowerCase());
+    saveStorage(DELETED_USERS_KEY, deletedList);
+
     const users = this.getUsers();
     let found = users.find(u => u.email.toLowerCase() === targetEmail.toLowerCase());
 
@@ -394,7 +450,8 @@ export const authService = {
         location: 'Nashik, Maharashtra',
         avatar: targetAvatar,
         farmName: role === 'farmer' ? `${targetName}'s Agro Farm` : undefined,
-        businessName: role === 'buyer' ? 'FreshnessMart Superstores' : undefined,
+        businessName: role === 'buyer' ? `${targetName}'s Procurement Hub` : undefined,
+        buyerType: role === 'buyer' ? 'Retailer' : undefined,
         status: 'active',
         createdAt: new Date().toISOString().split('T')[0],
       };
@@ -507,11 +564,26 @@ export const authService = {
     });
   },
 
-  async deleteAccount(userIdOrEmail: string): Promise<boolean> {
+  async deleteAccount(userIdOrEmail: string, explicitEmail?: string): Promise<boolean> {
     const users = this.getUsers();
     const currentUser = this.getCurrentUser();
-    const currentEmail = (currentUser?.email || '').toLowerCase().trim();
+    const currentEmail = (explicitEmail || currentUser?.email || '').toLowerCase().trim();
     const target = (userIdOrEmail || '').toLowerCase().trim();
+
+    // Identify all emails associated with this user to guarantee clean erasure
+    const targetEmails: string[] = [];
+    if (target.includes('@')) targetEmails.push(target);
+    if (currentEmail && currentEmail.includes('@') && !targetEmails.includes(currentEmail)) targetEmails.push(currentEmail);
+
+    const targetUser = users.find(u =>
+      String(u.id).toLowerCase() === target ||
+      String((u as any)._id).toLowerCase() === target ||
+      u.email.toLowerCase() === target ||
+      (currentEmail && u.email.toLowerCase() === currentEmail)
+    );
+    if (targetUser?.email && !targetEmails.includes(targetUser.email.toLowerCase())) {
+      targetEmails.push(targetUser.email.toLowerCase());
+    }
 
     // 1. Remove from local storage by matching target OR currentEmail against id, _id, or email
     const filtered = users.filter(u => {
@@ -520,27 +592,37 @@ export const authService = {
       const uEmail = String(u.email || '').toLowerCase().trim();
       if (target && (uId === target || uMongoId === target || uEmail === target)) return false;
       if (currentEmail && (uId === currentEmail || uMongoId === currentEmail || uEmail === currentEmail)) return false;
+      if (targetEmails.includes(uEmail)) return false;
       return true;
     });
     saveStorage(USERS_KEY, filtered);
 
-    // 2. Clear current session and remembered credentials completely
+    // 2. Add to deleted users blacklist so they NEVER resurrect via cache or initial seeds
+    const deletedList = loadStorage<string[]>(DELETED_USERS_KEY, []).map(e => e.toLowerCase());
+    targetEmails.forEach(email => {
+      if (!deletedList.includes(email)) {
+        deletedList.push(email);
+      }
+    });
+    saveStorage(DELETED_USERS_KEY, deletedList);
+
+    // 3. Clear current session and remembered credentials completely
     this.logout();
     const remEmail = (localStorage.getItem('agriconnect_remembered_email') || '').toLowerCase().trim();
-    if (remEmail && (remEmail === target || remEmail === currentEmail)) {
+    if (remEmail && (remEmail === target || remEmail === currentEmail || targetEmails.includes(remEmail))) {
       localStorage.removeItem('agriconnect_remembered_email');
       localStorage.removeItem('agriconnect_remembered_password');
     }
     localStorage.removeItem('agriconnect_session_user');
     sessionStorage.removeItem('agriconnect_session_user');
 
-    // 3. Await deletion from MongoDB Atlas so Atlas is completely clean
+    // 4. Await deletion from MongoDB Atlas so Atlas is completely clean
     try {
-      if (target) {
-        await fetch(`${API_BASE_URL}/users/${encodeURIComponent(target)}`, { method: 'DELETE' });
+      for (const email of targetEmails) {
+        await fetch(`${API_BASE_URL}/users/${encodeURIComponent(email)}`, { method: 'DELETE' });
       }
-      if (currentEmail && currentEmail !== target) {
-        await fetch(`${API_BASE_URL}/users/${encodeURIComponent(currentEmail)}`, { method: 'DELETE' });
+      if (target && !target.includes('@')) {
+        await fetch(`${API_BASE_URL}/users/${encodeURIComponent(target)}`, { method: 'DELETE' });
       }
     } catch (err) {
       console.warn('MongoDB deleteAccount sync notice:', err);

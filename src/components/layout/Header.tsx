@@ -50,11 +50,11 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
     try {
       const target = user?.id || (user as any)?._id || user?.email;
       if (target) {
-        await deleteAccount(String(target));
+        await deleteAccount(String(target), user?.email);
       } else {
         const current = authService.getCurrentUser();
         if (current?.email) {
-          await deleteAccount(current.email);
+          await deleteAccount(current.email, current.email);
         }
       }
       showToast('Your profile account has been permanently deleted.', 'info', 'Profile Deleted');

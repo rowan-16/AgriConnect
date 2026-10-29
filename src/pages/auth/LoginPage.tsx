@@ -35,7 +35,7 @@ export const LoginPage: React.FC = () => {
       authService.setRememberMe(true);
     }
   };
-  const [googleRole, setGoogleRole] = useState<'farmer' | 'buyer'>('farmer');
+  const [selectedRole, setSelectedRole] = useState<'farmer' | 'buyer'>('farmer');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -111,7 +111,7 @@ export const LoginPage: React.FC = () => {
                     .join('')
                 );
                 const googleUser = JSON.parse(jsonPayload);
-                const authRes = loginWithGoogle(googleRole, {
+                const authRes = loginWithGoogle(selectedRole, {
                   name: googleUser.name || googleUser.given_name || 'Google User',
                   email: googleUser.email,
                   picture: googleUser.picture,
@@ -131,9 +131,9 @@ export const LoginPage: React.FC = () => {
         console.warn('GSI Init Warning:', e);
       }
     }
-  }, [googleRole, clientId]);
+  }, [selectedRole, clientId]);
 
-  const handleGoogleLogin = (selectedRole: 'farmer' | 'buyer' = googleRole) => {
+  const handleGoogleLogin = (roleToUse: 'farmer' | 'buyer' = selectedRole) => {
     setIsGoogleLoading(true);
     setError('');
     const google = (window as any).google;
@@ -165,7 +165,7 @@ export const LoginPage: React.FC = () => {
               });
               const profile = await res.json();
               if (profile && profile.email) {
-                const authRes = loginWithGoogle(selectedRole, {
+                const authRes = loginWithGoogle(roleToUse, {
                   name: profile.name || profile.email.split('@')[0],
                   email: profile.email,
                   picture: profile.picture,
@@ -228,7 +228,7 @@ export const LoginPage: React.FC = () => {
     setIsGoogleLoading(true);
 
     const name = customGoogleName.trim() || customGoogleEmail.split('@')[0];
-    const authRes = loginWithGoogle(googleRole, {
+    const authRes = loginWithGoogle(selectedRole, {
       name,
       email: customGoogleEmail.trim(),
     }, rememberMe);
@@ -251,7 +251,7 @@ export const LoginPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const res = await login(email, password, rememberMe);
+      const res = await login(email, password, rememberMe, selectedRole);
       if (res.success && res.user) {
         showToast(`Welcome back, ${res.user.name}!`, 'success', 'Login Successful');
         await notifyUserLogin(res.user, 'Password Authentication');
@@ -273,6 +273,9 @@ export const LoginPage: React.FC = () => {
       setEmail(target.email);
       setPassword('password123');
       setError('');
+      if (target.role === 'farmer' || target.role === 'buyer') {
+        setSelectedRole(target.role);
+      }
       if (rememberMe) {
         authService.setRememberMe(true, target.email, 'password123');
       }
@@ -304,19 +307,19 @@ export const LoginPage: React.FC = () => {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
         <div className="bg-white py-8 px-6 sm:px-8 shadow-soft-lg rounded-3xl border border-slate-200/80">
           
-          {/* Google Sign-In Role Selector & Button */}
+          {/* Account Role Selector & Google Sign-In */}
           <div className="mb-5 space-y-3">
             <div>
-              <label className="block text-[11px] font-black text-slate-600 uppercase tracking-wider text-center mb-1.5">
-                {t('selectGoogleRole', 'Select Account Role for Google Login:')}
+              <label className="block text-[11px] font-black text-slate-700 uppercase tracking-wider text-center mb-1.5">
+                {t('selectAccountRole', 'Select Account Portal / Role:')}
               </label>
-              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-2xl border border-slate-200/80">
+              <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-200/80">
                 <button
                   type="button"
-                  id="google-role-farmer-btn"
-                  onClick={() => setGoogleRole('farmer')}
+                  id="role-farmer-btn"
+                  onClick={() => setSelectedRole('farmer')}
                   className={`py-2.5 px-3 text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                    googleRole === 'farmer'
+                    selectedRole === 'farmer'
                       ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-600/20'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                   }`}
@@ -326,10 +329,10 @@ export const LoginPage: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  id="google-role-buyer-btn"
-                  onClick={() => setGoogleRole('buyer')}
+                  id="role-buyer-btn"
+                  onClick={() => setSelectedRole('buyer')}
                   className={`py-2.5 px-3 text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                    googleRole === 'buyer'
+                    selectedRole === 'buyer'
                       ? 'bg-amber-600 text-white shadow-sm ring-2 ring-amber-600/20'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                   }`}
@@ -343,12 +346,12 @@ export const LoginPage: React.FC = () => {
             <button
               type="button"
               id="google-login-btn"
-              onClick={() => handleGoogleLogin(googleRole)}
+              onClick={() => handleGoogleLogin(selectedRole)}
               disabled={isGoogleLoading}
               className={`w-full py-3.5 px-4 font-bold text-sm rounded-2xl border shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-3 group cursor-pointer disabled:opacity-60 ${
-                googleRole === 'buyer'
-                  ? 'bg-amber-50/60 hover:bg-amber-100/70 text-slate-800 border-amber-300'
-                  : 'bg-white hover:bg-emerald-50/60 text-slate-800 border-slate-200'
+                selectedRole === 'buyer'
+                  ? 'bg-amber-50/70 hover:bg-amber-100/80 text-slate-900 border-amber-300'
+                  : 'bg-white hover:bg-emerald-50/70 text-slate-900 border-slate-200'
               }`}
             >
               {isGoogleLoading ? (
@@ -365,7 +368,7 @@ export const LoginPage: React.FC = () => {
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                   </svg>
                   <span>
-                    {googleRole === 'buyer'
+                    {selectedRole === 'buyer'
                       ? 'Continue with Google as Buyer'
                       : 'Continue with Google as Farmer'}
                   </span>
@@ -505,7 +508,11 @@ export const LoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full mt-2 py-3 bg-agri-600 hover:bg-agri-700 disabled:bg-slate-300 text-white font-bold text-sm rounded-xl shadow-md shadow-agri-600/25 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
+              className={`w-full mt-2 py-3 disabled:bg-slate-300 text-white font-bold text-sm rounded-xl shadow-md transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer ${
+                selectedRole === 'buyer'
+                  ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/25'
+                  : 'bg-agri-600 hover:bg-agri-700 shadow-agri-600/25'
+              }`}
             >
               {isLoading ? (
                 <div className="flex items-center gap-2">
@@ -514,7 +521,9 @@ export const LoginPage: React.FC = () => {
                 </div>
               ) : (
                 <>
-                  {t('signInBtn', 'Sign In to AgriConnect')}
+                  {selectedRole === 'buyer'
+                    ? 'Sign In to Commercial Buyer Portal'
+                    : 'Sign In to Farmer Portal'}
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
