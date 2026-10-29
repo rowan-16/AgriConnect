@@ -3,8 +3,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Disable buffering commands so queries fail immediately to fallback if DB is offline
-mongoose.set('bufferCommands', false);
+// Enable command buffering so queries cleanly wait for connection on serverless cold starts
+mongoose.set('bufferCommands', true);
 
 const ATLAS_URI = 'mongodb+srv://jowanm1234_db_user:eHatIAxq1TnHziZj@cluster0.p3m41it.mongodb.net/agriconnect?retryWrites=true&w=majority&appName=Cluster0';
 
