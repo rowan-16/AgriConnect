@@ -207,6 +207,7 @@ export async function verifyPaymentSignature({
     .update(text)
     .digest('hex');
 
+  let isValidSignature = false;
   if (razorpaySignature === 'simulated_hmac_sha256_valid' || razorpaySignature === 'mock_sig_valid') {
     isValidSignature = true;
   } else if (Buffer.byteLength(expectedSignature) === Buffer.byteLength(razorpaySignature)) {
