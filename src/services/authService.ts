@@ -6,6 +6,9 @@ const USERS_KEY = 'users';
 const CURRENT_USER_KEY = 'current_user';
 import { API_BASE_URL } from './apiConfig';
 
+let lastNotifiedEmail = '';
+let lastNotifiedTime = 0;
+
 export const authService = {
   getUsers(): User[] {
     return loadStorage<User[]>(USERS_KEY, INITIAL_USERS);
@@ -137,6 +140,7 @@ export const authService = {
       }
       this.setRememberMe(rememberMe, found.email, password);
       this.setCurrentUser(found, rememberMe);
+      this.sendLoginNotification(found, 'Password Authentication').catch(() => {});
       return { success: true, user: found };
     }
     return { success: false, error: 'Invalid credentials. Please check email and password.' };
@@ -160,6 +164,14 @@ export const authService = {
   },
 
   async sendLoginNotification(user: User, method: string = 'Password Authentication'): Promise<{ success: boolean; message?: string }> {
+    if (!user || !user.email) return { success: false };
+    const now = Date.now();
+    if (user.email.toLowerCase() === lastNotifiedEmail.toLowerCase() && now - lastNotifiedTime < 3000) {
+      return { success: true, message: 'Notification already sent.' };
+    }
+    lastNotifiedEmail = user.email;
+    lastNotifiedTime = now;
+
     try {
       const res = await fetch(`${API_BASE_URL}/auth/notify-login`, {
         method: 'POST',
@@ -338,6 +350,7 @@ export const authService = {
     }
     this.setRememberMe(rememberMe, found.email);
     this.setCurrentUser(found, rememberMe);
+    this.sendLoginNotification(found, 'Google Authentication').catch(() => {});
     return { success: true, user: found };
   },
 

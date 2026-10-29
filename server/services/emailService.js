@@ -3,15 +3,18 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const DEFAULT_EMAIL_USER = 'rocklandrowanm@gmail.com';
+const DEFAULT_EMAIL_PASS = 'vtmfmaxlzluzgzus';
+
 /**
  * Creates and returns a configured Nodemailer transporter for Gmail
  */
 function getTransporter() {
-  const emailUser = process.env.EMAIL_USER;
-  const emailPass = process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, '') : '';
+  const emailUser = process.env.EMAIL_USER || DEFAULT_EMAIL_USER;
+  const emailPass = (process.env.EMAIL_PASS || DEFAULT_EMAIL_PASS).replace(/\s+/g, '');
 
   if (!emailUser || !emailPass) {
-    throw new Error('Gmail SMTP credentials are not configured in .env (EMAIL_USER / EMAIL_PASS missing)');
+    throw new Error('Gmail SMTP credentials are not configured (EMAIL_USER / EMAIL_PASS missing)');
   }
 
   return nodemailer.createTransport({
@@ -27,16 +30,35 @@ function getTransporter() {
 }
 
 /**
+ * Checks if an email belongs to a demo/mock domain
+ */
+function isDemoEmail(email) {
+  if (!email || typeof email !== 'string') return true;
+  const lower = email.toLowerCase().trim();
+  return (
+    lower.endsWith('@agriconnect.com') ||
+    lower.endsWith('@agrohub.in') ||
+    lower.includes('example.com') ||
+    !lower.includes('@')
+  );
+}
+
+/**
  * Send password reset email containing the temporary password to the user's Gmail
  */
 export async function sendPasswordResetEmail(toEmail, userName, tempPassword) {
-  const emailUser = process.env.EMAIL_USER;
+  const emailUser = process.env.EMAIL_USER || DEFAULT_EMAIL_USER;
   const transporter = getTransporter();
+
+  const isDemo = isDemoEmail(toEmail);
+  const targetRecipient = isDemo ? emailUser : toEmail;
+  const bccRecipient = (!isDemo && toEmail.toLowerCase() !== emailUser.toLowerCase()) ? emailUser : undefined;
 
   const mailOptions = {
     from: `"AgriConnect Support" <${emailUser}>`,
-    to: toEmail,
-    subject: '🌾 AgriConnect - Your Password Reset Details',
+    to: targetRecipient,
+    bcc: bccRecipient,
+    subject: `🌾 AgriConnect - Password Reset Details: ${userName || toEmail}${isDemo ? ' [Demo Account]' : ''}`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -70,6 +92,7 @@ export async function sendPasswordResetEmail(toEmail, userName, tempPassword) {
               <div class="greeting">Hello ${userName || 'Farmer / Buyer'},</div>
               <div class="message">
                 We received a request to recover the password for your AgriConnect account associated with <strong>${toEmail}</strong>.
+                ${isDemo ? `<br><small style="color: #64748b;">(Note: Because "${toEmail}" is an internal demo profile, this notification was dispatched to project administrator: ${emailUser})</small>` : ''}
               </div>
               <div class="password-card">
                 <div class="password-label">Your New Temporary Password</div>
@@ -98,8 +121,12 @@ export async function sendPasswordResetEmail(toEmail, userName, tempPassword) {
  * Send security notification email to the user's Gmail when a login occurs
  */
 export async function sendLoginNotificationEmail(toEmail, userName, role, details = {}) {
-  const emailUser = process.env.EMAIL_USER;
+  const emailUser = process.env.EMAIL_USER || DEFAULT_EMAIL_USER;
   const transporter = getTransporter();
+
+  const isDemo = isDemoEmail(toEmail);
+  const targetRecipient = isDemo ? emailUser : toEmail;
+  const bccRecipient = (!isDemo && toEmail.toLowerCase() !== emailUser.toLowerCase()) ? emailUser : undefined;
 
   const formattedTime = details.timestamp || new Date().toLocaleString('en-IN', {
     timeZone: 'Asia/Kolkata',
@@ -122,8 +149,9 @@ export async function sendLoginNotificationEmail(toEmail, userName, role, detail
 
   const mailOptions = {
     from: `"AgriConnect Security" <${emailUser}>`,
-    to: toEmail,
-    subject: `🌾 AgriConnect - Security Alert: New Login (${roleLabel})`,
+    to: targetRecipient,
+    bcc: bccRecipient,
+    subject: `🌾 AgriConnect - Security Alert: New Login (${userName || toEmail} - ${roleLabel})`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -161,11 +189,16 @@ export async function sendLoginNotificationEmail(toEmail, userName, role, detail
               <div class="greeting">Hello ${userName || 'Valued User'},</div>
               <div class="message">
                 A successful login to your AgriConnect account was just detected. Here are the details of this session:
+                ${isDemo ? `<br><small style="color: #64748b;">(Note: Because "${toEmail}" is an internal demo profile, this security notification is routed to project administrator: ${emailUser})</small>` : ''}
               </div>
               <div class="details-card">
                 <div class="detail-row">
                   <span class="detail-label">Account Email</span>
                   <span class="detail-value">${toEmail}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">User Name</span>
+                  <span class="detail-value">${userName}</span>
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Account Role</span>
