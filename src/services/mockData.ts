@@ -163,6 +163,7 @@ export const INITIAL_USERS: User[] = [
         isDefault: true,
       }
     ],
+    password: 'password123',
     status: 'active',
     createdAt: '2026-10-25',
   },
@@ -180,6 +181,7 @@ export const INITIAL_USERS: User[] = [
     cropsGrown: ['Organic Vegetables', 'Basmati Rice'],
     farmerRating: 5.0,
     isVerified: true,
+    password: 'password123',
     status: 'active',
     createdAt: '2026-10-25',
   },

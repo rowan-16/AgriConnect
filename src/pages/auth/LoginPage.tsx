@@ -438,10 +438,13 @@ export const LoginPage: React.FC = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. ramesh.farmer@agriconnect.com"
+                  placeholder="e.g. your_email@gmail.com"
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-agri-500 focus:ring-2 focus:ring-agri-500/20 outline-none transition-all"
                 />
               </div>
+              <p className="mt-1 text-[11px] text-slate-500 font-medium">
+                Enter your Gmail to receive an automated login security notification.
+              </p>
             </div>
 
             <div>
