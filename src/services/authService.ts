@@ -27,15 +27,86 @@ export const authService = {
     return this.getUsers();
   },
 
+  isRememberMe(): boolean {
+    const saved = localStorage.getItem('agriconnect_remember_me');
+    return saved !== 'false';
+  },
+
+  getRememberedCredentials(): { email: string; password: string; rememberMe: boolean } {
+    const isRemembered = this.isRememberMe();
+    if (!isRemembered) {
+      return { email: '', password: '', rememberMe: false };
+    }
+    const savedEmail = localStorage.getItem('agriconnect_remembered_email');
+    const savedPassword = localStorage.getItem('agriconnect_remembered_password');
+    if (savedEmail !== null) {
+      return {
+        email: savedEmail,
+        password: savedPassword || '',
+        rememberMe: true,
+      };
+    }
+    return {
+      email: 'ramesh.farmer@agriconnect.com',
+      password: 'password123',
+      rememberMe: true,
+    };
+  },
+
+  setRememberMe(rememberMe: boolean, email?: string, password?: string): void {
+    if (rememberMe) {
+      localStorage.setItem('agriconnect_remember_me', 'true');
+      if (email !== undefined && email.trim()) {
+        localStorage.setItem('agriconnect_remembered_email', email.trim());
+      }
+      if (password !== undefined && password) {
+        localStorage.setItem('agriconnect_remembered_password', password);
+      }
+    } else {
+      localStorage.setItem('agriconnect_remember_me', 'false');
+      localStorage.removeItem('agriconnect_remembered_email');
+      localStorage.removeItem('agriconnect_remembered_password');
+    }
+  },
+
   getCurrentUser(): User | null {
-    return loadStorage<User | null>(CURRENT_USER_KEY, null);
+    const localUser = loadStorage<User | null>(CURRENT_USER_KEY, null);
+    if (localUser) return localUser;
+    try {
+      const sessionData = sessionStorage.getItem(`agriconnect_${CURRENT_USER_KEY}`);
+      if (sessionData) {
+        return JSON.parse(sessionData) as User;
+      }
+    } catch (e) {
+      console.error('Failed to load session user', e);
+    }
+    return null;
   },
 
-  setCurrentUser(user: User): void {
-    saveStorage(CURRENT_USER_KEY, user);
+  setCurrentUser(user: User | null, rememberMe?: boolean): void {
+    const shouldRemember = rememberMe !== undefined ? rememberMe : this.isRememberMe();
+    if (!user) {
+      saveStorage(CURRENT_USER_KEY, null);
+      try {
+        sessionStorage.removeItem(`agriconnect_${CURRENT_USER_KEY}`);
+      } catch {}
+      return;
+    }
+
+    if (shouldRemember) {
+      saveStorage(CURRENT_USER_KEY, user);
+      try {
+        sessionStorage.removeItem(`agriconnect_${CURRENT_USER_KEY}`);
+      } catch {}
+    } else {
+      try {
+        sessionStorage.setItem(`agriconnect_${CURRENT_USER_KEY}`, JSON.stringify(user));
+      } catch {}
+      saveStorage(CURRENT_USER_KEY, null);
+    }
   },
 
-  login(email: string, password = ''): { success: boolean; user?: User; error?: string } {
+  login(email: string, password = '', rememberMe = true): { success: boolean; user?: User; error?: string } {
     const users = this.getUsers();
     const found = users.find(u => u.email.toLowerCase() === email.toLowerCase());
     if (found) {
@@ -64,7 +135,8 @@ export const authService = {
       if (found.preferredLanguage) {
         localStorage.setItem('agriconnect_language', found.preferredLanguage);
       }
-      this.setCurrentUser(found);
+      this.setRememberMe(rememberMe, found.email, password);
+      this.setCurrentUser(found, rememberMe);
       return { success: true, user: found };
     }
     return { success: false, error: 'Invalid credentials. Please check email and password.' };
@@ -198,7 +270,7 @@ export const authService = {
     return updated;
   },
 
-  loginWithGoogle(role: UserRole = 'farmer', googleProfile?: { name?: string; email?: string; picture?: string }): { success: boolean; user?: User; error?: string } {
+  loginWithGoogle(role: UserRole = 'farmer', googleProfile?: { name?: string; email?: string; picture?: string }, rememberMe = true): { success: boolean; user?: User; error?: string } {
     const targetEmail = googleProfile?.email || (role === 'farmer' ? 'ramesh.farmer@agriconnect.com' : 'priya.buyer@agriconnect.com');
     const targetName = googleProfile?.name || (googleProfile?.email ? googleProfile.email.split('@')[0] : (role === 'farmer' ? 'Ramesh Patel (Google User)' : 'Priya Sharma (Google User)'));
     const targetAvatar = googleProfile?.picture || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300';
@@ -246,7 +318,8 @@ export const authService = {
     if (found.preferredLanguage) {
       localStorage.setItem('agriconnect_language', found.preferredLanguage);
     }
-    this.setCurrentUser(found);
+    this.setRememberMe(rememberMe, found.email);
+    this.setCurrentUser(found, rememberMe);
     return { success: true, user: found };
   },
 
@@ -327,7 +400,7 @@ export const authService = {
   },
 
   logout(): void {
-    // Clear session user
-    saveStorage(CURRENT_USER_KEY, null);
+    // Clear session user from both localStorage and sessionStorage
+    this.setCurrentUser(null);
   }
 };

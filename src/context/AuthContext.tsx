@@ -6,8 +6,8 @@ interface AuthContextType {
   user: User | null;
   role: UserRole;
   isAuthenticated: boolean;
-  login: (email: string, password?: string) => { success: boolean; user?: User; error?: string };
-  loginWithGoogle: (role?: UserRole, googleProfile?: { name?: string; email?: string; picture?: string }) => { success: boolean; user?: User; error?: string };
+  login: (email: string, password?: string, rememberMe?: boolean) => { success: boolean; user?: User; error?: string };
+  loginWithGoogle: (role?: UserRole, googleProfile?: { name?: string; email?: string; picture?: string }, rememberMe?: boolean) => { success: boolean; user?: User; error?: string };
   register: (userData: any) => Promise<{ success: boolean; user?: User; error?: string }>;
   logout: () => void;
   deleteAccount: (userId?: string) => void;
@@ -25,16 +25,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user]);
 
-  const login = (email: string, password = '') => {
-    const res = authService.login(email, password);
+  const login = (email: string, password = '', rememberMe = true) => {
+    const res = authService.login(email, password, rememberMe);
     if (res.success && res.user) {
       setUser(res.user);
     }
     return res;
   };
 
-  const loginWithGoogle = (role: UserRole = 'farmer', googleProfile?: { name?: string; email?: string; picture?: string }) => {
-    const res = authService.loginWithGoogle(role, googleProfile);
+  const loginWithGoogle = (role: UserRole = 'farmer', googleProfile?: { name?: string; email?: string; picture?: string }, rememberMe = true) => {
+    const res = authService.loginWithGoogle(role, googleProfile, rememberMe);
     if (res.success && res.user) {
       setUser(res.user);
     }

@@ -19,10 +19,22 @@ export const LoginPage: React.FC = () => {
     }
   }, [isAuthenticated, user, navigate]);
 
-  const [email, setEmail] = useState('ramesh.farmer@agriconnect.com');
-  const [password, setPassword] = useState('password123');
+  const [rememberMe, setRememberMe] = useState(() => authService.getRememberedCredentials().rememberMe);
+  const [email, setEmail] = useState(() => authService.getRememberedCredentials().email);
+  const [password, setPassword] = useState(() => authService.getRememberedCredentials().password);
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
+
+  const handleRememberMeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+    setRememberMe(checked);
+    if (!checked) {
+      authService.setRememberMe(false);
+    } else if (email) {
+      authService.setRememberMe(true, email, password);
+    } else {
+      authService.setRememberMe(true);
+    }
+  };
   const [googleRole, setGoogleRole] = useState<'farmer' | 'buyer'>('farmer');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -86,7 +98,7 @@ export const LoginPage: React.FC = () => {
                   name: googleUser.name || googleUser.given_name || 'Google User',
                   email: googleUser.email,
                   picture: googleUser.picture,
-                });
+                }, rememberMe);
                 if (authRes.success && authRes.user) {
                   showToast(`Welcome ${authRes.user.name}! Signed in via Google.`, 'success', 'Google Authentication');
                   navigate(`/${authRes.user.role}/dashboard`);
@@ -139,7 +151,7 @@ export const LoginPage: React.FC = () => {
                   name: profile.name || profile.email.split('@')[0],
                   email: profile.email,
                   picture: profile.picture,
-                });
+                }, rememberMe);
                 setIsGoogleLoading(false);
                 if (authRes.success && authRes.user) {
                   showToast(`Welcome ${authRes.user.name}! Signed in with Google account.`, 'success', 'Google Authentication');
@@ -199,7 +211,7 @@ export const LoginPage: React.FC = () => {
     const authRes = loginWithGoogle(googleRole, {
       name,
       email: customGoogleEmail.trim(),
-    });
+    }, rememberMe);
     setIsGoogleLoading(false);
     setShowGoogleDialog(false);
 
@@ -217,7 +229,7 @@ export const LoginPage: React.FC = () => {
     setIsLoading(true);
 
     setTimeout(() => {
-      const res = login(email, password);
+      const res = login(email, password, rememberMe);
       setIsLoading(false);
 
       if (res.success && res.user) {
@@ -235,6 +247,9 @@ export const LoginPage: React.FC = () => {
       setEmail(target.email);
       setPassword('password123');
       setError('');
+      if (rememberMe) {
+        authService.setRememberMe(true, target.email, 'password123');
+      }
     }
   };
 
@@ -416,12 +431,14 @@ export const LoginPage: React.FC = () => {
             </div>
 
             <div className="flex items-center justify-between text-xs pt-1">
-              <label className="flex items-center gap-2 cursor-pointer text-slate-600 font-medium">
+              <label htmlFor="remember-me" className="flex items-center gap-2 cursor-pointer text-slate-600 font-medium select-none">
                 <input
+                  id="remember-me"
+                  name="rememberMe"
                   type="checkbox"
                   checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded text-agri-600 focus:ring-agri-500 border-slate-300"
+                  onChange={handleRememberMeChange}
+                  className="w-4 h-4 rounded text-agri-600 focus:ring-agri-500 border-slate-300 cursor-pointer"
                 />
                 {t('rememberMe', 'Remember me')}
               </label>
