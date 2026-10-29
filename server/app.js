@@ -10,6 +10,7 @@ import { Invoice } from './models/Invoice.js';
 import { TaxRule } from './models/TaxRule.js';
 import { Counter } from './models/Counter.js';
 import { WebhookLog } from './models/WebhookLog.js';
+import { EmailLog } from './models/EmailLog.js';
 import {
   calculateAuthoritativeTax,
   verifyGstinWithProvider,
@@ -428,6 +429,25 @@ app.post(['/api/auth/notify-login', '/auth/notify-login'], async (req, res) => {
       const emailResult = await sendLoginNotificationEmail(email, name || 'User', role || 'user', details);
       const targetRecipient = emailResult?.envelope?.to?.[0] || email;
       console.log(`📧 Login notification email dispatched to ${targetRecipient} (account: ${email})`);
+
+      // Persist log to MongoDB Atlas
+      try {
+        await EmailLog.create({
+          toEmail: email,
+          targetRecipient,
+          sender: 'rocklandrowanm@gmail.com',
+          userName: name || 'User',
+          role: role || 'user',
+          method: details.method,
+          status: 'sent',
+          messageId: emailResult?.messageId,
+          clientIp: details.ip,
+          userAgent: String(userAgent).slice(0, 200),
+        });
+      } catch (logDbErr) {
+        console.warn('EmailLog DB persist notice:', logDbErr.message);
+      }
+
       return res.json({
         success: true,
         message: `Security alert email sent to ${targetRecipient}`,
@@ -436,6 +456,22 @@ app.post(['/api/auth/notify-login', '/auth/notify-login'], async (req, res) => {
       });
     } catch (emailErr) {
       console.warn('⚠️ Login email delivery skipped/failed:', emailErr.message);
+
+      try {
+        await EmailLog.create({
+          toEmail: email,
+          targetRecipient: email,
+          sender: 'rocklandrowanm@gmail.com',
+          userName: name || 'User',
+          role: role || 'user',
+          method: details.method,
+          status: 'failed',
+          error: emailErr.message,
+          clientIp: details.ip,
+          userAgent: String(userAgent).slice(0, 200),
+        });
+      } catch {}
+
       return res.json({
         success: false,
         message: `Email sending skipped: ${emailErr.message}. Ensure EMAIL_USER and EMAIL_PASS are set in .env.`,
@@ -444,6 +480,16 @@ app.post(['/api/auth/notify-login', '/auth/notify-login'], async (req, res) => {
   } catch (err) {
     console.error('❌ Error in /api/auth/notify-login:', err.message);
     return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Query recent email logs to verify live deliveries
+app.get(['/api/auth/email-logs', '/auth/email-logs'], async (req, res) => {
+  try {
+    const logs = await EmailLog.find().sort({ createdAt: -1 }).limit(25);
+    res.json({ success: true, count: logs.length, logs });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

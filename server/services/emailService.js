@@ -163,15 +163,26 @@ export async function sendLoginNotificationEmail(toEmail, userName, role, detail
   const loginMethod = details.method || 'Password Authentication';
   const ipAddress = details.ip || 'Client Network';
 
+  const plainText = `AgriConnect Login Notification
+
+Hello ${userName || 'User'},
+
+A login to your AgriConnect account was just detected.
+- Account: ${toEmail}
+- Target: ${targetRecipient}
+- Role: ${roleLabel}
+- Time: ${formattedTime}
+- Method: ${loginMethod}
+- Device: ${device}
+
+If this was you, no action is needed. If you did not log in, please reset your password.
+AgriConnect Platform: https://agri-connect-delta-five.vercel.app`;
+
   const mailOptions = {
-    from: `"AgriConnect Security" <${emailUser}>`,
+    from: `"AgriConnect Platform" <${emailUser}>`,
     to: targetRecipient,
-    subject: `AgriConnect Security Alert: New Login (${userName || targetRecipient} - ${roleLabel})`,
-    headers: {
-      'X-Priority': '1',
-      'X-MSMail-Priority': 'High',
-      'Importance': 'high',
-    },
+    subject: `AgriConnect Login: ${userName || targetRecipient} (${roleLabel})`,
+    text: plainText,
     html: `
       <!DOCTYPE html>
       <html>
