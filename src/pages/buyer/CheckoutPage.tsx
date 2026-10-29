@@ -213,7 +213,7 @@ export const CheckoutPage: React.FC = () => {
         else if (selectedMethod === 'netbanking') rzpMethod = 'netbanking';
 
         const options = {
-          key: serverOrder.keyId || 'rzp_test_TtqnLvjI4Uck9t',
+          key: serverOrder.keyId || 'rzp_live_TtrURgLiWj8wei',
           amount: serverOrder.amountInPaise,
           currency: serverOrder.currency || 'INR',
           name: 'AgriConnect Marketplace',

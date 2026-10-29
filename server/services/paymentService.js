@@ -9,8 +9,8 @@ import { WebhookLog } from '../models/WebhookLog.js';
 import { calculateAuthoritativeTax } from './taxService.js';
 
 // Server-side test fallback secret if env is unconfigured
-const FALLBACK_TEST_KEY_ID = 'rzp_test_TtqnLvjI4Uck9t';
-const FALLBACK_TEST_KEY_SECRET = 'LsZA6jrv3YIVTqmt2xabcm8o';
+const FALLBACK_TEST_KEY_ID = 'rzp_live_TtrURgLiWj8wei';
+const FALLBACK_TEST_KEY_SECRET = 'n41kGnO5oeYOApU3CDLwUKHU';
 
 let razorpayClient = null;
 
