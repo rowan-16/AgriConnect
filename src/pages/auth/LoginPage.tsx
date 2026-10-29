@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Sprout, Lock, Mail, ArrowRight, Sparkles, AlertCircle, ShoppingBag, X, CheckCircle2, KeyRound, Send, Eye, EyeOff } from 'lucide-react';
+import { Sprout, Lock, Mail, ArrowRight, Sparkles, AlertCircle, ShoppingBag, X, CheckCircle2, KeyRound, Send, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -74,6 +74,15 @@ export const LoginPage: React.FC = () => {
     }
   };
 
+  const notifyUserLogin = (userObj: any, method: string = 'Password Authentication') => {
+    if (!userObj || !userObj.email) return;
+    authService.sendLoginNotification(userObj, method).then((mailRes) => {
+      if (mailRes?.success) {
+        showToast(`Security alert email dispatched to ${userObj.email}`, 'info', 'Gmail Alert');
+      }
+    }).catch(() => {});
+  };
+
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1083891046091-1ccc01k2vjl76hl46p5of1bnnu0rjog9.apps.googleusercontent.com';
 
   useEffect(() => {
@@ -101,6 +110,7 @@ export const LoginPage: React.FC = () => {
                 }, rememberMe);
                 if (authRes.success && authRes.user) {
                   showToast(`Welcome ${authRes.user.name}! Signed in via Google.`, 'success', 'Google Authentication');
+                  notifyUserLogin(authRes.user, 'Google One Tap');
                   navigate(`/${authRes.user.role}/dashboard`);
                 }
               } catch (parseErr) {
@@ -155,6 +165,7 @@ export const LoginPage: React.FC = () => {
                 setIsGoogleLoading(false);
                 if (authRes.success && authRes.user) {
                   showToast(`Welcome ${authRes.user.name}! Signed in with Google account.`, 'success', 'Google Authentication');
+                  notifyUserLogin(authRes.user, 'Google OAuth 2.0');
                   navigate(`/${authRes.user.role}/dashboard`);
                 } else {
                   setError(authRes.error || 'Failed to initialize session with Google.');
@@ -217,6 +228,7 @@ export const LoginPage: React.FC = () => {
 
     if (authRes.success && authRes.user) {
       showToast(`Welcome ${authRes.user.name}! Signed in via Google.`, 'success', 'Google Authentication');
+      notifyUserLogin(authRes.user, 'Google Sign-In');
       navigate(`/${authRes.user.role}/dashboard`);
     } else {
       setError(authRes.error || 'Failed to sign in with Google ID.');
@@ -234,6 +246,7 @@ export const LoginPage: React.FC = () => {
 
       if (res.success && res.user) {
         showToast(`Welcome back, ${res.user.name}!`, 'success', 'Login Successful');
+        notifyUserLogin(res.user, 'Password Authentication');
         navigate(`/${res.user.role}/dashboard`);
       } else {
         setError(res.error || 'Invalid credentials.');
@@ -470,6 +483,13 @@ export const LoginPage: React.FC = () => {
                 </>
               )}
             </button>
+
+            <div className="pt-2 text-center">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                Security notice: A login confirmation email is automatically sent to your Gmail.
+              </span>
+            </div>
           </form>
 
           {/* Footer link to Register */}

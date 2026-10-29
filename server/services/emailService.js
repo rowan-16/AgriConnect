@@ -93,3 +93,118 @@ export async function sendPasswordResetEmail(toEmail, userName, tempPassword) {
 
   return await transporter.sendMail(mailOptions);
 }
+
+/**
+ * Send security notification email to the user's Gmail when a login occurs
+ */
+export async function sendLoginNotificationEmail(toEmail, userName, role, details = {}) {
+  const emailUser = process.env.EMAIL_USER;
+  const transporter = getTransporter();
+
+  const formattedTime = details.timestamp || new Date().toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    dateStyle: 'full',
+    timeStyle: 'medium',
+  });
+
+  const roleLabel =
+    role === 'farmer'
+      ? 'Farmer / Producer'
+      : role === 'buyer'
+      ? 'Buyer / Procurement'
+      : role === 'admin'
+      ? 'Administrator'
+      : 'AgriConnect User';
+
+  const device = details.device || 'Desktop / Mobile Web Browser';
+  const loginMethod = details.method || 'Password Authentication';
+  const ipAddress = details.ip || 'Client Network';
+
+  const mailOptions = {
+    from: `"AgriConnect Security" <${emailUser}>`,
+    to: toEmail,
+    subject: `🌾 AgriConnect - Security Alert: New Login (${roleLabel})`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px; color: #1e293b; }
+            .container { max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 24px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+            .header { background: linear-gradient(135deg, #15803d 0%, #166534 100%); padding: 32px 24px; text-align: center; color: white; }
+            .header h1 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+            .header p { margin: 6px 0 0; font-size: 13px; color: #bbf7d0; font-weight: 500; }
+            .content { padding: 32px 28px; }
+            .alert-badge { display: inline-block; background: #ecfdf5; border: 1px solid #86efac; color: #166534; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; padding: 6px 14px; border-radius: 9999px; margin-bottom: 16px; }
+            .greeting { font-size: 17px; font-weight: 800; color: #0f172a; margin-bottom: 8px; }
+            .message { font-size: 14px; line-height: 1.6; color: #475569; margin-bottom: 24px; }
+            .details-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px 22px; margin-bottom: 24px; }
+            .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+            .detail-row:last-child { border-bottom: none; }
+            .detail-label { color: #64748b; font-weight: 600; }
+            .detail-value { color: #0f172a; font-weight: 700; text-align: right; }
+            .action-box { text-align: center; margin-bottom: 24px; }
+            .action-btn { display: inline-block; background-color: #166534; color: #ffffff !important; font-size: 13px; font-weight: 700; text-decoration: none; padding: 12px 26px; border-radius: 12px; box-shadow: 0 2px 8px rgba(22, 101, 52, 0.25); }
+            .security-card { background: #fffbeb; border: 1px solid #fde68a; border-radius: 14px; padding: 14px 18px; font-size: 12px; line-height: 1.5; color: #92400e; margin-bottom: 20px; }
+            .footer { background: #f8fafc; padding: 16px 24px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🌾 AgriConnect</h1>
+              <p>Direct Agricultural Digital Marketplace</p>
+            </div>
+            <div class="content">
+              <span class="alert-badge">✓ Security Notification</span>
+              <div class="greeting">Hello ${userName || 'Valued User'},</div>
+              <div class="message">
+                A successful login to your AgriConnect account was just detected. Here are the details of this session:
+              </div>
+              <div class="details-card">
+                <div class="detail-row">
+                  <span class="detail-label">Account Email</span>
+                  <span class="detail-value">${toEmail}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Account Role</span>
+                  <span class="detail-value">${roleLabel}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Login Time</span>
+                  <span class="detail-value">${formattedTime}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Sign-In Method</span>
+                  <span class="detail-value">${loginMethod}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Device / Client</span>
+                  <span class="detail-value">${device}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Network / IP</span>
+                  <span class="detail-value">${ipAddress}</span>
+                </div>
+              </div>
+
+              <div class="security-card">
+                <strong>🔒 Was this you?</strong> If you recently logged into AgriConnect, you can safely disregard this notification. If you did NOT log in or suspect unauthorized activity, please immediately change your password or contact our security team.
+              </div>
+
+              <div class="action-box">
+                <a href="https://agri-connect-delta-five.vercel.app/login" class="action-btn">Go to AgriConnect</a>
+              </div>
+            </div>
+            <div class="footer">
+              © ${new Date().getFullYear()} AgriConnect Digital Agriculture Platform. All rights reserved.
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+  };
+
+  return await transporter.sendMail(mailOptions);
+}

@@ -159,6 +159,24 @@ export const authService = {
     }
   },
 
+  async sendLoginNotification(user: User, method: string = 'Password Authentication'): Promise<{ success: boolean; message?: string }> {
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/notify-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          method,
+        }),
+      });
+      return await res.json();
+    } catch {
+      return { success: false, message: 'Server offline or unreachable.' };
+    }
+  },
+
   async register(userData: Partial<User> & { name: string; email: string; role: UserRole; phone: string; location: string }): Promise<{ success: boolean; user?: User; error?: string }> {
     const users = this.getUsers();
     const existing = users.find(u => u.email.toLowerCase() === userData.email.toLowerCase());

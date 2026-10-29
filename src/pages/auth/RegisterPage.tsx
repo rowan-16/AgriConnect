@@ -539,12 +539,18 @@ export const RegisterPage: React.FC = () => {
           });
           // TC001a & TC001l
           showToast('Registration successful; pending verification', 'success', 'TC001a');
+          authService.sendLoginNotification({
+            email,
+            name,
+            role: 'farmer',
+          } as any, 'Farmer Application Submitted').catch(() => {});
           setTimeout(() => {
             showToast('Registration successful; account pending admin approval', 'info', 'TC001l');
           }, 800);
         } else {
           // TC002a & TC002i
           showToast('Customer account created successfully', 'success', 'TC002a / TC002i');
+          authService.sendLoginNotification(res.user, 'Account Registration & Login').catch(() => {});
           navigate('/buyer/dashboard');
         }
       } else {

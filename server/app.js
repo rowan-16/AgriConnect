@@ -22,7 +22,7 @@ import {
   processRazorpayWebhook,
   getRazorpayClient,
 } from './services/paymentService.js';
-import { sendPasswordResetEmail } from './services/emailService.js';
+import { sendPasswordResetEmail, sendLoginNotificationEmail } from './services/emailService.js';
 
 dotenv.config();
 
@@ -333,7 +333,7 @@ app.post('/api/users/register', async (req, res) => {
 });
 
 // Forgot Password - Send Temporary Password via Gmail
-app.post('/api/auth/forgot-password', async (req, res) => {
+app.post(['/api/auth/forgot-password', '/auth/forgot-password'], async (req, res) => {
   try {
     const { email } = req.body;
     if (!email || typeof email !== 'string') {
@@ -391,6 +391,56 @@ app.post('/api/auth/forgot-password', async (req, res) => {
   } catch (err) {
     console.error('❌ Forgot password server error:', err);
     res.status(500).json({ success: false, message: 'Internal server error processing password reset.' });
+  }
+});
+
+// Notify Login - Send Security Alert to Gmail
+app.post(['/api/auth/notify-login', '/auth/notify-login'], async (req, res) => {
+  try {
+    const { email, name, role, method } = req.body;
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ success: false, message: 'Email address is required.' });
+    }
+
+    const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+    const userAgent = req.headers['user-agent'] || 'Web Browser';
+
+    // Parse user friendly device representation
+    let device = 'Web Browser';
+    if (userAgent.includes('Windows')) device = 'Windows PC (Desktop Browser)';
+    else if (userAgent.includes('Macintosh')) device = 'Apple Mac (Desktop Browser)';
+    else if (userAgent.includes('Android')) device = 'Android Smartphone';
+    else if (userAgent.includes('iPhone')) device = 'Apple iPhone';
+    else if (userAgent.includes('Linux')) device = 'Linux Workstation';
+
+    const details = {
+      timestamp: new Date().toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        dateStyle: 'full',
+        timeStyle: 'medium',
+      }),
+      ip: String(clientIp).split(',')[0].trim(),
+      device,
+      method: method || 'Password Authentication',
+    };
+
+    try {
+      await sendLoginNotificationEmail(email, name || 'User', role || 'user', details);
+      console.log(`📧 Login notification email dispatched to ${email}`);
+      return res.json({
+        success: true,
+        message: `Security alert email sent to ${email}`,
+      });
+    } catch (emailErr) {
+      console.warn('⚠️ Login email delivery skipped/failed:', emailErr.message);
+      return res.json({
+        success: false,
+        message: `Email sending skipped: ${emailErr.message}. Ensure EMAIL_USER and EMAIL_PASS are set in .env.`,
+      });
+    }
+  } catch (err) {
+    console.error('❌ Error in /api/auth/notify-login:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
   }
 });
 
