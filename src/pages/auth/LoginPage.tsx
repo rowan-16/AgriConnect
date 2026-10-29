@@ -74,13 +74,21 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const notifyUserLogin = (userObj: any, method: string = 'Password Authentication') => {
+  const notifyUserLogin = async (userObj: any, method: string = 'Password Authentication') => {
     if (!userObj || !userObj.email) return;
-    authService.sendLoginNotification(userObj, method).then((mailRes) => {
+    try {
+      const mailRes = await authService.sendLoginNotification(userObj, method);
       if (mailRes?.success) {
-        showToast(`Security alert email dispatched to ${userObj.email}`, 'info', 'Gmail Alert');
+        const recipient = mailRes.targetRecipient || userObj.email;
+        showToast(
+          `Security alert sent to ${recipient} (check Primary or Spam/Updates tab)`,
+          'info',
+          'Gmail Alert'
+        );
       }
-    }).catch(() => {});
+    } catch (e) {
+      console.warn('notifyUserLogin error:', e);
+    }
   };
 
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1083891046091-1ccc01k2vjl76hl46p5of1bnnu0rjog9.apps.googleusercontent.com';
@@ -91,7 +99,7 @@ export const LoginPage: React.FC = () => {
       try {
         google.accounts.id.initialize({
           client_id: clientId,
-          callback: (response: any) => {
+          callback: async (response: any) => {
             if (response.credential) {
               try {
                 const base64Url = response.credential.split('.')[1];
@@ -110,7 +118,7 @@ export const LoginPage: React.FC = () => {
                 }, rememberMe);
                 if (authRes.success && authRes.user) {
                   showToast(`Welcome ${authRes.user.name}! Signed in via Google.`, 'success', 'Google Authentication');
-                  notifyUserLogin(authRes.user, 'Google One Tap');
+                  await notifyUserLogin(authRes.user, 'Google One Tap');
                   navigate(`/${authRes.user.role}/dashboard`);
                 }
               } catch (parseErr) {
@@ -162,12 +170,13 @@ export const LoginPage: React.FC = () => {
                   email: profile.email,
                   picture: profile.picture,
                 }, rememberMe);
-                setIsGoogleLoading(false);
                 if (authRes.success && authRes.user) {
                   showToast(`Welcome ${authRes.user.name}! Signed in with Google account.`, 'success', 'Google Authentication');
-                  notifyUserLogin(authRes.user, 'Google OAuth 2.0');
+                  await notifyUserLogin(authRes.user, 'Google OAuth 2.0');
+                  setIsGoogleLoading(false);
                   navigate(`/${authRes.user.role}/dashboard`);
                 } else {
+                  setIsGoogleLoading(false);
                   setError(authRes.error || 'Failed to initialize session with Google.');
                 }
               } else {
@@ -213,7 +222,7 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const handleCustomGoogleSubmit = (e: React.FormEvent) => {
+  const handleCustomGoogleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customGoogleEmail.trim()) return;
     setIsGoogleLoading(true);
@@ -223,35 +232,39 @@ export const LoginPage: React.FC = () => {
       name,
       email: customGoogleEmail.trim(),
     }, rememberMe);
-    setIsGoogleLoading(false);
     setShowGoogleDialog(false);
 
     if (authRes.success && authRes.user) {
       showToast(`Welcome ${authRes.user.name}! Signed in via Google.`, 'success', 'Google Authentication');
-      notifyUserLogin(authRes.user, 'Google Sign-In');
+      await notifyUserLogin(authRes.user, 'Google Sign-In');
+      setIsGoogleLoading(false);
       navigate(`/${authRes.user.role}/dashboard`);
     } else {
+      setIsGoogleLoading(false);
       setError(authRes.error || 'Failed to sign in with Google ID.');
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    setTimeout(() => {
+    try {
       const res = login(email, password, rememberMe);
-      setIsLoading(false);
-
       if (res.success && res.user) {
         showToast(`Welcome back, ${res.user.name}!`, 'success', 'Login Successful');
-        notifyUserLogin(res.user, 'Password Authentication');
+        await notifyUserLogin(res.user, 'Password Authentication');
+        setIsLoading(false);
         navigate(`/${res.user.role}/dashboard`);
       } else {
+        setIsLoading(false);
         setError(res.error || 'Invalid credentials.');
       }
-    }, 400);
+    } catch (err: any) {
+      setIsLoading(false);
+      setError(err?.message || 'Login encountered an unexpected error.');
+    }
   };
 
   const handleDemoSelect = (userEmail: string) => {
@@ -493,7 +506,10 @@ export const LoginPage: React.FC = () => {
               className="w-full mt-2 py-3 bg-agri-600 hover:bg-agri-700 disabled:bg-slate-300 text-white font-bold text-sm rounded-xl shadow-md shadow-agri-600/25 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
             >
               {isLoading ? (
-                <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="flex items-center gap-2">
+                  <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Verifying & Dispatching Email...</span>
+                </div>
               ) : (
                 <>
                   {t('signInBtn', 'Sign In to AgriConnect')}

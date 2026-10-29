@@ -44,8 +44,13 @@ function resolveRecipientEmail(toEmail) {
   const clean = toEmail.toLowerCase().trim();
 
   // If the user logging in is Pushpitha, route to her real personal Gmail
-  if (clean.includes('pushpitha')) {
+  if (clean.includes('pushpitha') || clean.includes('mullai')) {
     return 'pushpithamullai@gmail.com';
+  }
+
+  // If the user logging in is Rowan, route to his real personal Gmail
+  if (clean.includes('rowan') || clean.includes('rockland')) {
+    return 'rocklandrowanm@gmail.com';
   }
 
   // If it's a real email address (e.g. @gmail.com, @yahoo.com, personal domain)
@@ -68,7 +73,12 @@ export async function sendPasswordResetEmail(toEmail, userName, tempPassword) {
   const mailOptions = {
     from: `"AgriConnect Support" <${emailUser}>`,
     to: targetRecipient,
-    subject: `🌾 AgriConnect - Password Reset Details: ${userName || toEmail}`,
+    subject: `AgriConnect Password Reset: ${userName || toEmail}`,
+    headers: {
+      'X-Priority': '1',
+      'X-MSMail-Priority': 'High',
+      'Importance': 'high',
+    },
     html: `
       <!DOCTYPE html>
       <html>
@@ -156,7 +166,12 @@ export async function sendLoginNotificationEmail(toEmail, userName, role, detail
   const mailOptions = {
     from: `"AgriConnect Security" <${emailUser}>`,
     to: targetRecipient,
-    subject: `🌾 AgriConnect - Security Alert: New Login (${userName || targetRecipient} - ${roleLabel})`,
+    subject: `AgriConnect Security Alert: New Login (${userName || targetRecipient} - ${roleLabel})`,
+    headers: {
+      'X-Priority': '1',
+      'X-MSMail-Priority': 'High',
+      'Importance': 'high',
+    },
     html: `
       <!DOCTYPE html>
       <html>

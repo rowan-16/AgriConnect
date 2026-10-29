@@ -11,7 +11,20 @@ let lastNotifiedTime = 0;
 
 export const authService = {
   getUsers(): User[] {
-    return loadStorage<User[]>(USERS_KEY, INITIAL_USERS);
+    const cached = loadStorage<User[]>(USERS_KEY, INITIAL_USERS);
+    // Ensure all critical users from INITIAL_USERS (Pushpitha, Rowan, etc.) are present even if localStorage had an older snapshot
+    const map = new Map<string, User>();
+    cached.forEach(u => map.set(u.email.toLowerCase(), u));
+    INITIAL_USERS.forEach(u => {
+      if (!map.has(u.email.toLowerCase())) {
+        map.set(u.email.toLowerCase(), u);
+      }
+    });
+    const merged = Array.from(map.values());
+    if (merged.length !== cached.length) {
+      saveStorage(USERS_KEY, merged);
+    }
+    return merged;
   },
 
   async fetchUsersFromMongoDB(): Promise<User[]> {
@@ -20,8 +33,13 @@ export const authService = {
       if (res.ok) {
         const mongoUsers = await res.json();
         if (Array.isArray(mongoUsers) && mongoUsers.length > 0) {
-          saveStorage(USERS_KEY, mongoUsers);
-          return mongoUsers;
+          const current = this.getUsers();
+          const map = new Map<string, User>();
+          current.forEach(u => map.set(u.email.toLowerCase(), u));
+          mongoUsers.forEach((u: User) => map.set(u.email.toLowerCase(), u));
+          const allMerged = Array.from(map.values());
+          saveStorage(USERS_KEY, allMerged);
+          return allMerged;
         }
       }
     } catch {
@@ -163,8 +181,8 @@ export const authService = {
     }
   },
 
-  async sendLoginNotification(user: User, method: string = 'Password Authentication'): Promise<{ success: boolean; message?: string }> {
-    if (!user || !user.email) return { success: false };
+  async sendLoginNotification(user: User, method: string = 'Password Authentication'): Promise<{ success: boolean; message?: string; targetRecipient?: string; messageId?: string }> {
+    if (!user || !user.email) return { success: false, message: 'No user email provided.' };
     const now = Date.now();
     if (user.email.toLowerCase() === lastNotifiedEmail.toLowerCase() && now - lastNotifiedTime < 3000) {
       return { success: true, message: 'Notification already sent.' };
@@ -176,6 +194,7 @@ export const authService = {
       const res = await fetch(`${API_BASE_URL}/auth/notify-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        keepalive: true,
         body: JSON.stringify({
           email: user.email,
           name: user.name,
@@ -183,7 +202,8 @@ export const authService = {
           method,
         }),
       });
-      return await res.json();
+      const data = await res.json();
+      return data;
     } catch {
       return { success: false, message: 'Server offline or unreachable.' };
     }

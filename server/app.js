@@ -425,11 +425,14 @@ app.post(['/api/auth/notify-login', '/auth/notify-login'], async (req, res) => {
     };
 
     try {
-      await sendLoginNotificationEmail(email, name || 'User', role || 'user', details);
-      console.log(`📧 Login notification email dispatched to ${email}`);
+      const emailResult = await sendLoginNotificationEmail(email, name || 'User', role || 'user', details);
+      const targetRecipient = emailResult?.envelope?.to?.[0] || email;
+      console.log(`📧 Login notification email dispatched to ${targetRecipient} (account: ${email})`);
       return res.json({
         success: true,
-        message: `Security alert email sent to ${email}`,
+        message: `Security alert email sent to ${targetRecipient}`,
+        targetRecipient,
+        messageId: emailResult?.messageId,
       });
     } catch (emailErr) {
       console.warn('⚠️ Login email delivery skipped/failed:', emailErr.message);
