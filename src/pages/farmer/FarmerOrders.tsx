@@ -35,7 +35,7 @@ export const FarmerOrders: React.FC = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
 
-  const [orders, setOrders] = useState<Order[]>(() => orderService.getOrdersByFarmer(user.id));
+  const [orders, setOrders] = useState<Order[]>(() => orderService.getOrdersByFarmer(user?.id || ''));
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | OrderStatus>('All');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -43,7 +43,7 @@ export const FarmerOrders: React.FC = () => {
   const [downloadingOrderId, setDownloadingOrderId] = useState<string | null>(null);
 
   const refreshOrders = () => {
-    setOrders(orderService.getOrdersByFarmer(user.id));
+    setOrders(orderService.getOrdersByFarmer(user?.id || ''));
   };
 
   const handleDownloadPdf = async (order: Order) => {

@@ -39,10 +39,10 @@ export const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [address, setAddress] = useState({
-    street: user.savedAddresses?.[0]?.street || 'Plot 42, APMC Market Yard, Vashi',
-    city: user.savedAddresses?.[0]?.city || 'Navi Mumbai',
-    state: user.savedAddresses?.[0]?.state || 'Maharashtra',
-    pincode: user.savedAddresses?.[0]?.pincode || '400703',
+    street: user?.savedAddresses?.[0]?.street || 'Plot 42, APMC Market Yard, Vashi',
+    city: user?.savedAddresses?.[0]?.city || 'Navi Mumbai',
+    state: user?.savedAddresses?.[0]?.state || 'Maharashtra',
+    pincode: user?.savedAddresses?.[0]?.pincode || '400703',
   });
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('razorpay');
@@ -52,7 +52,7 @@ export const CheckoutPage: React.FC = () => {
 
   // Card details
   const [cardNumber, setCardNumber] = useState('4532 8921 4092 1148');
-  const [cardName, setCardName] = useState(user.name || 'Priya Sharma');
+  const [cardName, setCardName] = useState(user?.name || 'Priya Sharma');
   const [cardExpiry, setCardExpiry] = useState('08/28');
   const [cardCvv, setCardCvv] = useState('742');
 
@@ -202,9 +202,9 @@ export const CheckoutPage: React.FC = () => {
             image: '/logo.png',
             order_id: serverOrder.razorpayOrderId.startsWith('order_') ? serverOrder.razorpayOrderId : undefined,
             prefill: {
-              name: user.name,
-              email: user.email,
-              contact: user.phone,
+              name: user?.name || 'Customer',
+              email: user?.email || '',
+              contact: user?.phone || '',
             },
             theme: {
               color: '#166534',
@@ -898,11 +898,11 @@ export const CheckoutPage: React.FC = () => {
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1.5 text-slate-600">
               <div className="flex justify-between">
                 <span>Customer Name:</span>
-                <span className="font-semibold text-slate-800">{user.name}</span>
+                <span className="font-semibold text-slate-800">{user?.name || 'Customer'}</span>
               </div>
               <div className="flex justify-between">
                 <span>Contact Phone:</span>
-                <span className="font-mono text-slate-800">{user.phone || '+91 98765 43210'}</span>
+                <span className="font-mono text-slate-800">{user?.phone || '+91 98765 43210'}</span>
               </div>
               <div className="flex justify-between">
                 <span>Escrow Hold:</span>

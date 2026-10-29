@@ -22,15 +22,15 @@ export const FarmerProfile: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isEditing, setIsEditing] = useState(false);
-  const [avatar, setAvatar] = useState(user.avatar || AVATAR_PRESETS[0]);
+  const [avatar, setAvatar] = useState(user?.avatar || AVATAR_PRESETS[0]);
   const [formData, setFormData] = useState({
-    name: user.name || '',
-    phone: user.phone || '',
-    location: user.location || '',
-    farmName: user.farmName || '',
-    farmLocation: user.farmLocation || '',
-    farmSizeAcres: user.farmSizeAcres || 10,
-    cropsGrown: (user.cropsGrown || []).join(', '),
+    name: user?.name || '',
+    phone: user?.phone || '',
+    location: user?.location || '',
+    farmName: user?.farmName || '',
+    farmLocation: user?.farmLocation || '',
+    farmSizeAcres: user?.farmSizeAcres || 10,
+    cropsGrown: (user?.cropsGrown || []).join(', '),
   });
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -157,14 +157,14 @@ export const FarmerProfile: React.FC = () => {
             </div>
 
             <div className="pt-2">
-              <h3 className="text-lg font-bold text-slate-900">{user.name}</h3>
-              <p className="text-xs text-slate-500 font-medium">{user.farmName || 'Kisan Producer'}</p>
+              <h3 className="text-lg font-bold text-slate-900">{user?.name || 'Farmer'}</h3>
+              <p className="text-xs text-slate-500 font-medium">{user?.farmName || 'Kisan Producer'}</p>
               <div className="mt-2 flex items-center justify-center gap-2">
                 <Badge variant="emerald" size="sm" dot>
                   {t('verifiedFarmer', 'Verified Farmer')}
                 </Badge>
                 <span className="text-xs font-bold text-amber-600 flex items-center gap-1">
-                  ⭐ {user.farmerRating || 4.9} {t('farmerRating', 'Rating')}
+                  ⭐ {user?.farmerRating || 4.9} {t('farmerRating', 'Rating')}
                 </span>
               </div>
             </div>
@@ -172,15 +172,15 @@ export const FarmerProfile: React.FC = () => {
             <div className="pt-4 border-t border-slate-100 text-left space-y-3 text-xs text-slate-600">
               <div className="flex items-center gap-2.5">
                 <Mail className="w-4 h-4 text-slate-400 shrink-0" />
-                <span className="truncate">{user.email}</span>
+                <span className="truncate">{user?.email || 'N/A'}</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <Phone className="w-4 h-4 text-slate-400 shrink-0" />
-                <span>{user.phone}</span>
+                <span>{user?.phone || 'N/A'}</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
-                <span>{user.location}</span>
+                <span>{user?.location || 'India'}</span>
               </div>
             </div>
           </div>

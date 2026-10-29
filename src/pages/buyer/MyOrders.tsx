@@ -38,7 +38,7 @@ export const MyOrders: React.FC = () => {
   const { showToast } = useToast();
   const navigate = useNavigate();
 
-  const [orders, setOrders] = useState<Order[]>(() => orderService.getOrdersByBuyer(user.id));
+  const [orders, setOrders] = useState<Order[]>(() => orderService.getOrdersByBuyer(user?.id || ''));
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | OrderStatus>('All');
 
@@ -51,7 +51,7 @@ export const MyOrders: React.FC = () => {
   const [comment, setComment] = useState<string>('The produce arrived in prime condition with intact refrigeration.');
 
   const refreshOrders = () => {
-    setOrders(orderService.getOrdersByBuyer(user.id));
+    setOrders(orderService.getOrdersByBuyer(user?.id || ''));
   };
 
   const handleDownloadPdf = async (order: Order) => {

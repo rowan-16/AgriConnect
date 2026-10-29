@@ -30,7 +30,7 @@ export const CropRecommendations: React.FC = () => {
 
   const [form, setForm] = useState<AIRecommendationRequest>({
     soilType: 'Alluvial',
-    location: user.location || 'Nashik, Maharashtra',
+    location: user?.location || 'Nashik, Maharashtra',
     season: 'Kharif (Monsoon)',
     temperatureC: 28,
     rainfallMm: 650,

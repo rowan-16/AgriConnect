@@ -21,12 +21,12 @@ export const AdminProfile: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isEditing, setIsEditing] = useState(false);
-  const [avatar, setAvatar] = useState(user.avatar || ADMIN_AVATAR_PRESETS[0]);
+  const [avatar, setAvatar] = useState(user?.avatar || ADMIN_AVATAR_PRESETS[0]);
   const [formData, setFormData] = useState({
-    name: user.name || 'System Administrator',
-    email: user.email || 'admin@hiresmart.ai',
-    phone: user.phone || '+91 98765 43210',
-    location: user.location || 'New Delhi, India',
+    name: user?.name || 'System Administrator',
+    email: user?.email || 'admin@agriconnect.com',
+    phone: user?.phone || '+91 98765 43210',
+    location: user?.location || 'New Delhi, India',
     department: 'Platform Operations & Governance',
     designation: 'Senior System Administrator',
     adminId: 'ADM-2026-9042',
@@ -142,7 +142,7 @@ export const AdminProfile: React.FC = () => {
             </div>
 
             <div className="pt-2 border-t border-slate-100">
-              <h2 className="text-lg font-bold text-slate-900">{user.name || formData.name}</h2>
+              <h2 className="text-lg font-bold text-slate-900">{user?.name || formData.name}</h2>
               <p className="text-xs text-slate-500">{formData.designation}</p>
 
               <div className="mt-3 flex items-center justify-center gap-2">

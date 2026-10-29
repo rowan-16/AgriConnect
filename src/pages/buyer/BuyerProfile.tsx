@@ -20,17 +20,17 @@ export const BuyerProfile: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isEditing, setIsEditing] = useState(false);
-  const [avatar, setAvatar] = useState(user.avatar || BUYER_AVATARS[0]);
+  const [avatar, setAvatar] = useState(user?.avatar || BUYER_AVATARS[0]);
   const [formData, setFormData] = useState({
-    name: user.name || '',
-    phone: user.phone || '',
-    location: user.location || '',
-    businessName: user.businessName || '',
-    buyerType: user.buyerType || 'Retailer',
+    name: user?.name || '',
+    phone: user?.phone || '',
+    location: user?.location || '',
+    businessName: user?.businessName || '',
+    buyerType: user?.buyerType || 'Retailer',
   });
 
   const [addresses] = useState(
-    user.savedAddresses || [
+    user?.savedAddresses || [
       {
         id: 'addr_1',
         label: 'Central APMC Godown',
@@ -166,8 +166,8 @@ export const BuyerProfile: React.FC = () => {
             </div>
 
             <div className="pt-2">
-              <h3 className="text-lg font-bold text-slate-900">{user.name}</h3>
-              <p className="text-xs text-slate-500 font-medium">{user.businessName || 'Fresh Sourcing Ltd.'}</p>
+              <h3 className="text-lg font-bold text-slate-900">{user?.name || 'Buyer'}</h3>
+              <p className="text-xs text-slate-500 font-medium">{user?.businessName || 'Fresh Sourcing Ltd.'}</p>
               <div className="mt-2 flex items-center justify-center gap-2">
                 <Badge variant="amber" size="sm" dot>
                   {t(formData.buyerType || 'Commercial Buyer', formData.buyerType || 'Commercial Buyer')}
@@ -178,15 +178,15 @@ export const BuyerProfile: React.FC = () => {
             <div className="pt-4 border-t border-slate-100 text-left space-y-3 text-xs text-slate-600">
               <div className="flex items-center gap-2.5">
                 <Mail className="w-4 h-4 text-slate-400 shrink-0" />
-                <span className="truncate">{user.email}</span>
+                <span className="truncate">{user?.email || 'N/A'}</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <Phone className="w-4 h-4 text-slate-400 shrink-0" />
-                <span>{user.phone}</span>
+                <span>{user?.phone || 'N/A'}</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
-                <span>{user.location}</span>
+                <span>{user?.location || 'India'}</span>
               </div>
             </div>
           </div>

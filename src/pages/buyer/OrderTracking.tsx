@@ -29,7 +29,7 @@ export const OrderTracking: React.FC = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
 
-  const allOrders = orderService.getOrdersByBuyer(user.id);
+  const allOrders = orderService.getOrdersByBuyer(user?.id || '');
   const targetOrder = id && id !== 'latest'
     ? orderService.getOrderById(id) || allOrders[0]
     : allOrders[0];

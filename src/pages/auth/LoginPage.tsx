@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Sprout, Lock, Mail, ArrowRight, Sparkles, AlertCircle, ShoppingBag, X, CheckCircle2, KeyRound, Send, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -12,12 +12,17 @@ export const LoginPage: React.FC = () => {
   const { showToast } = useToast();
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      navigate(`/${user.role}/dashboard`, { replace: true });
+      const fromPath = (location.state as any)?.from?.pathname;
+      const targetPath = (fromPath && fromPath.startsWith(`/${user.role}/`))
+        ? fromPath
+        : `/${user.role}/dashboard`;
+      navigate(targetPath, { replace: true });
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user, navigate, location.state]);
 
   const [rememberMe, setRememberMe] = useState(() => authService.getRememberedCredentials().rememberMe);
   const [email, setEmail] = useState(() => authService.getRememberedCredentials().email);

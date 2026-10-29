@@ -32,9 +32,9 @@ export const FarmerDashboard: React.FC = () => {
   const navigate = useNavigate();
 
   // Load farmer-specific data
-  const myCrops = cropService.getCropsByFarmer(user.id);
-  const myOrders = orderService.getOrdersByFarmer(user.id);
-  const weather = weatherService.getWeatherForLocation(user.location || 'Nashik, Maharashtra');
+  const myCrops = cropService.getCropsByFarmer(user?.id || '');
+  const myOrders = orderService.getOrdersByFarmer(user?.id || '');
+  const weather = weatherService.getWeatherForLocation(user?.location || 'Nashik, Maharashtra');
   const recommendations = aiRecommendationService.getDefaultRecommendations().slice(0, 2);
 
   // Metrics
@@ -57,10 +57,10 @@ export const FarmerDashboard: React.FC = () => {
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-emerald-200 text-xs font-semibold">
-              <Sprout className="w-3.5 h-3.5" /> {t('farmerPortal', 'Farmer Command Hub')} • {user.farmName || 'Kisan Agro'}
+              <Sprout className="w-3.5 h-3.5" /> {t('farmerPortal', 'Farmer Command Hub')} • {user?.farmName || 'Kisan Agro'}
             </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
-              {getGreeting()}, {user.name}!
+              {getGreeting()}, {user?.name || 'Farmer'}!
             </h1>
             <p className="text-xs sm:text-sm text-emerald-100 max-w-xl leading-relaxed">
               Your farm operations are thriving. You have <strong>{pendingOrders.length} pending orders</strong> awaiting dispatch and <strong>{myCrops.length} active crop batches</strong> listed for buyers.

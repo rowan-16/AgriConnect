@@ -22,14 +22,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(() => authService.getCurrentUser());
 
   useEffect(() => {
-    // 1. Fetch live users from MongoDB Atlas and sync current active user
+    // 1. Fetch live users from MongoDB Atlas and sync profile updates without overwriting active session role
     authService.fetchUsersFromMongoDB().then((users) => {
       const latest = authService.getCurrentUser();
-      if (latest) {
+      if (latest && users && users.length > 0) {
         const matching = users.find(u => u.email.toLowerCase() === latest.email.toLowerCase() || u.id === latest.id);
         if (matching) {
-          authService.setCurrentUser(matching);
-          setUser(matching);
+          const activeRole = latest.role;
+          const merged: User = {
+            ...matching,
+            role: activeRole, // Strictly preserve user's active session role
+            farmName: activeRole === 'farmer' ? (matching.farmName || latest.farmName) : undefined,
+            businessName: activeRole === 'buyer' ? (matching.businessName || latest.businessName) : undefined,
+            buyerType: activeRole === 'buyer' ? (matching.buyerType || latest.buyerType) : undefined,
+          };
+          if (
+            merged.name !== latest.name ||
+            merged.avatar !== latest.avatar ||
+            merged.location !== latest.location ||
+            merged.isVerified !== latest.isVerified ||
+            merged.phone !== latest.phone
+          ) {
+            authService.setCurrentUser(merged);
+            setUser(merged);
+          }
         }
       }
     });
@@ -38,9 +54,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     cropService.fetchCropsFromMongoDB();
     orderService.fetchOrdersFromMongoDB();
 
-    // 3. Re-sync on window focus
+    // 3. Re-sync live crops and orders on window focus (keep auth state stable)
     const handleFocus = () => {
-      authService.fetchUsersFromMongoDB();
       cropService.fetchCropsFromMongoDB();
       orderService.fetchOrdersFromMongoDB();
     };

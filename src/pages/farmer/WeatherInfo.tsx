@@ -28,7 +28,7 @@ export const WeatherInfo: React.FC = () => {
   const { t } = useLanguage();
   const availableLocations = weatherService.getAvailableLocations();
   const [selectedLocation, setSelectedLocation] = useState(
-    availableLocations.includes(user.location || '') ? user.location! : availableLocations[0]
+    availableLocations.includes(user?.location || '') ? (user?.location || availableLocations[0]) : availableLocations[0]
   );
 
   const [weather, setWeather] = useState<WeatherData>(() =>

@@ -38,7 +38,7 @@ export const AddCrop: React.FC = () => {
   const { showToast } = useToast();
   const navigate = useNavigate();
 
-  const isFarmerVerified = user.isVerified !== false;
+  const isFarmerVerified = user?.isVerified !== false;
 
   const [name, setName] = useState('');
   const [category, setCategory] = useState<CropCategory>('Fresh Vegetables');
@@ -48,7 +48,7 @@ export const AddCrop: React.FC = () => {
   const [pricePerUnit, setPricePerUnit] = useState(35);
   const [minOrder, setMinOrder] = useState(25);
   const [harvestDate, setHarvestDate] = useState(new Date().toISOString().split('T')[0]);
-  const [farmLocation, setFarmLocation] = useState(user.farmLocation || user.location || 'Nashik, Maharashtra');
+  const [farmLocation, setFarmLocation] = useState(user?.farmLocation || user?.location || 'Nashik, Maharashtra');
   const [image, setImage] = useState(SAMPLE_CROP_IMAGES['Fresh Vegetables']);
   const [organic, setOrganic] = useState(true);
   const [shelfLifeDays, setShelfLifeDays] = useState(14);
@@ -136,14 +136,14 @@ export const AddCrop: React.FC = () => {
     }
 
     const created = cropService.addCrop({
-      farmerId: user.id,
-      farmerName: user.name,
-      farmerLocation: user.location,
-      farmerRating: user.farmerRating || 4.9,
-      farmerPhone: user.phone,
+      farmerId: user?.id || 'usr_farmer_1',
+      farmerName: user?.name || 'Kisan Farmer',
+      farmerLocation: user?.location || farmLocation,
+      farmerRating: user?.farmerRating || 4.9,
+      farmerPhone: user?.phone || '+91 98765 43210',
       name,
       category,
-      description: description || `Freshly harvested ${name} grown with sustainable agricultural practices at ${user.farmName || 'our family farm'}.`,
+      description: description || `Freshly harvested ${name} grown with sustainable agricultural practices at ${user?.farmName || 'our family farm'}.`,
       quantity: Number(quantity),
       unit,
       pricePerUnit: Number(pricePerUnit),
@@ -477,7 +477,7 @@ export const AddCrop: React.FC = () => {
               </p>
 
               <div className="text-xs text-slate-600 pt-1 space-y-1">
-                <div>Farmer: <strong>{user.name}</strong> • ⭐ 4.9 Rating</div>
+                <div>Farmer: <strong>{user?.name || 'Farmer'}</strong> • ⭐ 4.9 Rating</div>
                 <div className="flex items-center gap-1 text-slate-400">
                   <MapPin className="w-3.5 h-3.5" /> {farmLocation}
                 </div>
