@@ -7,7 +7,7 @@ const DEFAULT_EMAIL_USER = 'rocklandrowanm@gmail.com';
 const DEFAULT_EMAIL_PASS = 'vtmfmaxlzluzgzus';
 
 /**
- * Creates and returns a configured Nodemailer transporter for Gmail
+ * Creates and returns a configured Nodemailer transporter for Gmail via direct SSL (port 465)
  */
 function getTransporter() {
   const emailUser = process.env.EMAIL_USER || DEFAULT_EMAIL_USER;
@@ -18,7 +18,9 @@ function getTransporter() {
   }
 
   return nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
     auth: {
       user: emailUser,
       pass: emailPass,
@@ -26,21 +28,33 @@ function getTransporter() {
     tls: {
       rejectUnauthorized: false,
     },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
   });
 }
 
 /**
- * Checks if an email belongs to a demo/mock domain
+ * Resolves the actual real-world recipient email address for a login event
  */
-function isDemoEmail(email) {
-  if (!email || typeof email !== 'string') return true;
-  const lower = email.toLowerCase().trim();
-  return (
-    lower.endsWith('@agriconnect.com') ||
-    lower.endsWith('@agrohub.in') ||
-    lower.includes('example.com') ||
-    !lower.includes('@')
-  );
+function resolveRecipientEmail(toEmail) {
+  if (!toEmail || typeof toEmail !== 'string') {
+    return DEFAULT_EMAIL_USER;
+  }
+  const clean = toEmail.toLowerCase().trim();
+
+  // If the user logging in is Pushpitha, route to her real personal Gmail
+  if (clean.includes('pushpitha')) {
+    return 'pushpithamullai@gmail.com';
+  }
+
+  // If it's a real email address (e.g. @gmail.com, @yahoo.com, personal domain)
+  if (!clean.endsWith('@agriconnect.com') && !clean.endsWith('@agrohub.in') && clean.includes('@') && clean.includes('.')) {
+    return clean;
+  }
+
+  // Otherwise fallback to project developer/admin
+  return process.env.EMAIL_USER || DEFAULT_EMAIL_USER;
 }
 
 /**
@@ -49,16 +63,12 @@ function isDemoEmail(email) {
 export async function sendPasswordResetEmail(toEmail, userName, tempPassword) {
   const emailUser = process.env.EMAIL_USER || DEFAULT_EMAIL_USER;
   const transporter = getTransporter();
-
-  const isDemo = isDemoEmail(toEmail);
-  const targetRecipient = isDemo ? emailUser : toEmail;
-  const bccRecipient = (!isDemo && toEmail.toLowerCase() !== emailUser.toLowerCase()) ? emailUser : undefined;
+  const targetRecipient = resolveRecipientEmail(toEmail);
 
   const mailOptions = {
     from: `"AgriConnect Support" <${emailUser}>`,
     to: targetRecipient,
-    bcc: bccRecipient,
-    subject: `🌾 AgriConnect - Password Reset Details: ${userName || toEmail}${isDemo ? ' [Demo Account]' : ''}`,
+    subject: `🌾 AgriConnect - Password Reset Details: ${userName || toEmail}`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -92,7 +102,6 @@ export async function sendPasswordResetEmail(toEmail, userName, tempPassword) {
               <div class="greeting">Hello ${userName || 'Farmer / Buyer'},</div>
               <div class="message">
                 We received a request to recover the password for your AgriConnect account associated with <strong>${toEmail}</strong>.
-                ${isDemo ? `<br><small style="color: #64748b;">(Note: Because "${toEmail}" is an internal demo profile, this notification was dispatched to project administrator: ${emailUser})</small>` : ''}
               </div>
               <div class="password-card">
                 <div class="password-label">Your New Temporary Password</div>
@@ -118,15 +127,12 @@ export async function sendPasswordResetEmail(toEmail, userName, tempPassword) {
 }
 
 /**
- * Send security notification email to the user's Gmail when a login occurs
+ * Send security notification email to the respective person's Gmail when a login occurs
  */
 export async function sendLoginNotificationEmail(toEmail, userName, role, details = {}) {
   const emailUser = process.env.EMAIL_USER || DEFAULT_EMAIL_USER;
   const transporter = getTransporter();
-
-  const isDemo = isDemoEmail(toEmail);
-  const targetRecipient = isDemo ? emailUser : toEmail;
-  const bccRecipient = (!isDemo && toEmail.toLowerCase() !== emailUser.toLowerCase()) ? emailUser : undefined;
+  const targetRecipient = resolveRecipientEmail(toEmail);
 
   const formattedTime = details.timestamp || new Date().toLocaleString('en-IN', {
     timeZone: 'Asia/Kolkata',
@@ -150,8 +156,7 @@ export async function sendLoginNotificationEmail(toEmail, userName, role, detail
   const mailOptions = {
     from: `"AgriConnect Security" <${emailUser}>`,
     to: targetRecipient,
-    bcc: bccRecipient,
-    subject: `🌾 AgriConnect - Security Alert: New Login (${userName || toEmail} - ${roleLabel})`,
+    subject: `🌾 AgriConnect - Security Alert: New Login (${userName || targetRecipient} - ${roleLabel})`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -189,16 +194,19 @@ export async function sendLoginNotificationEmail(toEmail, userName, role, detail
               <div class="greeting">Hello ${userName || 'Valued User'},</div>
               <div class="message">
                 A successful login to your AgriConnect account was just detected. Here are the details of this session:
-                ${isDemo ? `<br><small style="color: #64748b;">(Note: Because "${toEmail}" is an internal demo profile, this security notification is routed to project administrator: ${emailUser})</small>` : ''}
               </div>
               <div class="details-card">
+                <div class="detail-row">
+                  <span class="detail-label">Account Name</span>
+                  <span class="detail-value">${userName || 'User'}</span>
+                </div>
                 <div class="detail-row">
                   <span class="detail-label">Account Email</span>
                   <span class="detail-value">${toEmail}</span>
                 </div>
                 <div class="detail-row">
-                  <span class="detail-label">User Name</span>
-                  <span class="detail-value">${userName}</span>
+                  <span class="detail-label">Delivered To</span>
+                  <span class="detail-value" style="color: #166534;">${targetRecipient}</span>
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Account Role</span>
@@ -239,5 +247,6 @@ export async function sendLoginNotificationEmail(toEmail, userName, role, detail
     `,
   };
 
+  console.log(`📤 Sending login email to respective person: ${targetRecipient} (Account: ${toEmail})`);
   return await transporter.sendMail(mailOptions);
 }
