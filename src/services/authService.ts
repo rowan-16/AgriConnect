@@ -146,7 +146,8 @@ export const authService = {
         found.email.toLowerCase() === 'sukhwinder.farmer@agriconnect.com' ||
         found.email.toLowerCase() === 'sukhwinder@agriconnect.com' ||
         found.email.toLowerCase() === 'pushpithamullai@gmail.com' ||
-        found.email.toLowerCase() === 'rocklandrowanm@gmail.com';
+        found.email.toLowerCase() === 'rocklandrowanm@gmail.com' ||
+        found.email.toLowerCase() === 'jowanm1234@gmail.com';
 
       const userPassword = (found as any).password;
       const isPasswordValid =

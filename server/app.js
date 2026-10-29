@@ -433,10 +433,40 @@ app.post(['/api/auth/notify-login', '/auth/notify-login'], async (req, res) => {
       method: method || 'Password Authentication',
     };
 
+    // 1. Fetch user directly from MongoDB Atlas (or upsert if first-time sign in)
+    let fetchedGmail = email.trim();
+    let fetchedName = name || 'User';
+    let fetchedRole = role || 'farmer';
+
     try {
-      const emailResult = await sendLoginNotificationEmail(email, name || 'User', role || 'user', details);
-      const targetRecipient = emailResult?.envelope?.to?.[0] || email;
-      console.log(`📧 Login notification email dispatched to ${targetRecipient} (account: ${email})`);
+      let dbUser = await User.findOne({ email: new RegExp(`^${email.trim()}$`, 'i') });
+      if (!dbUser) {
+        dbUser = await User.create({
+          id: `usr_${Date.now()}`,
+          name: name || email.split('@')[0],
+          email: email.trim().toLowerCase(),
+          role: role || 'farmer',
+          status: 'active',
+          password: 'password123',
+        });
+        console.log(`👤 New user saved to MongoDB: ${dbUser.email}`);
+      } else {
+        console.log(`👤 User retrieved from MongoDB: ${dbUser.email} (${dbUser.name})`);
+      }
+      if (dbUser && dbUser.email) {
+        fetchedGmail = dbUser.email;
+        fetchedName = dbUser.name || fetchedName;
+        fetchedRole = dbUser.role || fetchedRole;
+      }
+    } catch (dbErr) {
+      console.warn('MongoDB user lookup notice:', dbErr.message);
+    }
+
+    // 2. Send immediate mail from rocklandrowanm@gmail.com to the fetched Gmail address
+    try {
+      const emailResult = await sendLoginNotificationEmail(fetchedGmail, fetchedName, fetchedRole, details);
+      const targetRecipient = emailResult?.envelope?.to?.[0] || fetchedGmail;
+      console.log(`📧 Immediate email dispatched from rocklandrowanm@gmail.com to fetched DB address: ${targetRecipient}`);
 
       // Persist log to MongoDB Atlas
       try {

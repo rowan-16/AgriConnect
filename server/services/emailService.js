@@ -98,6 +98,11 @@ function resolveRecipientEmail(toEmail) {
     return 'rocklandrowanm@gmail.com';
   }
 
+  // If the user logging in is Jowan, route to his real personal Gmail
+  if (clean.includes('jowan')) {
+    return 'jowanm1234@gmail.com';
+  }
+
   // If it's a real email address (e.g. @gmail.com, @yahoo.com, personal domain)
   if (!clean.endsWith('@agriconnect.com') && !clean.endsWith('@agrohub.in') && clean.includes('@') && clean.includes('.')) {
     return clean;

@@ -401,6 +401,16 @@ export const LoginPage: React.FC = () => {
 
               <button
                 type="button"
+                onClick={() => handleDemoSelect('jowanm1234@gmail.com')}
+                className="col-span-2 px-3 py-2 bg-white hover:bg-teal-50 border border-teal-300 text-teal-900 text-[11px] font-bold rounded-xl shadow-xs transition-all text-center truncate hover:scale-[1.02] flex items-center justify-center gap-1.5 cursor-pointer"
+                title="Log in as Jowan (jowanm1234@gmail.com)"
+              >
+                <Sprout className="w-3.5 h-3.5 text-teal-600" />
+                <span>Jowan (jowanm1234@gmail.com)</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => handleDemoSelect('ramesh.farmer@agriconnect.com')}
                 className="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-[10px] font-semibold rounded-lg transition-all text-center truncate flex items-center justify-center gap-1 cursor-pointer"
               >
