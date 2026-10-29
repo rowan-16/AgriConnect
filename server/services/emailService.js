@@ -7,9 +7,12 @@ const DEFAULT_EMAIL_USER = 'rocklandrowanm@gmail.com';
 const DEFAULT_EMAIL_PASS = 'vtmfmaxlzluzgzus';
 
 /**
- * Creates and returns a configured Nodemailer transporter for Gmail via direct SSL (port 465)
+ * Sends email using a resilient 3-tier transport strategy:
+ * 1. service: 'gmail' (native nodemailer optimized connection)
+ * 2. port 465 direct SSL
+ * 3. port 587 STARTTLS
  */
-function getTransporter() {
+async function sendMailWithFallback(mailOptions) {
   const emailUser = process.env.EMAIL_USER || DEFAULT_EMAIL_USER;
   const emailPass = (process.env.EMAIL_PASS || DEFAULT_EMAIL_PASS).replace(/\s+/g, '');
 
@@ -17,21 +20,63 @@ function getTransporter() {
     throw new Error('Gmail SMTP credentials are not configured (EMAIL_USER / EMAIL_PASS missing)');
   }
 
-  return nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
-    auth: {
-      user: emailUser,
-      pass: emailPass,
-    },
-    tls: {
-      rejectUnauthorized: false,
-    },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-  });
+  let lastErr = null;
+
+  // Tier 1: Direct SSL Port 465 forced to IPv4 (fastest & rock-solid on Vercel/cloud/ISPs)
+  try {
+    const transporter465 = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      family: 4,
+      auth: { user: emailUser, pass: emailPass },
+      tls: { rejectUnauthorized: false },
+      connectionTimeout: 12000,
+      greetingTimeout: 12000,
+      socketTimeout: 15000,
+    });
+    return await transporter465.sendMail(mailOptions);
+  } catch (err1) {
+    lastErr = err1;
+    console.warn('⚠️ Tier 1 (port 465 IPv4) delivery notice:', err1.message);
+  }
+
+  // Tier 2: STARTTLS Port 587 forced to IPv4
+  try {
+    const transporter587 = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      family: 4,
+      auth: { user: emailUser, pass: emailPass },
+      tls: { rejectUnauthorized: false },
+      connectionTimeout: 12000,
+      greetingTimeout: 12000,
+      socketTimeout: 15000,
+    });
+    return await transporter587.sendMail(mailOptions);
+  } catch (err2) {
+    lastErr = err2;
+    console.warn('⚠️ Tier 2 (port 587 IPv4) delivery notice:', err2.message);
+  }
+
+  // Tier 3: service: 'gmail'
+  try {
+    const transporterGmail = nodemailer.createTransport({
+      service: 'gmail',
+      family: 4,
+      auth: { user: emailUser, pass: emailPass },
+      connectionTimeout: 12000,
+      greetingTimeout: 12000,
+      socketTimeout: 15000,
+    });
+    return await transporterGmail.sendMail(mailOptions);
+  } catch (err3) {
+    lastErr = err3;
+    console.warn('⚠️ Tier 3 (service: gmail) delivery notice:', err3.message);
+  }
+
+  throw lastErr || new Error('All SMTP email delivery tiers failed.');
 }
 
 /**
@@ -67,7 +112,6 @@ function resolveRecipientEmail(toEmail) {
  */
 export async function sendPasswordResetEmail(toEmail, userName, tempPassword) {
   const emailUser = process.env.EMAIL_USER || DEFAULT_EMAIL_USER;
-  const transporter = getTransporter();
   const targetRecipient = resolveRecipientEmail(toEmail);
 
   const mailOptions = {
@@ -133,7 +177,8 @@ export async function sendPasswordResetEmail(toEmail, userName, tempPassword) {
     `,
   };
 
-  return await transporter.sendMail(mailOptions);
+  console.log(`📤 Sending password reset email to: ${targetRecipient} (Account: ${toEmail})`);
+  return await sendMailWithFallback(mailOptions);
 }
 
 /**
@@ -141,7 +186,6 @@ export async function sendPasswordResetEmail(toEmail, userName, tempPassword) {
  */
 export async function sendLoginNotificationEmail(toEmail, userName, role, details = {}) {
   const emailUser = process.env.EMAIL_USER || DEFAULT_EMAIL_USER;
-  const transporter = getTransporter();
   const targetRecipient = resolveRecipientEmail(toEmail);
 
   const formattedTime = details.timestamp || new Date().toLocaleString('en-IN', {
@@ -274,5 +318,5 @@ AgriConnect Platform: https://agri-connect-delta-five.vercel.app`;
   };
 
   console.log(`📤 Sending login email to respective person: ${targetRecipient} (Account: ${toEmail})`);
-  return await transporter.sendMail(mailOptions);
+  return await sendMailWithFallback(mailOptions);
 }
