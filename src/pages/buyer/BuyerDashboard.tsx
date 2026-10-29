@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ShoppingBag,
@@ -46,10 +46,12 @@ export const BuyerDashboard: React.FC = () => {
     const unsubscribe = cropService.subscribe((crops) => {
       setAllCrops(crops.filter(c => c.status === 'active'));
     });
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
-  const myOrders = orderService.getOrdersByBuyer(user.id);
+  const myOrders = orderService.getOrdersByBuyer(user?.id || '');
   const latestOrder = myOrders[0];
 
   const categories = [
@@ -82,7 +84,7 @@ export const BuyerDashboard: React.FC = () => {
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
-            {t('welcomeBack', 'Welcome back')}, {user.name}!
+            {t('welcomeBack', 'Welcome back')}, {user?.name || 'Valued Buyer'}!
           </h1>
           <p className="text-xs sm:text-sm text-amber-100 leading-relaxed">
             {t('sourceFreshHarvestsDesc', 'Source fresh farm harvests directly from certified growers. Zero middlemen markups, 100% cold-chain logistics protection.')}

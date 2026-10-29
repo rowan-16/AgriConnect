@@ -25,6 +25,7 @@ import { useToast } from '../../context/ToastContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { SupportedLanguage } from '../../services/translations';
 import { UserRole } from '../../types';
+import { authService } from '../../services/authService';
 
 interface HeaderProps {
   onToggleSidebar: () => void;

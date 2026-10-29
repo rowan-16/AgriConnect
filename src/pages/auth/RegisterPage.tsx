@@ -26,6 +26,7 @@ import { UserRole, StructuredAddress, FarmerEvidenceCategory } from '../../types
 import { StructuredAddressForm } from '../../components/common/StructuredAddressForm';
 import { FarmerRegistrationDocUpload, VerificationUploadState } from '../../components/farmer/FarmerRegistrationDocUpload';
 import { isValidPinCode, isValidGstin, formatStructuredAddress } from '../../data/indianLocations';
+import { authService } from '../../services/authService';
 
 export const RegisterPage: React.FC = () => {
   const { register, loginWithGoogle } = useAuth();

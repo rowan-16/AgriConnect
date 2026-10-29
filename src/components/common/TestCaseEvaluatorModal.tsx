@@ -25,7 +25,7 @@ export const TestCaseEvaluatorModal: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [activeTestId, setActiveTestId] = useState<string | null>(null);
   const [isRunningAll, setIsRunningAll] = useState(false);
-  const [autoRunTimer, setAutoRunTimer] = useState<NodeJS.Timeout | null>(null);
+  const [autoRunTimer, setAutoRunTimer] = useState<any>(null);
 
   const categories = [
     { id: 'all', label: 'All Cases', count: TEST_CASES_DATA.length },

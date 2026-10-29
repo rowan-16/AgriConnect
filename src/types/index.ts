@@ -78,6 +78,7 @@ export interface User {
   // Admin / General
   preferredLanguage?: 'en' | 'ta' | 'hi' | 'te' | 'ml' | 'kn';
   status: 'active' | 'pending' | 'suspended';
+  password?: string;
   createdAt: string;
 }
 

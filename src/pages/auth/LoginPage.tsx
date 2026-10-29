@@ -582,9 +582,9 @@ export const LoginPage: React.FC = () => {
                 <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl mb-3">
                   <button
                     type="button"
-                    onClick={() => setGoogleRole('farmer')}
+                    onClick={() => setSelectedRole('farmer')}
                     className={`py-2 px-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                      googleRole === 'farmer' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                      selectedRole === 'farmer' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     <Sprout className="w-3.5 h-3.5" />
@@ -592,9 +592,9 @@ export const LoginPage: React.FC = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setGoogleRole('buyer')}
+                    onClick={() => setSelectedRole('buyer')}
                     className={`py-2 px-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                      googleRole === 'buyer' ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                      selectedRole === 'buyer' ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     <ShoppingBag className="w-3.5 h-3.5" />
