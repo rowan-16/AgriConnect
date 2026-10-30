@@ -183,7 +183,7 @@ export const RegisterPage: React.FC = () => {
       try {
         google.accounts.id.initialize({
           client_id: clientId,
-          callback: (response: any) => {
+          callback: async (response: any) => {
             if (response.credential) {
               const base64Url = response.credential.split('.')[1];
               const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -194,7 +194,7 @@ export const RegisterPage: React.FC = () => {
                   .join('')
               );
               const googleUser = JSON.parse(jsonPayload);
-              const authRes = loginWithGoogle(role, {
+              const authRes = await loginWithGoogle(role, {
                 name: googleUser.name,
                 email: googleUser.email,
                 picture: googleUser.picture,
@@ -244,7 +244,7 @@ export const RegisterPage: React.FC = () => {
               });
               const profile = await res.json();
               if (profile && profile.email) {
-                const authRes = loginWithGoogle(role, {
+                const authRes = await loginWithGoogle(role, {
                   name: profile.name || profile.email.split('@')[0],
                   email: profile.email,
                   picture: profile.picture,

@@ -9,7 +9,7 @@ interface AuthContextType {
   role: UserRole;
   isAuthenticated: boolean;
   login: (email: string, password?: string, rememberMe?: boolean, requestedRole?: UserRole) => Promise<{ success: boolean; user?: User; error?: string }>;
-  loginWithGoogle: (role?: UserRole, googleProfile?: { name?: string; email?: string; picture?: string }, rememberMe?: boolean) => { success: boolean; user?: User; error?: string };
+  loginWithGoogle: (role?: UserRole, googleProfile?: { name?: string; email?: string; picture?: string }, rememberMe?: boolean) => Promise<{ success: boolean; user?: User; error?: string }>;
   register: (userData: any) => Promise<{ success: boolean; user?: User; error?: string }>;
   logout: () => void;
   deleteAccount: (userId?: string, optionalEmail?: string) => Promise<void>;
@@ -78,8 +78,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return res;
   };
 
-  const loginWithGoogle = (role: UserRole = 'farmer', googleProfile?: { name?: string; email?: string; picture?: string }, rememberMe = true) => {
-    const res = authService.loginWithGoogle(role, googleProfile, rememberMe);
+  const loginWithGoogle = async (role: UserRole = 'farmer', googleProfile?: { name?: string; email?: string; picture?: string }, rememberMe = true) => {
+    const res = await authService.loginWithGoogle(role, googleProfile, rememberMe);
     if (res.success && res.user) {
       setUser(res.user);
     }

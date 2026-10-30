@@ -159,6 +159,22 @@ const SEED_USERS = [
     status: 'active',
   },
   {
+    id: 'usr_jowan_m',
+    name: 'Jowan M',
+    email: 'jowanm1234@gmail.com',
+    role: 'farmer',
+    phone: '+91 98765 12340',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=300',
+    location: 'Coimbatore, Tamil Nadu',
+    farmName: "Jowan's Organic Agro Bio-Farm",
+    farmLocation: 'Coimbatore Rural, Tamil Nadu',
+    farmSizeAcres: 14.0,
+    cropsGrown: ['Bhagwa Ruby Red Organic Pomegranates', 'Alphonso Mangoes', 'Basmati Rice'],
+    farmerRating: 5.0,
+    isVerified: true,
+    status: 'active',
+  },
+  {
     id: 'usr_admin_1',
     name: 'AgriConnect Administrator',
     email: 'admin@agriconnect.com',
@@ -452,6 +468,11 @@ app.post('/api/users/register', async (req, res) => {
     }
 
     if (mongoose.connection.readyState === 1) {
+      // Strict role preservation: never overwrite an established user's registered role!
+      const existingUser = await User.findOne({ email: userData.email.toLowerCase() });
+      if (existingUser && existingUser.role) {
+        userData.role = existingUser.role;
+      }
       const user = await User.findOneAndUpdate(
         { email: userData.email.toLowerCase() },
         { $set: userData },
@@ -583,16 +604,13 @@ app.post(['/api/auth/notify-login', '/auth/notify-login'], async (req, res) => {
             dbUser.role = 'admin';
             await dbUser.save();
           }
-        } else if (role && dbUser.role !== role) {
-          dbUser.role = role;
-          await dbUser.save();
-          console.log(`🔄 Updated user role in MongoDB to ${role} for ${dbUser.email}`);
         }
+        // Strict preservation: Never alter established dbUser.role!
       }
       if (dbUser && dbUser.email) {
         fetchedGmail = dbUser.email;
         fetchedName = dbUser.name || fetchedName;
-        fetchedRole = dbUser.email.toLowerCase() === 'admin@agriconnect.com' ? 'admin' : (role || dbUser.role || fetchedRole);
+        fetchedRole = dbUser.role || fetchedRole;
       }
     } catch (dbErr) {
       console.warn('MongoDB user lookup notice:', dbErr.message);

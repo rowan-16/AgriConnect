@@ -24,8 +24,12 @@ export const authService = {
       }
     });
     const merged = Array.from(map.values()).map(u => {
-      if (u.email.toLowerCase() === 'admin@agriconnect.com') {
+      const email = u.email.toLowerCase();
+      if (email === 'admin@agriconnect.com') {
         return { ...u, role: 'admin' as UserRole, password: 'admin@agri' };
+      }
+      if (email === 'jowanm1234@gmail.com' || email === 'rocklandrowanm@gmail.com') {
+        return { ...u, role: 'farmer' as UserRole };
       }
       return u;
     });
@@ -125,14 +129,20 @@ export const authService = {
       }
     }
     if (localUser) {
+      const email = localUser.email ? localUser.email.toLowerCase() : '';
       // Auto-repair admin if it was corrupted in localStorage as farmer
-      if (localUser.email?.toLowerCase() === 'admin@agriconnect.com' && localUser.role !== 'admin') {
+      if (email === 'admin@agriconnect.com' && localUser.role !== 'admin') {
         localUser.role = 'admin';
         delete (localUser as any).farmName;
         delete (localUser as any).cropsGrown;
         delete (localUser as any).businessName;
         delete (localUser as any).buyerType;
         saveStorage(CURRENT_USER_KEY, localUser);
+      } else if (email === 'jowanm1234@gmail.com' || email === 'rocklandrowanm@gmail.com') {
+        if (localUser.role !== 'farmer') {
+          localUser.role = 'farmer';
+          saveStorage(CURRENT_USER_KEY, localUser);
+        }
       }
       return localUser;
     }
@@ -226,15 +236,12 @@ export const authService = {
         }
       }
 
-      // Strict role enforcement: If user selected a portal role that does NOT match their registered account role, REJECT the login!
-      // A farmer account cannot be logged in as a buyer, and a buyer cannot be logged in as a farmer.
-      if (!isAdminAccount && requestedRole && requestedRole !== 'admin' && found.role !== requestedRole) {
-        const correctRoleName = found.role === 'farmer' ? 'Farmer / Producer' : 'Commercial Buyer';
-        const targetPortalName = found.role === 'farmer' ? 'Farmer' : 'Buyer';
-        return {
-          success: false,
-          error: `This account is registered as a ${correctRoleName}. You cannot log in through the ${requestedRole === 'buyer' ? 'Commercial Buyer' : 'Farmer'} portal. Please select the "${targetPortalName}" tab above to sign in.`,
-        };
+      // Preserve established account role:
+      // A farmer account ALWAYS logs in as the farmer.
+      // A buyer account ALWAYS logs in as the buyer.
+      // Admin ALWAYS logs in as admin.
+      if (isAdminAccount) {
+        found.role = 'admin';
       }
 
       // If user was previously in deleted list, remove them so they start fresh
@@ -457,19 +464,36 @@ export const authService = {
     return updated;
   },
 
-  loginWithGoogle(role: UserRole = 'farmer', googleProfile?: { name?: string; email?: string; picture?: string }, rememberMe = true): { success: boolean; user?: User; error?: string } {
-    const targetEmail = googleProfile?.email || (role === 'farmer' ? 'ramesh.farmer@agriconnect.com' : 'priya.buyer@agriconnect.com');
+  async loginWithGoogle(role: UserRole = 'farmer', googleProfile?: { name?: string; email?: string; picture?: string }, rememberMe = true): Promise<{ success: boolean; user?: User; error?: string }> {
+    const targetEmail = (googleProfile?.email || (role === 'farmer' ? 'ramesh.farmer@agriconnect.com' : 'priya.buyer@agriconnect.com')).trim().toLowerCase();
     const targetName = googleProfile?.name || (googleProfile?.email ? googleProfile.email.split('@')[0] : (role === 'farmer' ? 'Ramesh Patel (Google User)' : 'Priya Sharma (Google User)'));
     const targetAvatar = googleProfile?.picture || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300';
 
     // Remove from deleted users blacklist so fresh login under chosen role is completely clean
-    const deletedList = loadStorage<string[]>(DELETED_USERS_KEY, []).filter(e => e.toLowerCase() !== targetEmail.toLowerCase());
+    const deletedList = loadStorage<string[]>(DELETED_USERS_KEY, []).filter(e => e.toLowerCase() !== targetEmail);
     saveStorage(DELETED_USERS_KEY, deletedList);
 
     const users = this.getUsers();
-    let found = users.find(u => u.email.toLowerCase() === targetEmail.toLowerCase());
+    let found = users.find(u => u.email.toLowerCase() === targetEmail);
+
+    // If not found in local cache, attempt fetching directly from MongoDB Atlas
+    if (!found && targetEmail.includes('@')) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/users/by-email/${encodeURIComponent(targetEmail)}`);
+        if (res.ok) {
+          const dbUser = await res.json();
+          if (dbUser && dbUser.email) {
+            found = dbUser;
+            saveStorage(USERS_KEY, [dbUser, ...users]);
+          }
+        }
+      } catch {
+        // Fallback
+      }
+    }
 
     if (!found) {
+      // First-time Google registration: establish account under role chosen on tab
       found = {
         id: `usr_google_${Date.now()}`,
         name: targetName,
@@ -486,6 +510,12 @@ export const authService = {
       };
       saveStorage(USERS_KEY, [found, ...users]);
     } else {
+      // Account ALREADY EXISTS!
+      // Strict role preservation:
+      // A farmer account ALWAYS logs in as the farmer.
+      // A buyer account ALWAYS logs in as the buyer.
+      // Admin ALWAYS logs in as admin.
+      // NEVER mutate or switch role based on the UI tab!
       let changed = false;
       if (googleProfile?.picture && found.avatar !== googleProfile.picture) {
         found.avatar = googleProfile.picture;
@@ -495,15 +525,12 @@ export const authService = {
         found.name = googleProfile.name;
         changed = true;
       }
-      if (found.role === 'admin') {
-        // Admin always remains admin
-      } else if (role && found.role && found.role !== role) {
-        const correctRoleName = found.role === 'farmer' ? 'Farmer / Producer' : 'Commercial Buyer';
-        const targetPortalName = found.role === 'farmer' ? 'Farmer' : 'Buyer';
-        return {
-          success: false,
-          error: `This Google account is already registered as a ${correctRoleName}. You cannot sign in through the ${role === 'buyer' ? 'Commercial Buyer' : 'Farmer'} portal. Please select the "${targetPortalName}" tab to sign in.`,
-        };
+      if (found.email.toLowerCase() === 'admin@agriconnect.com' || found.role === 'admin') {
+        found.role = 'admin';
+        changed = true;
+      } else if (found.email.toLowerCase() === 'jowanm1234@gmail.com' || found.email.toLowerCase() === 'rocklandrowanm@gmail.com') {
+        found.role = 'farmer';
+        changed = true;
       }
       if (changed) {
         saveStorage(USERS_KEY, users.map(u => u.id === found!.id ? found! : u));

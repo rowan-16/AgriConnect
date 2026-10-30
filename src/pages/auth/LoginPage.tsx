@@ -116,13 +116,14 @@ export const LoginPage: React.FC = () => {
                     .join('')
                 );
                 const googleUser = JSON.parse(jsonPayload);
-                const authRes = loginWithGoogle(selectedRole, {
+                const authRes = await loginWithGoogle(selectedRole, {
                   name: googleUser.name || googleUser.given_name || 'Google User',
                   email: googleUser.email,
                   picture: googleUser.picture,
                 }, rememberMe);
                 if (authRes.success && authRes.user) {
-                  showToast(`Welcome ${authRes.user.name}! Signed in via Google.`, 'success', 'Google Authentication');
+                  const portalName = authRes.user.role === 'farmer' ? 'Farmer Portal' : authRes.user.role === 'buyer' ? 'Commercial Buyer Portal' : 'Admin Console';
+                  showToast(`Welcome ${authRes.user.name}! Signed in to ${portalName}.`, 'success', 'Google Authentication');
                   await notifyUserLogin(authRes.user, 'Google One Tap');
                   navigate(`/${authRes.user.role}/dashboard`);
                 }
@@ -170,13 +171,14 @@ export const LoginPage: React.FC = () => {
               });
               const profile = await res.json();
               if (profile && profile.email) {
-                const authRes = loginWithGoogle(roleToUse, {
+                const authRes = await loginWithGoogle(roleToUse, {
                   name: profile.name || profile.email.split('@')[0],
                   email: profile.email,
                   picture: profile.picture,
                 }, rememberMe);
                 if (authRes.success && authRes.user) {
-                  showToast(`Welcome ${authRes.user.name}! Signed in with Google account.`, 'success', 'Google Authentication');
+                  const portalName = authRes.user.role === 'farmer' ? 'Farmer Portal' : authRes.user.role === 'buyer' ? 'Commercial Buyer Portal' : 'Admin Console';
+                  showToast(`Welcome ${authRes.user.name}! Signed in to ${portalName}.`, 'success', 'Google Authentication');
                   await notifyUserLogin(authRes.user, 'Google OAuth 2.0');
                   setIsGoogleLoading(false);
                   navigate(`/${authRes.user.role}/dashboard`);
@@ -233,14 +235,15 @@ export const LoginPage: React.FC = () => {
     setIsGoogleLoading(true);
 
     const name = customGoogleName.trim() || customGoogleEmail.split('@')[0];
-    const authRes = loginWithGoogle(selectedRole, {
+    const authRes = await loginWithGoogle(selectedRole, {
       name,
       email: customGoogleEmail.trim(),
     }, rememberMe);
     setShowGoogleDialog(false);
 
     if (authRes.success && authRes.user) {
-      showToast(`Welcome ${authRes.user.name}! Signed in via Google.`, 'success', 'Google Authentication');
+      const portalName = authRes.user.role === 'farmer' ? 'Farmer Portal' : authRes.user.role === 'buyer' ? 'Commercial Buyer Portal' : 'Admin Console';
+      showToast(`Welcome ${authRes.user.name}! Signed in to ${portalName}.`, 'success', 'Google Authentication');
       await notifyUserLogin(authRes.user, 'Google Sign-In');
       setIsGoogleLoading(false);
       navigate(`/${authRes.user.role}/dashboard`);
