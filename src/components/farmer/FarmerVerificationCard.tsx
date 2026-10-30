@@ -59,7 +59,7 @@ export const FarmerVerificationCard: React.FC = () => {
       if (fieldType === 'landImg') setLandImg(url);
 
       // Auto-save uploaded document to Admin audit queue
-      const updatedUser = authService.submitVerificationDocuments(user.id, {
+      const updatedUser = await authService.submitVerificationDocuments(user.id, {
         documentType,
         documentName: file.name,
         documentUrl: updatedPrimaryDoc,
@@ -79,19 +79,17 @@ export const FarmerVerificationCard: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      const updatedUser = authService.submitVerificationDocuments(user.id, {
+    try {
+      const updatedUser = await authService.submitVerificationDocuments(user.id, {
         documentType,
         documentUrl: primaryDocUrl,
         landDocumentImage: primaryDocUrl,
         landImage: landImg,
       });
-
-      setIsSubmitting(false);
 
       if (updatedUser) {
         updateUser(updatedUser);
@@ -101,7 +99,11 @@ export const FarmerVerificationCard: React.FC = () => {
           'Verification Submitted'
         );
       }
-    }, 400);
+    } catch {
+      showToast('Error syncing documents to server.', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const appRef = user?.applicationRef || currentDocs?.applicationRef || 'AGC-APP-PENDING';

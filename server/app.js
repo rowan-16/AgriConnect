@@ -689,8 +689,10 @@ app.get(['/api/auth/email-logs', '/auth/email-logs'], async (req, res) => {
 
 
 // Admin Review & Verification Endpoint
-app.patch('/api/admin/farmers/:id/verify', async (req, res) => {
+app.patch(['/api/admin/farmers/:id/verify', '/admin/farmers/:id/verify'], async (req, res) => {
   try {
+    const rawId = req.params.id;
+    const bodyEmail = req.body?.email?.toLowerCase();
     const { status, rejectionReason, adminNotes, reviewerId } = req.body;
     const isApproved = status === 'approved';
     const update = {
@@ -703,29 +705,118 @@ app.patch('/api/admin/farmers/:id/verify', async (req, res) => {
       'verificationDocuments.reviewedBy': reviewerId || 'AgriConnect Admin',
     };
 
+    const queryConditions = [
+      { id: rawId },
+      { email: new RegExp(`^${rawId}$`, 'i') }
+    ];
+    if (bodyEmail) {
+      queryConditions.push({ email: new RegExp(`^${bodyEmail}$`, 'i') });
+    }
+    if (mongoose.isValidObjectId(rawId)) {
+      queryConditions.push({ _id: rawId });
+    }
+
     if (mongoose.connection.readyState === 1) {
       const updated = await User.findOneAndUpdate(
-        { id: req.params.id },
+        { $or: queryConditions },
         { $set: update },
-        { returnDocument: 'after' }
+        { returnDocument: 'after', new: true }
       );
       if (!updated) return res.status(404).json({ error: 'Farmer not found' });
       return res.json(updated);
     }
-    res.json({ id: req.params.id, ...update });
+    res.json({ id: rawId, ...update });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-app.patch('/api/users/:id', async (req, res) => {
+// Farmer Verification Documents Submission Endpoint
+app.post(['/api/farmers/:id/verification', '/farmers/:id/verification', '/api/farmers/verification', '/farmers/verification'], async (req, res) => {
   try {
-    if (mongoose.connection.readyState === 1) {
-      const updated = await User.findOneAndUpdate({ id: req.params.id }, req.body, { returnDocument: 'after' });
-      return res.json(updated);
+    const rawId = req.params.id || req.body?.id || req.body?.userId;
+    const bodyEmail = req.body?.email?.toLowerCase();
+    const docs = req.body?.verificationDocuments || req.body;
+    const appRef = req.body?.applicationRef || docs?.applicationRef || `AGC-APP-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
+
+    const queryConditions = [];
+    if (rawId) {
+      queryConditions.push({ id: rawId });
+      queryConditions.push({ email: new RegExp(`^${rawId}$`, 'i') });
+      if (mongoose.isValidObjectId(rawId)) queryConditions.push({ _id: rawId });
     }
-    res.json({ id: req.params.id, ...req.body });
+    if (bodyEmail) {
+      queryConditions.push({ email: new RegExp(`^${bodyEmail}$`, 'i') });
+    }
+
+    const verificationPayload = {
+      documentType: docs.documentType || 'land_record',
+      documentName: docs.documentName || '',
+      documentUrl: docs.documentUrl || docs.landDocumentImage || '',
+      landDocumentImage: docs.landDocumentImage || docs.documentUrl || '',
+      landImage: docs.landImage || '',
+      applicationRef: appRef,
+      submittedAt: docs.submittedAt || new Date(),
+      status: docs.status || 'pending',
+      rejectionReason: '',
+      adminNotes: '',
+    };
+
+    if (mongoose.connection.readyState === 1 && queryConditions.length > 0) {
+      const updated = await User.findOneAndUpdate(
+        { $or: queryConditions },
+        {
+          $set: {
+            applicationRef: appRef,
+            verificationDocuments: verificationPayload,
+            status: 'pending',
+          }
+        },
+        { returnDocument: 'after', new: true }
+      );
+      if (updated) {
+        console.log(`📑 Verification documents submitted to MongoDB for ${updated.email} [Ref: ${appRef}]`);
+        return res.json(updated);
+      }
+    }
+
+    res.json({ success: true, applicationRef: appRef, verificationDocuments: verificationPayload });
   } catch (err) {
+    console.error('❌ Error saving verification documents:', err.message);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Update / Patch User Profile (Robust matching by ID, Email, or _id)
+app.patch(['/api/users/:id', '/users/:id'], async (req, res) => {
+  try {
+    const rawId = req.params.id;
+    const bodyEmail = req.body?.email?.toLowerCase();
+    const queryConditions = [
+      { id: rawId },
+      { email: new RegExp(`^${rawId}$`, 'i') }
+    ];
+    if (bodyEmail) {
+      queryConditions.push({ email: new RegExp(`^${bodyEmail}$`, 'i') });
+    }
+    if (mongoose.isValidObjectId(rawId)) {
+      queryConditions.push({ _id: rawId });
+    }
+
+    if (mongoose.connection.readyState === 1) {
+      const updated = await User.findOneAndUpdate(
+        { $or: queryConditions },
+        { $set: req.body },
+        { returnDocument: 'after', new: true }
+      );
+      if (updated) {
+        console.log(`✅ User profile patched in MongoDB: ${updated.email} (${updated.id})`);
+        return res.json(updated);
+      }
+    }
+    res.json({ id: rawId, ...req.body });
+  } catch (err) {
+    console.error('❌ Error in patch /api/users/:id:', err.message);
     res.status(400).json({ error: err.message });
   }
 });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Sprout,
   Search,
@@ -16,7 +16,8 @@ import {
   Clock,
   Phone,
   Mail,
-  Edit3
+  Edit3,
+  RefreshCw
 } from 'lucide-react';
 import { authService } from '../../services/authService';
 import { cropService } from '../../services/cropService';
@@ -33,6 +34,7 @@ export const ManageFarmers: React.FC = () => {
   const { showToast } = useToast();
   const { t } = useLanguage();
   const [farmers, setFarmers] = useState(() => authService.getUsers().filter((u) => u.role === 'farmer'));
+  const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'pending_docs' | 'verified' | 'needs_evidence'>('all');
   const [selectedFarmer, setSelectedFarmer] = useState<any | null>(null);
@@ -41,18 +43,63 @@ export const ManageFarmers: React.FC = () => {
   const [reviewAction, setReviewAction] = useState<'none' | 'reject' | 'evidence'>('none');
   const [viewingImg, setViewingImg] = useState<{ title: string; url: string } | null>(null);
 
-  const refreshFarmers = () => {
-    setFarmers(authService.getUsers().filter((u) => u.role === 'farmer'));
+  const fetchLiveFarmers = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/users`);
+      if (res.ok) {
+        const users = await res.json();
+        if (Array.isArray(users) && users.length > 0) {
+          const liveFarmers = users.filter((u: any) => u.role === 'farmer');
+          setFarmers(liveFarmers);
+          // Sync with local storage
+          authService.fetchUsersFromMongoDB().catch(() => {});
+        }
+      }
+    } catch (e) {
+      console.warn('Error fetching live farmers:', e);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleOpenDossier = (farmer: any) => {
+  useEffect(() => {
+    fetchLiveFarmers();
+    const handleFocus = () => fetchLiveFarmers();
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
+  const refreshFarmers = () => {
+    fetchLiveFarmers();
+  };
+
+  const handleOpenDossier = async (farmer: any) => {
     setSelectedFarmer(farmer);
     setAdminNotes(farmer.verificationDocuments?.adminNotes || '');
     setRejectionReason(farmer.verificationDocuments?.rejectionReason || '');
     setReviewAction('none');
+
+    // Fetch the freshest verification documents directly from MongoDB Atlas
+    try {
+      const email = farmer.email;
+      if (email) {
+        const res = await fetch(`${API_BASE_URL}/users/by-email/${encodeURIComponent(email)}`);
+        if (res.ok) {
+          const freshUser = await res.json();
+          if (freshUser && freshUser.email) {
+            setSelectedFarmer((prev: any) => (prev && (prev.id === farmer.id || prev.email === farmer.email) ? { ...prev, ...freshUser } : prev));
+            setFarmers((prev) => prev.map((f) => (f.email.toLowerCase() === freshUser.email.toLowerCase() ? { ...f, ...freshUser } : f)));
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to fetch fresh dossier from server:', err);
+    }
   };
 
   const handleApproveVerification = async (farmerId: string) => {
+    const targetFarmer = farmers.find(f => f.id === farmerId || f.email === farmerId);
     authService.reviewFarmerVerification(farmerId, true, undefined, {
       status: 'approved',
       adminNotes,
@@ -61,10 +108,11 @@ export const ManageFarmers: React.FC = () => {
 
     // Also sync to backend
     try {
-      await fetch(`${API_BASE_URL}/admin/farmers/${farmerId}/verify`, {
+      await fetch(`${API_BASE_URL}/admin/farmers/${encodeURIComponent(farmerId)}/verify`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          email: targetFarmer?.email,
           status: 'approved',
           adminNotes,
           reviewerId: 'AgriConnect Admin Desk',
@@ -83,7 +131,7 @@ export const ManageFarmers: React.FC = () => {
       actionUrl: '/farmer/dashboard',
     });
 
-    refreshFarmers();
+    await fetchLiveFarmers();
     if (selectedFarmer) setSelectedFarmer(null);
     showToast('Farmer cultivation documents approved and account verified.', 'success', 'Verification Complete');
   };
@@ -94,6 +142,7 @@ export const ManageFarmers: React.FC = () => {
       return;
     }
 
+    const targetFarmer = farmers.find(f => f.id === farmerId || f.email === farmerId);
     authService.reviewFarmerVerification(farmerId, false, rejectionReason, {
       status: 'rejected',
       adminNotes,
@@ -101,10 +150,11 @@ export const ManageFarmers: React.FC = () => {
     });
 
     try {
-      await fetch(`${API_BASE_URL}/admin/farmers/${farmerId}/verify`, {
+      await fetch(`${API_BASE_URL}/admin/farmers/${encodeURIComponent(farmerId)}/verify`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          email: targetFarmer?.email,
           status: 'rejected',
           rejectionReason,
           adminNotes,
@@ -123,7 +173,7 @@ export const ManageFarmers: React.FC = () => {
       actionUrl: '/farmer/dashboard',
     });
 
-    refreshFarmers();
+    await fetchLiveFarmers();
     setReviewAction('none');
     if (selectedFarmer) setSelectedFarmer(null);
     setRejectionReason('');
@@ -136,6 +186,7 @@ export const ManageFarmers: React.FC = () => {
       return;
     }
 
+    const targetFarmer = farmers.find(f => f.id === farmerId || f.email === farmerId);
     authService.reviewFarmerVerification(farmerId, false, rejectionReason, {
       status: 'needs_evidence',
       adminNotes,
@@ -143,10 +194,11 @@ export const ManageFarmers: React.FC = () => {
     });
 
     try {
-      await fetch(`${API_BASE_URL}/admin/farmers/${farmerId}/verify`, {
+      await fetch(`${API_BASE_URL}/admin/farmers/${encodeURIComponent(farmerId)}/verify`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          email: targetFarmer?.email,
           status: 'needs_evidence',
           rejectionReason,
           adminNotes,
@@ -165,7 +217,7 @@ export const ManageFarmers: React.FC = () => {
       actionUrl: '/farmer/dashboard',
     });
 
-    refreshFarmers();
+    await fetchLiveFarmers();
     setReviewAction('none');
     if (selectedFarmer) setSelectedFarmer(null);
     setRejectionReason('');
@@ -211,6 +263,16 @@ export const ManageFarmers: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={fetchLiveFarmers}
+            disabled={isLoading}
+            className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold text-xs rounded-2xl shadow-soft transition-all cursor-pointer disabled:opacity-50"
+            title="Refresh Live Data from Cloud"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-emerald-600 ${isLoading ? 'animate-spin' : ''}`} />
+            <span>{isLoading ? 'Syncing...' : 'Refresh'}</span>
+          </button>
           <div className="text-xs font-bold text-slate-600 bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-soft">
             Total Farmers: <strong className="text-emerald-700">{farmers.length}</strong>
           </div>
@@ -486,12 +548,16 @@ export const ManageFarmers: React.FC = () => {
                   </div>
 
                   {selectedFarmer.verificationDocuments?.documentUrl ||
-                  selectedFarmer.verificationDocuments?.landDocumentImage ? (
+                  selectedFarmer.verificationDocuments?.landDocumentImage ||
+                  selectedFarmer.documentUrl ||
+                  selectedFarmer.landDocumentImage ? (
                     <div className="relative h-36 rounded-xl overflow-hidden border border-slate-300 group bg-slate-900/10">
                       <img
                         src={
-                          selectedFarmer.verificationDocuments.documentUrl ||
-                          selectedFarmer.verificationDocuments.landDocumentImage
+                          selectedFarmer.verificationDocuments?.documentUrl ||
+                          selectedFarmer.verificationDocuments?.landDocumentImage ||
+                          selectedFarmer.documentUrl ||
+                          selectedFarmer.landDocumentImage
                         }
                         alt="Cultivation Document"
                         className="w-full h-full object-cover"
@@ -502,8 +568,10 @@ export const ManageFarmers: React.FC = () => {
                           setViewingImg({
                             title: 'Cultivation Evidence Document',
                             url:
-                              selectedFarmer.verificationDocuments.documentUrl ||
-                              selectedFarmer.verificationDocuments.landDocumentImage,
+                              selectedFarmer.verificationDocuments?.documentUrl ||
+                              selectedFarmer.verificationDocuments?.landDocumentImage ||
+                              selectedFarmer.documentUrl ||
+                              selectedFarmer.landDocumentImage,
                           })
                         }
                         className="absolute inset-0 bg-slate-900/60 text-white font-bold text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 cursor-pointer"
@@ -533,10 +601,10 @@ export const ManageFarmers: React.FC = () => {
                     </span>
                   </div>
 
-                  {selectedFarmer.verificationDocuments?.landImage ? (
+                  {selectedFarmer.verificationDocuments?.landImage || selectedFarmer.landImage ? (
                     <div className="relative h-36 rounded-xl overflow-hidden border border-slate-300 group bg-slate-900/10">
                       <img
-                        src={selectedFarmer.verificationDocuments.landImage}
+                        src={selectedFarmer.verificationDocuments?.landImage || selectedFarmer.landImage}
                         alt="Farm Land"
                         className="w-full h-full object-cover"
                       />
@@ -545,7 +613,7 @@ export const ManageFarmers: React.FC = () => {
                         onClick={() =>
                           setViewingImg({
                             title: 'Farm Land Field Image',
-                            url: selectedFarmer.verificationDocuments.landImage,
+                            url: selectedFarmer.verificationDocuments?.landImage || selectedFarmer.landImage,
                           })
                         }
                         className="absolute inset-0 bg-slate-900/60 text-white font-bold text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 cursor-pointer"

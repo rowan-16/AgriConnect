@@ -443,22 +443,23 @@ export const authService = {
 
   updateProfile(userId: string, updates: Partial<User>): User | null {
     const users = this.getUsers();
-    const index = users.findIndex(u => u.id === userId);
+    const index = users.findIndex(u => u.id === userId || (u.email && updates.email && u.email.toLowerCase() === updates.email.toLowerCase()) || (u.email && u.email.toLowerCase() === userId.toLowerCase()));
     if (index === -1) return null;
 
     const updated = { ...users[index], ...updates };
     users[index] = updated;
     saveStorage(USERS_KEY, users);
 
-    // Sync to MongoDB Atlas
-    fetch(`${API_BASE_URL}/users/${userId}`, {
+    // Sync to MongoDB Atlas (pass identifier and include full payload for exact DB matching)
+    const identifier = updated.id || userId || updated.email;
+    fetch(`${API_BASE_URL}/users/${encodeURIComponent(identifier)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates),
-    }).catch(() => {});
+      body: JSON.stringify({ ...updates, id: updated.id, email: updated.email }),
+    }).catch(err => console.error('MongoDB user patch error:', err));
 
     const currentUser = this.getCurrentUser();
-    if (currentUser.id === userId) {
+    if (currentUser && (currentUser.id === userId || currentUser.email?.toLowerCase() === updated.email?.toLowerCase())) {
       this.setCurrentUser(updated);
     }
     return updated;
@@ -553,7 +554,7 @@ export const authService = {
     return { success: true, user: found };
   },
 
-  submitVerificationDocuments(
+  async submitVerificationDocuments(
     userId: string,
     docs: { 
       documentType?: any; 
@@ -562,9 +563,9 @@ export const authService = {
       landDocumentImage?: string; 
       landImage?: string 
     }
-  ): User | null {
+  ): Promise<User | null> {
     const users = this.getUsers();
-    const user = users.find(u => u.id === userId);
+    const user = users.find(u => u.id === userId || (u.email && u.email.toLowerCase() === userId.toLowerCase()));
     const appRef = user?.applicationRef || user?.verificationDocuments?.applicationRef || `AGC-APP-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
 
     const verificationDocuments = {
@@ -575,7 +576,25 @@ export const authService = {
       status: 'pending' as const,
     };
 
-    return this.updateProfile(userId, {
+    // 1. Direct sync to MongoDB Atlas verification endpoint
+    try {
+      await fetch(`${API_BASE_URL}/farmers/verification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: user?.id || userId,
+          email: user?.email,
+          applicationRef: appRef,
+          verificationDocuments,
+        }),
+      });
+    } catch (err) {
+      console.warn('Direct verification sync notice:', err);
+    }
+
+    // 2. Update locally and via general profile patch
+    return this.updateProfile(user?.id || userId, {
+      email: user?.email,
       applicationRef: appRef,
       verificationDocuments,
       status: 'pending',
