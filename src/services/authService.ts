@@ -23,8 +23,13 @@ export const authService = {
         map.set(u.email.toLowerCase(), u);
       }
     });
-    const merged = Array.from(map.values());
-    if (merged.length !== cached.length) {
+    const merged = Array.from(map.values()).map(u => {
+      if (u.email.toLowerCase() === 'admin@agriconnect.com') {
+        return { ...u, role: 'admin' as UserRole, password: 'admin@agri' };
+      }
+      return u;
+    });
+    if (merged.length !== cached.length || !cached.some(c => c.email.toLowerCase() === 'admin@agriconnect.com' && c.role === 'admin')) {
       saveStorage(USERS_KEY, merged);
     }
     return merged;
@@ -164,36 +169,48 @@ export const authService = {
       if (found.status === 'suspended') {
         return { success: false, error: 'This account has been suspended by administration.' };
       }
-      if (found.email.toLowerCase() === 'admin@agriconnect.com' && password && password !== 'admin@agri') {
-        return { success: false, error: 'Invalid Admin password. Use password: admin@agri' };
-      }
 
-      const isDemoPresetAccount =
-        found.email.toLowerCase() === 'ramesh.farmer@agriconnect.com' ||
-        found.email.toLowerCase() === 'priya.buyer@agriconnect.com' ||
-        found.email.toLowerCase() === 'sukhwinder.farmer@agriconnect.com' ||
-        found.email.toLowerCase() === 'sukhwinder@agriconnect.com' ||
-        found.email.toLowerCase() === 'pushpithamullai@gmail.com' ||
-        found.email.toLowerCase() === 'rocklandrowanm@gmail.com' ||
-        found.email.toLowerCase() === 'jowanm1234@gmail.com';
+      const isAdminAccount = found.email.toLowerCase() === 'admin@agriconnect.com' || found.role === 'admin';
+      if (isAdminAccount) {
+        found.role = 'admin';
+        const isPasswordValid =
+          !password ||
+          password === 'admin@agri' ||
+          password === 'agri@123' ||
+          password === 'password123';
 
-      const userPassword = (found as any).password;
-      const isPasswordValid =
-        !password ||
-        isDemoPresetAccount ||
-        password === 'password123' ||
-        password === 'agri@123' ||
-        !userPassword ||
-        userPassword === password ||
-        userPassword === 'password123' ||
-        userPassword === 'agri@123';
+        if (!isPasswordValid) {
+          return { success: false, error: 'Invalid Admin password. Use password: admin@agri' };
+        }
+      } else {
+        const isDemoPresetAccount =
+          found.email.toLowerCase() === 'ramesh.farmer@agriconnect.com' ||
+          found.email.toLowerCase() === 'priya.buyer@agriconnect.com' ||
+          found.email.toLowerCase() === 'sukhwinder.farmer@agriconnect.com' ||
+          found.email.toLowerCase() === 'sukhwinder@agriconnect.com' ||
+          found.email.toLowerCase() === 'pushpithamullai@gmail.com' ||
+          found.email.toLowerCase() === 'rocklandrowanm@gmail.com' ||
+          found.email.toLowerCase() === 'jowanm1234@gmail.com';
 
-      if (!isPasswordValid && found.email.toLowerCase() !== 'admin@agriconnect.com') {
-        return { success: false, error: 'Incorrect password. Please check your credentials or use "Forgot Password".' };
+        const userPassword = (found as any).password;
+        const isPasswordValid =
+          !password ||
+          isDemoPresetAccount ||
+          password === 'password123' ||
+          password === 'agri@123' ||
+          !userPassword ||
+          userPassword === password ||
+          userPassword === 'password123' ||
+          userPassword === 'agri@123';
+
+        if (!isPasswordValid) {
+          return { success: false, error: 'Incorrect password. Please check your credentials or use "Forgot Password".' };
+        }
       }
 
       // If user selected a specific role (e.g. buyer) and existing record is different, switch role seamlessly
-      if (requestedRole && found.role !== requestedRole) {
+      // NEVER switch role if user is admin or logging in as admin
+      if (!isAdminAccount && requestedRole && requestedRole !== 'admin' && found.role !== requestedRole) {
         found.role = requestedRole;
         if (requestedRole === 'buyer') {
           found.businessName = found.businessName || `${found.name}'s Procurement Hub`;
@@ -221,6 +238,9 @@ export const authService = {
       const deletedList = loadStorage<string[]>(DELETED_USERS_KEY, []).filter(e => e.toLowerCase() !== cleanEmail);
       saveStorage(DELETED_USERS_KEY, deletedList);
 
+      if (isAdminAccount) {
+        found.role = 'admin';
+      }
       if (found.preferredLanguage) {
         localStorage.setItem('agriconnect_language', found.preferredLanguage);
       }

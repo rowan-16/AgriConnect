@@ -210,6 +210,7 @@ export const INITIAL_USERS: User[] = [
     name: 'AgriConnect Admin',
     email: 'admin@agriconnect.com',
     role: 'admin',
+    password: 'admin@agri',
     phone: '04562 235 000',
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=300',
     location: 'Sivakasi, Tamil Nadu',

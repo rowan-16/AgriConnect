@@ -17,9 +17,9 @@ export const LoginPage: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated && user) {
       const fromPath = (location.state as any)?.from?.pathname;
-      const targetPath = (fromPath && fromPath.startsWith(`/${user.role}/`))
+      const targetPath = (fromPath && (fromPath.startsWith(`/${user.role}/`) || (user.role === 'admin' && fromPath.startsWith('/admin/'))))
         ? fromPath
-        : `/${user.role}/dashboard`;
+        : (user.role === 'admin' ? '/admin/dashboard' : `/${user.role}/dashboard`);
       navigate(targetPath, { replace: true });
     }
   }, [isAuthenticated, user, navigate, location.state]);
@@ -256,12 +256,15 @@ export const LoginPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const res = await login(email, password, rememberMe, selectedRole);
+      const cleanEmail = email.trim().toLowerCase();
+      const requestedRole = cleanEmail === 'admin@agriconnect.com' ? 'admin' : selectedRole;
+      const res = await login(email, password, rememberMe, requestedRole);
       if (res.success && res.user) {
         showToast(`Welcome back, ${res.user.name}!`, 'success', 'Login Successful');
         await notifyUserLogin(res.user, 'Password Authentication');
         setIsLoading(false);
-        navigate(`/${res.user.role}/dashboard`);
+        const destination = res.user.role === 'admin' ? '/admin/dashboard' : `/${res.user.role}/dashboard`;
+        navigate(destination);
       } else {
         setIsLoading(false);
         setError(res.error || 'Invalid credentials.');
@@ -520,7 +523,9 @@ export const LoginPage: React.FC = () => {
               type="submit"
               disabled={isLoading}
               className={`w-full mt-2 py-3 disabled:bg-slate-300 text-white font-bold text-sm rounded-xl shadow-md transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer ${
-                selectedRole === 'buyer'
+                email.trim().toLowerCase() === 'admin@agriconnect.com'
+                  ? 'bg-purple-700 hover:bg-purple-800 shadow-purple-700/25 ring-2 ring-purple-600/30'
+                  : selectedRole === 'buyer'
                   ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/25'
                   : 'bg-agri-600 hover:bg-agri-700 shadow-agri-600/25'
               }`}
@@ -532,7 +537,9 @@ export const LoginPage: React.FC = () => {
                 </div>
               ) : (
                 <>
-                  {selectedRole === 'buyer'
+                  {email.trim().toLowerCase() === 'admin@agriconnect.com'
+                    ? 'Sign In to Admin Console'
+                    : selectedRole === 'buyer'
                     ? 'Sign In to Commercial Buyer Portal'
                     : 'Sign In to Farmer Portal'}
                   <ArrowRight className="w-4 h-4" />

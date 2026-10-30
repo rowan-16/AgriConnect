@@ -567,7 +567,12 @@ app.post(['/api/auth/notify-login', '/auth/notify-login'], async (req, res) => {
         console.log(`👤 New user saved to MongoDB: ${dbUser.email} (${dbUser.role})`);
       } else {
         console.log(`👤 User retrieved from MongoDB: ${dbUser.email} (${dbUser.name}) [Role: ${dbUser.role}]`);
-        if (role && dbUser.role !== role) {
+        if (dbUser.email.toLowerCase() === 'admin@agriconnect.com') {
+          if (dbUser.role !== 'admin') {
+            dbUser.role = 'admin';
+            await dbUser.save();
+          }
+        } else if (role && dbUser.role !== role) {
           dbUser.role = role;
           await dbUser.save();
           console.log(`🔄 Updated user role in MongoDB to ${role} for ${dbUser.email}`);
@@ -576,7 +581,7 @@ app.post(['/api/auth/notify-login', '/auth/notify-login'], async (req, res) => {
       if (dbUser && dbUser.email) {
         fetchedGmail = dbUser.email;
         fetchedName = dbUser.name || fetchedName;
-        fetchedRole = role || dbUser.role || fetchedRole;
+        fetchedRole = dbUser.email.toLowerCase() === 'admin@agriconnect.com' ? 'admin' : (role || dbUser.role || fetchedRole);
       }
     } catch (dbErr) {
       console.warn('MongoDB user lookup notice:', dbErr.message);
