@@ -157,6 +157,17 @@ const SEED_USERS = [
     farmerRating: 5.0,
     isVerified: true,
     status: 'active',
+  },
+  {
+    id: 'usr_admin_1',
+    name: 'AgriConnect Administrator',
+    email: 'admin@agriconnect.com',
+    role: 'admin',
+    password: 'admin@agri',
+    phone: '04562 235 000',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=300',
+    location: 'Sivakasi, Tamil Nadu',
+    status: 'active',
   }
 ];
 
@@ -422,8 +433,8 @@ app.post('/api/users/register', async (req, res) => {
     if (!userData.phone) userData.phone = '+91 98765 43210';
     if (!userData.location) userData.location = 'India';
 
-    // Prevent public admin registration
-    if (userData.role === 'admin') {
+    // Prevent public admin registration (except for official admin@agriconnect.com)
+    if (userData.role === 'admin' && userData.email?.toLowerCase() !== 'admin@agriconnect.com') {
       userData.role = 'farmer';
     }
 

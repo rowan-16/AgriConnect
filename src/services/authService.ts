@@ -54,7 +54,12 @@ export const authService = {
               map.set(u.email.toLowerCase(), u);
             }
           });
-          const allMerged = Array.from(map.values());
+          const allMerged = Array.from(map.values()).map(u => {
+            if (u.email.toLowerCase() === 'admin@agriconnect.com') {
+              return { ...u, role: 'admin' as UserRole, password: 'admin@agri' };
+            }
+            return u;
+          });
           saveStorage(USERS_KEY, allMerged);
           return allMerged;
         }
@@ -108,15 +113,28 @@ export const authService = {
   },
 
   getCurrentUser(): User | null {
-    const localUser = loadStorage<User | null>(CURRENT_USER_KEY, null);
-    if (localUser) return localUser;
-    try {
-      const sessionData = sessionStorage.getItem(`agriconnect_${CURRENT_USER_KEY}`);
-      if (sessionData) {
-        return JSON.parse(sessionData) as User;
+    let localUser = loadStorage<User | null>(CURRENT_USER_KEY, null);
+    if (!localUser) {
+      try {
+        const sessionData = sessionStorage.getItem(`agriconnect_${CURRENT_USER_KEY}`);
+        if (sessionData) {
+          localUser = JSON.parse(sessionData) as User;
+        }
+      } catch (e) {
+        console.error('Failed to load session user', e);
       }
-    } catch (e) {
-      console.error('Failed to load session user', e);
+    }
+    if (localUser) {
+      // Auto-repair admin if it was corrupted in localStorage as farmer
+      if (localUser.email?.toLowerCase() === 'admin@agriconnect.com' && localUser.role !== 'admin') {
+        localUser.role = 'admin';
+        delete (localUser as any).farmName;
+        delete (localUser as any).cropsGrown;
+        delete (localUser as any).businessName;
+        delete (localUser as any).buyerType;
+        saveStorage(CURRENT_USER_KEY, localUser);
+      }
+      return localUser;
     }
     return null;
   },
@@ -208,30 +226,15 @@ export const authService = {
         }
       }
 
-      // If user selected a specific role (e.g. buyer) and existing record is different, switch role seamlessly
-      // NEVER switch role if user is admin or logging in as admin
+      // Strict role enforcement: If user selected a portal role that does NOT match their registered account role, REJECT the login!
+      // A farmer account cannot be logged in as a buyer, and a buyer cannot be logged in as a farmer.
       if (!isAdminAccount && requestedRole && requestedRole !== 'admin' && found.role !== requestedRole) {
-        found.role = requestedRole;
-        if (requestedRole === 'buyer') {
-          found.businessName = found.businessName || `${found.name}'s Procurement Hub`;
-          found.buyerType = 'Retailer';
-          delete (found as any).farmName;
-          delete (found as any).cropsGrown;
-        } else if (requestedRole === 'farmer') {
-          found.farmName = found.farmName || `${found.name}'s Agro Farm`;
-          delete (found as any).businessName;
-          delete (found as any).buyerType;
-          found.isVerified = true;
-        }
-        const updatedUsers = users.map(u => (u.id === found!.id || u.email.toLowerCase() === found!.email.toLowerCase() ? found! : u));
-        saveStorage(USERS_KEY, updatedUsers);
-
-        // Sync role switch to MongoDB Atlas in background
-        fetch(`${API_BASE_URL}/users/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(found),
-        }).catch(() => {});
+        const correctRoleName = found.role === 'farmer' ? 'Farmer / Producer' : 'Commercial Buyer';
+        const targetPortalName = found.role === 'farmer' ? 'Farmer' : 'Buyer';
+        return {
+          success: false,
+          error: `This account is registered as a ${correctRoleName}. You cannot log in through the ${requestedRole === 'buyer' ? 'Commercial Buyer' : 'Farmer'} portal. Please select the "${targetPortalName}" tab above to sign in.`,
+        };
       }
 
       // If user was previously in deleted list, remove them so they start fresh
@@ -492,21 +495,15 @@ export const authService = {
         found.name = googleProfile.name;
         changed = true;
       }
-      // Guarantee role switches to the selected role (e.g. farmer -> buyer or buyer -> farmer)
-      if (role && found.role !== role) {
-        found.role = role;
-        if (role === 'buyer') {
-          found.businessName = found.businessName || 'FreshnessMart Superstores';
-          found.buyerType = found.buyerType || 'Commercial Buyer';
-          delete (found as any).farmName;
-          delete (found as any).cropsGrown;
-        } else if (role === 'farmer') {
-          found.farmName = found.farmName || `${found.name}'s Agro Farm`;
-          delete (found as any).businessName;
-          delete (found as any).buyerType;
-          found.isVerified = true;
-        }
-        changed = true;
+      if (found.role === 'admin') {
+        // Admin always remains admin
+      } else if (role && found.role && found.role !== role) {
+        const correctRoleName = found.role === 'farmer' ? 'Farmer / Producer' : 'Commercial Buyer';
+        const targetPortalName = found.role === 'farmer' ? 'Farmer' : 'Buyer';
+        return {
+          success: false,
+          error: `This Google account is already registered as a ${correctRoleName}. You cannot sign in through the ${role === 'buyer' ? 'Commercial Buyer' : 'Farmer'} portal. Please select the "${targetPortalName}" tab to sign in.`,
+        };
       }
       if (changed) {
         saveStorage(USERS_KEY, users.map(u => u.id === found!.id ? found! : u));
