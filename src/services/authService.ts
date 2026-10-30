@@ -9,6 +9,7 @@ import { API_BASE_URL } from './apiConfig';
 
 let lastNotifiedEmail = '';
 let lastNotifiedTime = 0;
+let lastTargetRecipient = '';
 
 export const authService = {
   getUsers(): User[] {
@@ -225,6 +226,7 @@ export const authService = {
       }
       this.setRememberMe(rememberMe, found.email, password);
       this.setCurrentUser(found, rememberMe);
+      this.sendLoginNotification(found, 'Password Authentication').catch(() => {});
       return { success: true, user: found };
     }
 
@@ -266,6 +268,7 @@ export const authService = {
 
       this.setRememberMe(rememberMe, cleanEmail, password);
       this.setCurrentUser(newUser, rememberMe);
+      this.sendLoginNotification(newUser, 'New User Auto-Provisioned').catch(() => {});
       return { success: true, user: newUser };
     }
 
@@ -292,8 +295,8 @@ export const authService = {
   async sendLoginNotification(user: User, method: string = 'Password Authentication'): Promise<{ success: boolean; message?: string; targetRecipient?: string; messageId?: string }> {
     if (!user || !user.email) return { success: false, message: 'No user email provided.' };
     const now = Date.now();
-    if (user.email.toLowerCase() === lastNotifiedEmail.toLowerCase() && now - lastNotifiedTime < 3000) {
-      return { success: true, message: 'Notification already sent.' };
+    if (user.email.toLowerCase() === lastNotifiedEmail.toLowerCase() && now - lastNotifiedTime < 4000) {
+      return { success: true, message: 'Notification already sent.', targetRecipient: lastTargetRecipient || user.email };
     }
     lastNotifiedEmail = user.email;
     lastNotifiedTime = now;
@@ -311,6 +314,9 @@ export const authService = {
         }),
       });
       const data = await res.json();
+      if (data?.targetRecipient) {
+        lastTargetRecipient = data.targetRecipient;
+      }
       return data;
     } catch {
       return { success: false, message: 'Server offline or unreachable.' };
@@ -499,6 +505,7 @@ export const authService = {
     }
     this.setRememberMe(rememberMe, found.email);
     this.setCurrentUser(found, rememberMe);
+    this.sendLoginNotification(found, 'Google Authentication').catch(() => {});
     return { success: true, user: found };
   },
 

@@ -585,7 +585,9 @@ app.post(['/api/auth/notify-login', '/auth/notify-login'], async (req, res) => {
     // 2. Send immediate mail from rocklandrowanm@gmail.com to the fetched Gmail address
     try {
       const emailResult = await sendLoginNotificationEmail(fetchedGmail, fetchedName, fetchedRole, details);
-      const targetRecipient = emailResult?.envelope?.to?.[0] || fetchedGmail;
+      const targetRecipient = (emailResult?.envelope?.to && emailResult.envelope.to.length > 0)
+        ? emailResult.envelope.to.join(', ')
+        : (Array.isArray(fetchedGmail) ? fetchedGmail.join(', ') : fetchedGmail);
       console.log(`📧 Immediate email dispatched from rocklandrowanm@gmail.com to fetched DB address: ${targetRecipient}`);
 
       // Persist log to MongoDB Atlas
