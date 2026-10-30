@@ -404,70 +404,28 @@ export const LoginPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 text-amber-500" />
-                <span>Quick 1-Click User Logins:</span>
+                {t('quickDemoLogins', 'Quick 1-Click Demo Logins:')}
               </span>
-              <span className="text-[10px] text-slate-500 font-semibold uppercase">SMTP Security Alert Ready</span>
+              <span className="text-[10px] text-slate-400 font-semibold uppercase">{t('evaluatorPresets', 'Evaluator Presets')}</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => handleDemoSelect('jowanm1234@gmail.com')}
-                className="px-2.5 py-2 bg-white hover:bg-emerald-50 border border-emerald-300 text-emerald-900 text-[11px] font-bold rounded-xl shadow-xs transition-all text-left truncate hover:scale-[1.02] flex items-center gap-1.5 cursor-pointer"
-                title="Jowan M (jowanm1234@gmail.com) - Farmer / Buyer"
-              >
-                <Sprout className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span className="truncate">Jowan M (Farmer/Buyer)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleDemoSelect('rocklandrowanm@gmail.com')}
-                className="px-2.5 py-2 bg-white hover:bg-emerald-50 border border-emerald-300 text-emerald-900 text-[11px] font-bold rounded-xl shadow-xs transition-all text-left truncate hover:scale-[1.02] flex items-center gap-1.5 cursor-pointer"
-                title="Rockland Rowan M (rocklandrowanm@gmail.com) - Farmer"
-              >
-                <Sprout className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span className="truncate">Rowan M (Farmer)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleDemoSelect('pushpithamullai@gmail.com')}
-                className="px-2.5 py-2 bg-white hover:bg-amber-50 border border-amber-300 text-amber-900 text-[11px] font-bold rounded-xl shadow-xs transition-all text-left truncate hover:scale-[1.02] flex items-center gap-1.5 cursor-pointer"
-                title="Pushpitha .K (pushpithamullai@gmail.com) - Buyer"
-              >
-                <ShoppingBag className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                <span className="truncate">Pushpitha .K (Buyer)</span>
-              </button>
-
+            <div className="grid grid-cols-2 gap-3 pt-1">
               <button
                 type="button"
                 onClick={() => handleDemoSelect('ramesh.farmer@agriconnect.com')}
-                className="px-2.5 py-2 bg-white hover:bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold rounded-xl shadow-xs transition-all text-left truncate hover:scale-[1.02] flex items-center gap-1.5 cursor-pointer"
-                title="Ramesh Patel (ramesh.farmer@agriconnect.com)"
+                className="px-3 py-2 bg-white hover:bg-emerald-50 border border-emerald-300 text-emerald-800 text-[11px] font-bold rounded-xl shadow-xs transition-all text-center truncate hover:scale-[1.02] flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <Sprout className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span className="truncate">Ramesh (Farmer)</span>
+                <Sprout className="w-3.5 h-3.5 text-emerald-600" />
+                <span>{t('autoFillFarmer', 'Auto-fill Farmer')}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleDemoSelect('priya.buyer@agriconnect.com')}
-                className="px-2.5 py-2 bg-white hover:bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-bold rounded-xl shadow-xs transition-all text-left truncate hover:scale-[1.02] flex items-center gap-1.5 cursor-pointer"
-                title="Priya Sharma (priya.buyer@agriconnect.com)"
+                className="px-3 py-2 bg-white hover:bg-amber-50 border border-amber-300 text-amber-800 text-[11px] font-bold rounded-xl shadow-xs transition-all text-center truncate hover:scale-[1.02] flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <ShoppingBag className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                <span className="truncate">Priya (Buyer)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleDemoSelect('admin@agriconnect.com')}
-                className="px-2.5 py-2 bg-white hover:bg-purple-50 border border-purple-200 text-purple-800 text-[11px] font-bold rounded-xl shadow-xs transition-all text-left truncate hover:scale-[1.02] flex items-center gap-1.5 cursor-pointer"
-                title="AgriConnect Admin (admin@agriconnect.com)"
-              >
-                <Lock className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                <span className="truncate">Admin Portal</span>
+                <ShoppingBag className="w-3.5 h-3.5 text-amber-600" />
+                <span>{t('autoFillBuyer', 'Auto-fill Buyer')}</span>
               </button>
             </div>
           </div>
