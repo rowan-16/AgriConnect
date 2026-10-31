@@ -212,8 +212,10 @@ export const CheckoutPage: React.FC = () => {
         else if (selectedMethod === 'card') rzpMethod = 'card';
         else if (selectedMethod === 'netbanking') rzpMethod = 'netbanking';
 
+        const activeKey = serverOrder.keyId || (import.meta as any).env?.VITE_RAZORPAY_KEY_ID || 'rzp_live_TtrURgLiWj8wei';
+
         const options = {
-          key: serverOrder.keyId || (import.meta as any).env?.VITE_RAZORPAY_KEY_ID || '',
+          key: activeKey,
           amount: serverOrder.amountInPaise,
           currency: serverOrder.currency || 'INR',
           name: 'AgriConnect Marketplace',
@@ -261,10 +263,18 @@ export const CheckoutPage: React.FC = () => {
           },
         };
 
-        const razorpayInstance = new (window as any).Razorpay(options);
-        razorpayInstance.open();
-        setIsProcessingGateway(false);
-        return;
+        try {
+          const razorpayInstance = new (window as any).Razorpay(options);
+          razorpayInstance.on('payment.failed', function (failResp: any) {
+            setIsProcessingGateway(false);
+            showToast(failResp.error?.description || 'Payment was declined or cancelled.', 'error');
+          });
+          razorpayInstance.open();
+          setIsProcessingGateway(false);
+          return;
+        } catch (openErr) {
+          console.warn('Razorpay live checkout could not be launched, falling back to simulated sandbox:', openErr);
+        }
       }
 
       // If gateway is in Sandbox / Test simulation mode, present high-fidelity Razorpay Test Modal

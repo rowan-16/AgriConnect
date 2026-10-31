@@ -101,7 +101,7 @@ export const paymentService = {
 
       return {
         success: true,
-        keyId: (import.meta as any).env?.VITE_RAZORPAY_KEY_ID || '',
+        keyId: (import.meta as any).env?.VITE_RAZORPAY_KEY_ID || 'rzp_live_TtrURgLiWj8wei',
         razorpayOrderId: `order_${Date.now()}_local`,
         amountInPaise: Math.round(total * 100),
         amountInRupees: total,
